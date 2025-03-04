@@ -1,10 +1,32 @@
 package luyen.tradebot.Trade.service;
 
 import jakarta.validation.Valid;
+import luyen.tradebot.Trade.controller.request.UserCreationRequest;
+import luyen.tradebot.Trade.controller.request.UserPasswordRequest;
+import luyen.tradebot.Trade.controller.request.UserUpdateRequest;
+import luyen.tradebot.Trade.controller.response.UserResponse;
 import luyen.tradebot.Trade.dto.request.UserRequestDTO;
+
+import java.util.List;
 
 public interface UserService {
 
-    int addUser(UserRequestDTO userRequestDTO);
+    List<UserResponse> fillAll();
+
+    UserResponse findByid(Long id);
+
+    UserResponse findByUsername(String username);
+
+    UserResponse findByEmail(String email);
+
+    long save(UserCreationRequest req);
+
+    void update(UserUpdateRequest req);
+
+    void changePassword(UserPasswordRequest req);
+
+    void delete(Long id);
+
+
 
 }

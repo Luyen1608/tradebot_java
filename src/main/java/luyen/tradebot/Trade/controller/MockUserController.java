@@ -7,7 +7,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import luyen.tradebot.Trade.controller.request.UserCreationRequest;
 import luyen.tradebot.Trade.dto.request.UserRequestDTO;
 import luyen.tradebot.Trade.dto.respone.ResponseData;
 import luyen.tradebot.Trade.dto.respone.ResponseError;
@@ -17,36 +19,36 @@ import org.apache.catalina.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
-@RequestMapping("/user")
+@RequestMapping("/mockUser")
 @Validated
 @Slf4j
-@Tag(name = "User Controller")
-public class UserController {
+@Tag(name = "Mockup User Controller")
+@RequiredArgsConstructor()
+public class MockUserController {
 
-//    @Autowired
-//    private UserService userService;
+//    private final UserService userService;
 
     @PostMapping(value = "/")
 //    @RequestMapping(method=RequestMethod.POST, headers = "apiKey=v1.0")
 //    @ResponseStatus(HttpStatus.CREATED)
-    public ResponseData<Integer> addUser(@Valid @RequestBody UserRequestDTO user) {
-//        return new ResponseError(HttpStatus.BAD_REQUEST.value(), "Can not add user");
-        log.info("Adding user: {} {}" , user.getFirstName(), user.getLastName());
-        try {
-//            userService.addUser(user);
-            return new ResponseData<>(HttpStatus.CREATED.value(), "User created", 1);
-        } catch (Exception e) {
-            return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
-//            return new ResponseError(HttpStatus.BAD_REQUEST.value(), "Save user failed");
-        }
-    }
+    public ResponseEntity<Object> addUser(@Valid @RequestBody UserCreationRequest request) {
 
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("status", HttpStatus.CREATED.value());
+        result.put("message","User created successfully");
+//        result.put("data",userService.save(request));
+        return new ResponseEntity<>(result, HttpStatus.CREATED);
+    }
     @Operation(summary = "summary", description = "description", responses = {
             @ApiResponse(responseCode = "202", description = "User Updated successfully",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
