@@ -7,13 +7,8 @@ import luyen.tradebot.Trade.controller.request.UserCreationRequest;
 import luyen.tradebot.Trade.controller.request.UserPasswordRequest;
 import luyen.tradebot.Trade.controller.request.UserUpdateRequest;
 import luyen.tradebot.Trade.controller.response.UserResponse;
-import luyen.tradebot.Trade.model.AddressEntity;
-import luyen.tradebot.Trade.model.UserEntity;
 import luyen.tradebot.Trade.service.UserService;
-import luyen.tradebot.Trade.util.UserStatus;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,7 +45,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
+//    @Transactional(rollbackFor = Exception.class)
     public long save(UserCreationRequest req) {
 //        log.info("Saving user {}", req);
 //        UserEntity user = new UserEntity();

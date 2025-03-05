@@ -1,0 +1,13 @@
+server:
+  port: 8082
+spring:
+  config:
+    activate:
+      on-profile: prod
+open:
+  api:
+    serverName: "api-service prod"
+    server: "https://localhost:${server.port}"
+    title: "API service prod"
+    version: "1.0.0"
+    description: "API for backend description prod"

@@ -32,6 +32,7 @@ public class UserController {
 //    @Autowired
 //    private UserService userService;
 
+    @Operation(summary = "Add user", description = "API create new user")
     @PostMapping(value = "/")
 //    @RequestMapping(method=RequestMethod.POST, headers = "apiKey=v1.0")
 //    @ResponseStatus(HttpStatus.CREATED)
@@ -47,7 +48,7 @@ public class UserController {
         }
     }
 
-    @Operation(summary = "summary", description = "description", responses = {
+    @Operation(summary = "Update User", description = "description", responses = {
             @ApiResponse(responseCode = "202", description = "User Updated successfully",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             examples = @ExampleObject(name = "ex name", summary = "ex summary",

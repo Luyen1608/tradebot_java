@@ -1,0 +1,5 @@
+spring:
+  application:
+    name : Trade
+  profiles:
+    active: @spring.profiles.active@

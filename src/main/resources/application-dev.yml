@@ -1,0 +1,14 @@
+server:
+  port: 8080
+spring:
+  config:
+    activate:
+      on-profile: dev
+open:
+  api:
+    serverName: api-service dev
+    server: https://localhost:${server.port}
+    title: ${API_TITLE:DUMMY-API-TITLE}
+    version: 1.0.0
+    description: API for backend description dev
+

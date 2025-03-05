@@ -1,0 +1,27 @@
+version: "3.9"
+services:
+  api-service:
+    container_name: api-container1
+#    image: api-image-sample
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    environment:
+      API_TITLE_COMPOSE: API doc dev compose
+    env_file:
+      - .env
+    ports:
+      - '8088:80'
+    networks:
+      - backend
+#  api-service-test:
+#    container_name: api-container2
+#    image: api-image-sample
+#    ports:
+#      - '8089:8080'
+#    networks:
+#      - backend
+networks:
+  backend:
+    driver: bridge
+
