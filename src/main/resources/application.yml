@@ -2,4 +2,5 @@ spring:
   application:
     name : Trade
   profiles:
-    active: @spring.profiles.active@
+    active: dev
+#    active: @spring.profiles.active@

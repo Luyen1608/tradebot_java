@@ -1,9 +1,27 @@
 server:
-  port: 8080
+  port: 8068
 spring:
   config:
     activate:
       on-profile: dev
+  devtools:
+    add-properties: true
+  datasource:
+    url: ${POSTGRESQL_URL:jdbc:postgresql://localhost:5432/postgres}
+    username: ${POSTGRESQL_USER:postgres}
+    password: ${POSTGRESQL_PASSWORD:luyendv@123}
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    show_sql: false
+    hibernate:
+      ddl-auto: none
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
 open:
   api:
     serverName: api-service dev
