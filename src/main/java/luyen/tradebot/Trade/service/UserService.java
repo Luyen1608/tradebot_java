@@ -6,6 +6,7 @@ import luyen.tradebot.Trade.controller.request.UserPasswordRequest;
 import luyen.tradebot.Trade.controller.request.UserUpdateRequest;
 import luyen.tradebot.Trade.controller.response.UserResponse;
 import luyen.tradebot.Trade.dto.request.UserRequestDTO;
+import luyen.tradebot.Trade.dto.respone.UserDetailResponse;
 
 import java.util.List;
 
@@ -27,6 +28,7 @@ public interface UserService {
 
     void delete(Long id);
 
-
+    UserDetailResponse getUser(long userId);
+    List<UserDetailResponse> getAllUsers(int pageNo, int pageSize);
 
 }
