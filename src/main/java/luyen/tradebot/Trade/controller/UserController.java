@@ -29,8 +29,8 @@ import java.util.List;
 @Tag(name = "User Controller")
 public class UserController {
 
-//    @Autowired
-//    private UserService userService;
+    @Autowired
+    private UserService userService;
 
     @Operation(summary = "Add user", description = "API create new user")
     @PostMapping(value = "/")
@@ -40,7 +40,7 @@ public class UserController {
 //        return new ResponseError(HttpStatus.BAD_REQUEST.value(), "Can not add user");
         log.info("Adding user: {} {}" , user.getFirstName(), user.getLastName());
         try {
-//            userService.addUser(user);
+            userService.save(user);
             return new ResponseData<>(HttpStatus.CREATED.value(), "User created", 1);
         } catch (Exception e) {
             return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());

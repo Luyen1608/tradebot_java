@@ -7,6 +7,7 @@ import luyen.tradebot.Trade.controller.request.UserUpdateRequest;
 import luyen.tradebot.Trade.controller.response.UserResponse;
 import luyen.tradebot.Trade.dto.request.UserRequestDTO;
 import luyen.tradebot.Trade.dto.respone.UserDetailResponse;
+import luyen.tradebot.Trade.util.UserStatus;
 
 import java.util.List;
 
@@ -20,15 +21,20 @@ public interface UserService {
 
     UserResponse findByEmail(String email);
 
-    long save(UserCreationRequest req);
+    long save(UserRequestDTO req);
 
     void update(UserUpdateRequest req);
+
+    void updateUser(long id, UserRequestDTO req);
+
+    void changeStatus(long id, UserStatus status);
 
     void changePassword(UserPasswordRequest req);
 
     void delete(Long id);
 
     UserDetailResponse getUser(long userId);
+
     List<UserDetailResponse> getAllUsers(int pageNo, int pageSize);
 
 }

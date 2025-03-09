@@ -2,6 +2,7 @@ package luyen.tradebot.Trade.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import luyen.tradebot.Trade.dto.request.AddressRequestDTO;
 import luyen.tradebot.Trade.util.Gender;
 import luyen.tradebot.Trade.util.UserStatus;
 import luyen.tradebot.Trade.util.UserType;
@@ -11,6 +12,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Getter
@@ -31,6 +34,8 @@ public class UserEntity extends AbstractEntity {
     private String email;
 
     @Column(name = "gender", length = 255)
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private Gender gender;
 
     @Column(name = "date_of_birth")
@@ -45,6 +50,19 @@ public class UserEntity extends AbstractEntity {
 
     @Column(name = "password", length = 255)
     private String password;
+
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, mappedBy = "user")
+    private Set<AddressEntity> addresses;
+
+
+    public void saveAddresses(AddressEntity address) {
+        if (address != null) {
+            addresses = new HashSet<>();
+        }
+        addresses.add(address);
+        address.setUser(this);
+    }
+
 
     @Column(name = "user_type", length = 255)
     @Enumerated(EnumType.STRING)

@@ -1,11 +1,9 @@
 package luyen.tradebot.Trade.model;
 
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
+import org.apache.catalina.User;
 
 import java.util.Date;
 
@@ -41,7 +39,8 @@ public class AddressEntity  extends AbstractEntity{
     @Column(name = "address_type", length = 255)
     private Integer addressType;
 
-    @Column(name = "user_id", length = 255)
-    private Long userId;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "user_id")
+    private UserEntity user;
 
 }
