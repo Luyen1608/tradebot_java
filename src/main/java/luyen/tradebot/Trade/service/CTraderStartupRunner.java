@@ -16,6 +16,12 @@ public class CTraderStartupRunner implements CommandLineRunner {
         String[] accessTokens = {
                 "-EhgUJQlzyY5HoqH8bsW025hwyRdx0-l1W-9hwuAfU4" // refresh AjbKN7vnygerNmd-vvnYMKqorqup0nw3r8jKEzpIl2U
         };
-        connectionManager.connectAll(accessTokens);
+        String[] clientIds = {
+                "13710_0O0OkCePyvqDVC0ggfQp8Gzc6EWwlEBPkLOcepSVHeVKYXl1LE" // refresh AjbKN7vnygerNmd-vvnYMKqorqup0nw3r8jKEzpIl2U
+        };
+        String[] secrets = {
+                "U9hXhfBS1mUo6OAW0giE2ulJnIHkBKt85dA19YLPnNsyhF8iNR" // refresh AjbKN7vnygerNmd-vvnYMKqorqup0nw3r8jKEzpIl2U
+        };
+        connectionManager.connectAll(accessTokens, clientIds, secrets) ;
     }
 }

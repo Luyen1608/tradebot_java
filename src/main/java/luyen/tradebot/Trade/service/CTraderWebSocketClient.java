@@ -10,12 +10,16 @@ import java.util.TimerTask;
 
 public class CTraderWebSocketClient extends WebSocketClient {
     private final String accessToken;
+    private final String clientId;
+    private final String secret;
     private Timer pingTimer;
 //    live.ctraderapi.com:5035 (for operating with Protobufs)	demo.ctraderapi.com:5035 (for operating with Protobufs)
 //    live.ctraderapi.com:5036 (for operating with JSON)	demo.ctraderapi.com:5036 (for operating with JSON)
-    public CTraderWebSocketClient(String accessToken) throws URISyntaxException {
+    public CTraderWebSocketClient(String accessToken, String clientId, String secret) throws URISyntaxException {
         super(new URI("wss://demo.ctraderapi.com:5035"));
         this.accessToken = accessToken;
+        this.clientId = clientId;
+        this.secret = secret;
     }
 
     @Override
@@ -45,7 +49,10 @@ public class CTraderWebSocketClient extends WebSocketClient {
 
     private void authenticate() {
 //        "{"clientMsgId": "cm_id_2", "payloadType": 2100, "payload": {"clientId": "34Rsd_T098asHkl","clientSecret": "validClientSecret"}}"
-        String authRequest = "{ \"payloadType\": \"ProtoOAGetAccountListByAccessTokenReq\", \"accessToken\": \"" + accessToken + "\" }";
+//        clientId 13710_0O0OkCePyvqDVC0ggfQp8Gzc6EWwlEBPkLOcepSVHeVKYXl1LE
+//            serect U9hXhfBS1mUo6OAW0giE2ulJnIHkBKt85dA19YLPnNsyhF8iNR
+        String authRequest = "{ \"clientMsgId\": \"cm_id_2\"," +
+                "\"payloadType\": \"2100\", \"payload\": \"{\"clientId\" : " + clientId + "\",\"clientSecret\" : " + secret + "\" }}";
         send(authRequest);
     }
 
