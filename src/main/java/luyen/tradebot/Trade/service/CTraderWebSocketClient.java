@@ -44,7 +44,8 @@ public class CTraderWebSocketClient extends WebSocketClient {
     }
 
     private void authenticate() {
-        String authRequest = "{ \"payloadType\": \"ProtoOAGetAccountsByAccessTokenReq\", \"accessToken\": \"" + accessToken + "\" }";
+//        "{"clientMsgId": "cm_id_2", "payloadType": 2100, "payload": {"clientId": "34Rsd_T098asHkl","clientSecret": "validClientSecret"}}"
+        String authRequest = "{ \"payloadType\": \"ProtoOAGetAccountListByAccessTokenReq\", \"accessToken\": \"" + accessToken + "\" }";
         send(authRequest);
     }
 
