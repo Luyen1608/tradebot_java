@@ -1,10 +1,9 @@
 package luyen.tradebot.Trade.service;
+
 import lombok.Getter;
-import lombok.Setter;
-import luyen.tradebot.Trade.controller.request.CtraderRequest;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
-import org.springframework.stereotype.Service;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.logging.Logger;
@@ -13,16 +12,20 @@ import java.util.logging.Logger;
 public class CTraderWebSocketClient extends WebSocketClient {
     private static final Logger logger = Logger.getLogger(CTraderWebSocketClient.class.getName());
     private final String accessToken;
-//
-//    private CTraderWebSocketClient() throws URISyntaxException {
-//        this(null);
-//    }
-//
-    public CTraderWebSocketClient(String accessToken) throws URISyntaxException {
+    private final CTraderConnectionManager connectionManager;
+
+    private CTraderWebSocketClient(CTraderConnectionManager connectionManager) throws URISyntaxException {
+        this(null, connectionManager);
+    }
+
+    //
+    public CTraderWebSocketClient(String accessToken, CTraderConnectionManager connectionManager) throws URISyntaxException {
 //        super(new URI("wss://" + host + ":" + port));
         super(new URI("wss://demo.ctraderapi.com:5036"));
         this.accessToken = accessToken;
+        this.connectionManager = connectionManager;
     }
+
 
 
     @Override
@@ -33,12 +36,13 @@ public class CTraderWebSocketClient extends WebSocketClient {
 
     @Override
     public void onMessage(String message) {
-        if (message.contains("\"payloadType\":2149")) {
+        if (message.contains("\"payloadType\":2150")) {
             logger.info("✅ Received Account List: " + message);
+            connectionManager.handleWebSocketResponse(this.accessToken, message);
         } else if (message.contains("errorCode")) {
             logger.severe("❌ Error from server: " + message);
         }
-        logger.info("📩 Received: " + message);
+        logger.info("📩 Received: ");
     }
 
     @Override
@@ -70,7 +74,7 @@ public class CTraderWebSocketClient extends WebSocketClient {
                 + "\"clientMsgId\": \"cm_id_2\","
                 + "\"payloadType\": 2149,"
                 + "\"payload\": {"
-                + "\"accessToken\": \""+accessToken+"\""
+                + "\"accessToken\": \"" + accessToken + "\""
                 + "}"
                 + "}";
 //        String request = "{ \"payloadType\": \"ProtoOAGetAccountListByAccessTokenReq\", \"accessToken\": \"" + accessToken + "\" }";
