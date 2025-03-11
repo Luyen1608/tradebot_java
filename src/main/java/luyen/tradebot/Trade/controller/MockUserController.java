@@ -165,7 +165,7 @@ public class MockUserController {
     }
 
     @Operation(summary = "get list user by Criteria")
-    @GetMapping("/search")
+    @GetMapping("/search-criteria")
     @ResponseStatus(HttpStatus.OK)
     public ResponseData<?> advanceSearchByCriteria(
             @RequestParam(required = false) String email,

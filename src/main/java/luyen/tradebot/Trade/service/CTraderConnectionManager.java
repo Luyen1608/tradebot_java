@@ -1,35 +1,39 @@
 package luyen.tradebot.Trade.service;
-import org.java_websocket.client.WebSocketClient;
+
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
+
 import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Logger;
 
 @Service
 public class CTraderConnectionManager {
+    private static final Logger logger = Logger.getLogger(CTraderConnectionManager.class.getName());
     private final Map<String, CTraderWebSocketClient> connections = new ConcurrentHashMap<>();
 
-    public void connectAll(String[] accessTokens, String[] clientIds, String[] secrets) {
-            connect("-EhgUJQlzyY5HoqH8bsW025hwyRdx0-l1W-9hwuAfU4", "13710_0O0OkCePyvqDVC0ggfQp8Gzc6EWwlEBPkLOcepSVHeVKYXl1LE",
-                    "U9hXhfBS1mUo6OAW0giE2ulJnIHkBKt85dA19YLPnNsyhF8iNR");
-    }
-
-    public void connect(String accessToken,String clientId, String secret) {
-        if (connections.containsKey(accessToken)) {
-            System.out.println("🔄 Already connected: " + accessToken);
+    public void connect(String accountId, String host, int port, String accessToken) {
+        if (connections.containsKey(accountId)) {
+            logger.info("🔄 Already connected: " + accountId);
             return;
         }
         try {
-            CTraderWebSocketClient client = new CTraderWebSocketClient(accessToken,clientId,secret);
-            client.connect();
-            connections.put(accessToken, client);
-        } catch (URISyntaxException e) {
-            System.err.println("❌ Error creating WebSocket for: " + accessToken);
+            CTraderWebSocketClient client = new CTraderWebSocketClient(accessToken);
+            client.connectBlocking();
+            connections.put(accountId, client);
+            logger.info("✅ Connected account: " + accountId);
+        } catch (URISyntaxException | InterruptedException e) {
+            logger.severe("❌ Error creating WebSocket for account: " + accountId);
         }
     }
 
-    public void disconnectAll() {
-        connections.values().forEach(WebSocketClient::close);
-        connections.clear();
+    public String requestAccountList(String accessToken) {
+        for (CTraderWebSocketClient client : connections.values()) {
+            if (client.getAccessToken().equals(accessToken) && client.isOpen()) {
+                return client.sendGetAccountListRequest();
+            }
+        }
+        return "⚠ No active WebSocket found for the provided accessToken.";
     }
 }
