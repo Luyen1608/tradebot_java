@@ -43,10 +43,10 @@ public class UserRequestDTO implements Serializable {
     @JsonFormat(pattern = "MM/dd/yyyy")
     private Date dateOfBirth;
 
-    @NotNull(message = "User Name not Null")
+//    @NotNull(message = "User Name not Null")
     private String userName;
 
-    @NotNull(message = "Pass world not Null")
+//    @NotNull(message = "Pass world not Null")
     private String passWord;
 
     @NotEmpty

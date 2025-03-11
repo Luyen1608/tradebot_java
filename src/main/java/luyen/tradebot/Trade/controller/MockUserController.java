@@ -133,11 +133,48 @@ public class MockUserController {
 
     @GetMapping("/list")
     @ResponseStatus(HttpStatus.OK)
-    public ResponseData<List<UserDetailResponse>> getListUser(
+    public ResponseData<?> getListUser(
             @RequestParam(required = false) String email,
             @RequestParam(defaultValue = "0") int pageNo,
-            @RequestParam(defaultValue = "10") int pageSize) {
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(required = false) String sortBy) {
         System.out.println("Request Get ListUser");
-        return new ResponseData<>(HttpStatus.OK.value(), "Get List User", userService.getAllUsers(pageNo,pageSize));
+        return new ResponseData<>(HttpStatus.OK.value(), "Get List User", userService.getAllUsersWithSortBys(pageNo,pageSize,sortBy));
+    }
+    @GetMapping("/list-multiple")
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseData<?> getListUserByMultipleColums(
+            @RequestParam(required = false) String email,
+            @RequestParam(defaultValue = "0") int pageNo,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(required = false) String... sorts) {
+        System.out.println("Request Get ListUser with sort by multiple column");
+        return new ResponseData<>(HttpStatus.OK.value(), "Get List User", userService.getAllUsersWithSortBysMultipleColums(pageNo,pageSize, sorts));
+    }
+    @Operation(summary = "get list user by sort page and search")
+    @GetMapping("/search")
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseData<?> getListUserSearch(
+            @RequestParam(required = false) String email,
+            @RequestParam(defaultValue = "0") int pageNo,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String sorts) {
+        System.out.println("Request Get ListUser with sort by multiple column");
+        return new ResponseData<>(HttpStatus.OK.value(), "Get List User", userService.getAllUsersWithSearch(pageNo,pageSize, search, sorts));
+    }
+
+    @Operation(summary = "get list user by Criteria")
+    @GetMapping("/search")
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseData<?> advanceSearchByCriteria(
+            @RequestParam(required = false) String email,
+            @RequestParam(defaultValue = "0") int pageNo,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(required = false) String sorts,
+            @RequestParam(required = false) String... search) {
+        //firstName:hung, lastName:nguyen, address:hanoi
+        System.out.println("Request Get ListUser with sort by multiple column");
+        return new ResponseData<>(HttpStatus.OK.value(), "Get List User", userService.advanceSearchByCriteria(pageNo,pageSize, sorts,search));
     }
 }

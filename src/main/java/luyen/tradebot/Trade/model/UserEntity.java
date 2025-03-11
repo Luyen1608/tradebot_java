@@ -1,5 +1,6 @@
 package luyen.tradebot.Trade.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import luyen.tradebot.Trade.dto.request.AddressRequestDTO;
@@ -15,13 +16,14 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
-@Entity
+
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "tbl_user")
+@Entity(name = "User")
 public class UserEntity extends AbstractEntity {
 
     @Column(name = "first_name", length = 255)
@@ -51,6 +53,7 @@ public class UserEntity extends AbstractEntity {
     @Column(name = "password", length = 255)
     private String password;
 
+    @JsonIgnore
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, mappedBy = "user")
     private Set<AddressEntity> addresses;
 

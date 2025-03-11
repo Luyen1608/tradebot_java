@@ -6,6 +6,7 @@ import luyen.tradebot.Trade.controller.request.UserPasswordRequest;
 import luyen.tradebot.Trade.controller.request.UserUpdateRequest;
 import luyen.tradebot.Trade.controller.response.UserResponse;
 import luyen.tradebot.Trade.dto.request.UserRequestDTO;
+import luyen.tradebot.Trade.dto.respone.PageResponse;
 import luyen.tradebot.Trade.dto.respone.UserDetailResponse;
 import luyen.tradebot.Trade.util.UserStatus;
 
@@ -35,6 +36,15 @@ public interface UserService {
 
     UserDetailResponse getUser(long userId);
 
-    List<UserDetailResponse> getAllUsers(int pageNo, int pageSize);
+    PageResponse<?> getAllUsersWithSortBys(int pageNo, int pageSize, String sortBy);
+
+    PageResponse<?> getAllUsersWithSortBysMultipleColums(int pageNo, int pageSize, String... sortBy);
+
+    PageResponse<?> getAllUsersWithSearch(int pageNo, int pageSize, String search, String sortBy);
+
+    PageResponse<?> advanceSearchByCriteria(int pageNo, int pageSize,  String sortBy,String... search);
+
+
+
 
 }

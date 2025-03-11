@@ -9,11 +9,11 @@ import java.util.Date;
 
 @Getter
 @Setter
-@Entity
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "tbl_address")
+@Entity(name = "Address")
 public class AddressEntity  extends AbstractEntity{
 
     @Column(name = "apartment_number", length = 255)
