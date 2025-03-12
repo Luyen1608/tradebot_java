@@ -42,7 +42,7 @@ public interface UserService {
 
     PageResponse<?> getAllUsersWithSearch(int pageNo, int pageSize, String search, String sortBy);
 
-    PageResponse<?> advanceSearchByCriteria(int pageNo, int pageSize,  String sortBy,String... search);
+    PageResponse<?> advanceSearchByCriteria(int pageNo, int pageSize,  String sortBy,String address, String... search);
 
 
 

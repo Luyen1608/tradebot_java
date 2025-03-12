@@ -3,12 +3,10 @@ package luyen.tradebot.Trade.repository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.*;
 import luyen.tradebot.Trade.dto.respone.PageResponse;
 import luyen.tradebot.Trade.dto.respone.UserDetailResponse;
+import luyen.tradebot.Trade.model.AddressEntity;
 import luyen.tradebot.Trade.model.UserEntity;
 import luyen.tradebot.Trade.repository.criteria.SearchCriteria;
 import luyen.tradebot.Trade.repository.criteria.UserSearchCriteriaQueryConsumer;
@@ -57,8 +55,6 @@ public class SearchRepository {
 
         List users = selectQuery.getResultList();
 
-
-
         //query ra số record
         StringBuilder sqlCountQuery = new StringBuilder(" SELECT count(*) FROM User u where 1=1");
         if (StringUtils.hasLength(search)) {
@@ -87,7 +83,7 @@ public class SearchRepository {
                 .build();
     }
 
-    public PageResponse<?> advanceSearchUser(int pageNo, int pageSize,  String sorts,String... searchs) {
+    public PageResponse<?> advanceSearchUser(int pageNo, int pageSize,  String sorts, String address, String... searchs) {
         //firstName:hung, lastName:nguyen, address:hanoi
         // 1. get list user
         List<SearchCriteria> searchCriteria = new ArrayList<>();
@@ -103,26 +99,43 @@ public class SearchRepository {
         }
 
         //2. get count record
-        List<UserEntity> users = getUsers(pageNo,pageSize, searchCriteria, sorts);
+        int page = 0;
+        if (pageNo > 0) {
+            page = pageNo - 1;
+        }
+        Long totalElements = getTotalElement(searchCriteria, address);
+
+
+        List<UserEntity> users = getUsers(page,pageSize, searchCriteria, sorts, address);
         return PageResponse.builder()
-                .pageNo(pageNo)
+                .pageNo(pageNo) // offset = vi tri ban ghi cua danh sach
                 .pageSize(pageSize)
-                .totalPage(0)
+                .totalPage(totalElements.intValue())
                 .items(users)
                 .build();
     }
-    private List<UserEntity> getUsers(int pageNo, int pageSize, List<SearchCriteria> criteriaList, String sorts) {
+
+
+    private List<UserEntity> getUsers(int pageNo, int pageSize, List<SearchCriteria> criteriaList, String sorts, String address) {
         CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
         CriteriaQuery<UserEntity> query = criteriaBuilder.createQuery(UserEntity.class);
         Root<UserEntity> root = query.from(UserEntity.class);
+
+
         // xu ly cac condition
         Predicate predicate = criteriaBuilder.conjunction();
         UserSearchCriteriaQueryConsumer queryConsumer = new UserSearchCriteriaQueryConsumer(criteriaBuilder, predicate, root);
 
-        criteriaList.forEach(queryConsumer);
-        predicate = queryConsumer.getPredicates();
-
-        query.where(predicate);
+        if (StringUtils.hasLength(address)) {
+            Join<AddressEntity, UserEntity> addressJoin = root.join("addresses");
+            Predicate addressPredicate = criteriaBuilder.like(addressJoin.get("city"), "%" + address + "%");
+            //search tren tat ca cac file cua Address ?
+            query.where(predicate, addressPredicate);
+        } else {
+            criteriaList.forEach(queryConsumer);
+            predicate = queryConsumer.getPredicates();
+            query.where(predicate);
+        }
 
         if (StringUtils.hasLength(sorts)) {
             //firstName:asc
@@ -138,5 +151,29 @@ public class SearchRepository {
             }
         }
         return entityManager.createQuery(query).setFirstResult(pageNo).setMaxResults(pageSize).getResultList();
+    }
+
+    private Long getTotalElement(List<SearchCriteria> criteriaList, String address) {
+        CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Long> query = criteriaBuilder.createQuery(Long.class);
+        Root<UserEntity> root = query.from(UserEntity.class);
+        // xu ly cac condition
+        Predicate predicate = criteriaBuilder.conjunction();
+        UserSearchCriteriaQueryConsumer queryConsumer = new UserSearchCriteriaQueryConsumer(criteriaBuilder, predicate, root);
+
+        if (StringUtils.hasLength(address)) {
+            Join<AddressEntity, UserEntity> addressJoin = root.join("addresses");
+            Predicate addressPredicate = criteriaBuilder.like(addressJoin.get("city"), "%" + address + "%");
+            query.select(criteriaBuilder.count(root));
+            query.where(predicate, addressPredicate);
+        } else {
+            criteriaList.forEach(queryConsumer);
+            predicate = queryConsumer.getPredicates();
+            query.select(criteriaBuilder.count(root));
+            query.where(predicate);
+        }
+
+        return entityManager.createQuery(query).getSingleResult();
+
     }
 }

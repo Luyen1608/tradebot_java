@@ -142,6 +142,7 @@ public class MockUserController {
         return new ResponseData<>(HttpStatus.OK.value(), "Get List User", userService.getAllUsersWithSortBys(pageNo,pageSize,sortBy));
     }
     @GetMapping("/list-multiple")
+    @Operation(summary = "Request Get ListUser with sort by multiple column")
     @ResponseStatus(HttpStatus.OK)
     public ResponseData<?> getListUserByMultipleColums(
             @RequestParam(required = false) String email,
@@ -172,9 +173,10 @@ public class MockUserController {
             @RequestParam(defaultValue = "0") int pageNo,
             @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(required = false) String sorts,
+            @RequestParam(required = false) String address,
             @RequestParam(required = false) String... search) {
         //firstName:hung, lastName:nguyen, address:hanoi
         System.out.println("Request Get ListUser with sort by multiple column");
-        return new ResponseData<>(HttpStatus.OK.value(), "Get List User", userService.advanceSearchByCriteria(pageNo,pageSize, sorts,search));
+        return new ResponseData<>(HttpStatus.OK.value(), "Get List User", userService.advanceSearchByCriteria(pageNo,pageSize, sorts,address, search));
     }
 }
