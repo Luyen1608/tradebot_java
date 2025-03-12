@@ -124,8 +124,19 @@ public class SearchRepository {
 
         query.where(predicate);
 
+        if (StringUtils.hasLength(sorts)) {
+            //firstName:asc
+            Pattern pattern = Pattern.compile("(\\w+?)(:)(asc|desc)");
+            Matcher matcher = pattern.matcher(sorts);
+            if (matcher.find()) {
+                String columnName = matcher.group(1);
+                if (matcher.group(3).equalsIgnoreCase("desc")) {
+                    query.orderBy(criteriaBuilder.desc(root.get(columnName)));
+                } else {
+                    query.orderBy(criteriaBuilder.asc(root.get(columnName)));
+                }
+            }
+        }
         return entityManager.createQuery(query).setFirstResult(pageNo).setMaxResults(pageSize).getResultList();
-
-
     }
 }

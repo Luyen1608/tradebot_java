@@ -23,14 +23,14 @@ public class UserSearchCriteriaQueryConsumer implements Consumer<SearchCriteria>
     @Override
     public void accept(SearchCriteria searchCriteria) {
         if (searchCriteria.getOperation().equals(">")){
-            builder.and(predicates,builder.greaterThanOrEqualTo(root.get(searchCriteria.getKeyword()), searchCriteria.getValue().toString()));
+            predicates =  builder.and(predicates,builder.greaterThanOrEqualTo(root.get(searchCriteria.getKeyword()), searchCriteria.getValue().toString()));
         } else if (searchCriteria.getOperation().equals("<")){
-            builder.and(predicates,builder.lessThanOrEqualTo(root.get(searchCriteria.getKeyword()), searchCriteria.getValue().toString()));
+            predicates =  builder.and(predicates,builder.lessThanOrEqualTo(root.get(searchCriteria.getKeyword()), searchCriteria.getValue().toString()));
         } else {
             if (root.get(searchCriteria.getKeyword()).getJavaType() == String.class) {
-                builder.and(predicates,builder.like(root.get(searchCriteria.getKeyword()), "%"+searchCriteria.getValue().toString() + "%"));
+                predicates =  builder.and(predicates,builder.like(root.get(searchCriteria.getKeyword()), "%"+searchCriteria.getValue().toString() + "%"));
             } else {
-                builder.and(predicates,builder.equal(root.get(searchCriteria.getKeyword()), searchCriteria.getValue().toString()));
+                predicates =  builder.and(predicates,builder.equal(root.get(searchCriteria.getKeyword()), searchCriteria.getValue().toString()));
             }
         }
     }
