@@ -18,8 +18,6 @@ import luyen.tradebot.Trade.repository.UserRepository;
 import luyen.tradebot.Trade.service.UserService;
 import luyen.tradebot.Trade.util.UserStatus;
 import luyen.tradebot.Trade.util.UserType;
-import org.apache.catalina.util.StringUtil;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -34,7 +32,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j(topic = "USER-SERVICE")
@@ -264,6 +261,18 @@ public class UserServiceImpl implements UserService {
     public PageResponse<?> advanceSearchByCriteria(int pageNo, int pageSize, String sortBy ,String address, String... search) {
         return searchRepository.advanceSearchUser(pageNo, pageSize,  sortBy,address, search);
     }
+
+    @Override
+    public PageResponse<?> searchBySpeciticaion(Pageable pageable, String[] user, String[] address) {
+        Page<UserEntity> users = userRepository.findAll(pageable);
+        return PageResponse.builder()
+                .pageNo(pageable.getPageNumber())
+                .pageSize(pageable.getPageSize())
+                .totalPage(users.getTotalPages())
+                .items(users.stream().toList())
+                .build();
+    }
+
 
     private UserEntity getUserById(long userId) {
         return userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User with id " + userId + " not found"));

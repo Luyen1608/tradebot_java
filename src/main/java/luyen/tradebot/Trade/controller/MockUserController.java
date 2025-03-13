@@ -22,6 +22,7 @@ import luyen.tradebot.Trade.service.UserService;
 import luyen.tradebot.Trade.util.UserStatus;
 import org.apache.catalina.User;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -178,5 +179,15 @@ public class MockUserController {
         //firstName:hung, lastName:nguyen, address:hanoi
         System.out.println("Request Get ListUser with sort by multiple column");
         return new ResponseData<>(HttpStatus.OK.value(), "Get List User", userService.advanceSearchByCriteria(pageNo,pageSize, sorts,address, search));
+    }
+    @Operation(summary = "Search with speciticaion  ", description = "Send a request API get user list by page and search with user and address")
+    @GetMapping("/search-speciticaion")
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseData<?> searchBySpeciticaion(Pageable pageable,
+                                                @RequestParam(required = false) String[] user,
+                                                @RequestParam(required = false) String[] address) {
+        //firstName:hung, lastName:nguyen, address:hanoi
+        System.out.println("Request Get ListUser with sort by multiple column");
+        return new ResponseData<>(HttpStatus.OK.value(), "Get List User", userService.searchBySpeciticaion(pageable, user,address));
     }
 }

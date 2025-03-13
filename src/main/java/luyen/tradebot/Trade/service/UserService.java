@@ -1,7 +1,5 @@
 package luyen.tradebot.Trade.service;
 
-import jakarta.validation.Valid;
-import luyen.tradebot.Trade.controller.request.UserCreationRequest;
 import luyen.tradebot.Trade.controller.request.UserPasswordRequest;
 import luyen.tradebot.Trade.controller.request.UserUpdateRequest;
 import luyen.tradebot.Trade.controller.response.UserResponse;
@@ -9,6 +7,7 @@ import luyen.tradebot.Trade.dto.request.UserRequestDTO;
 import luyen.tradebot.Trade.dto.respone.PageResponse;
 import luyen.tradebot.Trade.dto.respone.UserDetailResponse;
 import luyen.tradebot.Trade.util.UserStatus;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -44,6 +43,7 @@ public interface UserService {
 
     PageResponse<?> advanceSearchByCriteria(int pageNo, int pageSize,  String sortBy,String address, String... search);
 
+    PageResponse<?> searchBySpeciticaion(Pageable pageable, String[] user, String[] address);
 
 
 
