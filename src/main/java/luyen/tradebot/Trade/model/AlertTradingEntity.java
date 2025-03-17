@@ -7,6 +7,8 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Getter
 @Setter
@@ -27,7 +29,7 @@ public class AlertTradingEntity extends AbstractEntity {
 
     @Column(name = "timestamp")
     @Temporal(TemporalType.TIMESTAMP)
-    private LocalDate timestamp;
+    private LocalDateTime timestamp;
 
     @Column(name = "signal_token", length = 255)
     private String signalToken;

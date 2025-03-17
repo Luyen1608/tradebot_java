@@ -1,13 +1,13 @@
 package luyen.tradebot.Trade.controller.tradeBot;
 
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import luyen.tradebot.Trade.dto.request.BotRequestDTO;
+import luyen.tradebot.Trade.service.BotService;
 import luyen.tradebot.Trade.service.CTraderConnectionManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -17,19 +17,14 @@ import java.util.concurrent.CompletableFuture;
 @AllArgsConstructor
 public class AdminController {
 
-    @Autowired
     private final CTraderConnectionManager connectionManager;
 
+    private final BotService botService;
+
     @PostMapping("/bot")
-    public String addBot(
-            @RequestParam(required = true) String botName,
-            @RequestParam String signalToken,
-            @RequestParam String status,
-            @RequestParam String numberAccount,
-            @RequestParam String signalToken,
-            @RequestParam String signalToken,) {
-        connectionManager.connect(accountId, "demo.ctraderapi.com", 5036, accessToken);
-        return "✅ Connecting to cTrader WebSocket for account: " + accountId;
+    public String addBot(@Valid @RequestBody BotRequestDTO request) {
+       long botId =  botService.saveBot(request);
+        return "✅ Connecting to cTrader WebSocket for account: " + botId;
     }
 
     @PostMapping("/request-account-list")

@@ -30,7 +30,7 @@ public class SendCtraderEntity extends AbstractEntity {
     @Column(name = "signal_token", length = 255)
     private String signalToken;
 
-    @Column(name = "v", length = 255)
+    @Column(name = "volum", length = 255)
     private Double volum;
 
     @Column(name = "ctid_trader_account_id", length = 255)
@@ -42,8 +42,8 @@ public class SendCtraderEntity extends AbstractEntity {
     @Column(name = "error_message", length = 255)
     private String errorMessage;
 
-    @Column(name = "bot_id", length = 255)
-    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL,mappedBy = "bot")
-    private Set<BotEntity> bot_id;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "bot_id")
+    private BotEntity bot_id;
 
 }

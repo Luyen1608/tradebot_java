@@ -32,10 +32,10 @@ public class BotEntity  extends AbstractEntity {
     private BotStatus status;
 
     @Column(name = "number_account", length = 255)
-    private String numberAccount;
+    private int numberAccount;
 
     @Column(name = "max_account", length = 255)
-    private String maxAccount;
+    private int maxAccount;
 
     @Column(name = "exchange", length = 255)
     private String exchange;
@@ -49,6 +49,6 @@ public class BotEntity  extends AbstractEntity {
     private String description;
 
     @JsonIgnore
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, mappedBy = "account")
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, mappedBy = "bot")
     private Set<AccountEntity> account;
 }
