@@ -1,24 +1,33 @@
-package luyen.tradebot.Trade.controller;
+package luyen.tradebot.Trade.controller.tradeBot;
 
 import lombok.AllArgsConstructor;
 import luyen.tradebot.Trade.service.CTraderConnectionManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.concurrent.CompletableFuture;
 
+
 @RestController
-@RequestMapping("/ctrader")
+@RequestMapping("/admin")
 @AllArgsConstructor
-public class TradingController {
+public class AdminController {
 
     @Autowired
     private final CTraderConnectionManager connectionManager;
 
-
-    @PostMapping("/connect")
-    public String connect(@RequestParam(required = false) String accountId, @RequestParam String accessToken) {
+    @PostMapping("/bot")
+    public String addBot(
+            @RequestParam(required = true) String botName,
+            @RequestParam String signalToken,
+            @RequestParam String status,
+            @RequestParam String numberAccount,
+            @RequestParam String signalToken,
+            @RequestParam String signalToken,) {
         connectionManager.connect(accountId, "demo.ctraderapi.com", 5036, accessToken);
         return "✅ Connecting to cTrader WebSocket for account: " + accountId;
     }
