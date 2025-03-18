@@ -1,12 +1,14 @@
 package luyen.tradebot.Trade.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import luyen.tradebot.Trade.util.enumTraderBot.BotFrom;
 import luyen.tradebot.Trade.util.enumTraderBot.BotStatus;
 
 import java.io.Serializable;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -35,4 +37,7 @@ public class BotRequestDTO implements Serializable {
 
     @NotBlank(message = "Description not Blank")
     private String description;
+
+    @NotEmpty
+    private Set<AccountRequestDTO> accountRequests;
 }

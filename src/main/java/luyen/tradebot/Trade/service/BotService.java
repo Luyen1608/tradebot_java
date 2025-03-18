@@ -1,6 +1,8 @@
 package luyen.tradebot.Trade.service;
 
+import luyen.tradebot.Trade.dto.request.AccountRequestDTO;
 import luyen.tradebot.Trade.dto.request.BotRequestDTO;
+import luyen.tradebot.Trade.dto.respone.BotResponse;
 import luyen.tradebot.Trade.dto.respone.PageResponse;
 import luyen.tradebot.Trade.model.BotEntity;
 import org.springframework.stereotype.Service;
@@ -14,11 +16,13 @@ public interface BotService {
 
     long saveBot(BotRequestDTO bot);
 
-    void deleteBot(BotEntity bot);
+    void deleteBot(long id);
 
-    void updateBot(BotEntity bot);
+    void updateBot(long id, BotRequestDTO bot);
 
-    BotEntity getBotById(long id);
+    long saveAccount(long id, AccountRequestDTO account);
+
+    BotResponse getBotById(long id);
 
     PageResponse<BotEntity> getAllBots(int pageNo, int pageSize, String sortBy);
 

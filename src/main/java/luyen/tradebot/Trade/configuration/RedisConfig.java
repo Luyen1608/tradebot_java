@@ -37,5 +37,4 @@ public class RedisConfig {
         log.info("Redis template created");
         return redisTemplate;
     }
-
 }
