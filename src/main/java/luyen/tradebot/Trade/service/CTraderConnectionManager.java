@@ -27,6 +27,10 @@ public class CTraderConnectionManager {
         }
         return CompletableFuture.completedFuture("⚠ No active WebSocket found for the provided accessToken.");
     }
+    public void removeConnection(CTraderWebSocketClient client) {
+        connections.values().remove(client);
+        logger.info("🗑 Removed closed connection.");
+    }
     public CompletableFuture<String> accountAuth(String accessToken, int ctidTraderAccountId) {
         for (CTraderWebSocketClient client : connections.values()) {
             if (client.getAccessToken().equals(accessToken) && client.isOpen()) {

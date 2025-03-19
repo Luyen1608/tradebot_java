@@ -13,9 +13,7 @@ import java.util.concurrent.CompletableFuture;
 @AllArgsConstructor
 public class TradingController {
 
-    @Autowired
     private final CTraderConnectionManager connectionManager;
-
 
     @PostMapping("/connect")
     public String connect(@RequestParam(required = false) String accountId, @RequestParam String accessToken) {
@@ -26,9 +24,6 @@ public class TradingController {
     @PostMapping("/request-account-list")
     public CompletableFuture<String> requestAccountList(@RequestParam String accessToken) {
         return connectionManager.requestAccountList(accessToken);
-//        return connectionManager.requestAccountList(accessToken)  // 🔹 Gọi request và chờ phản hồi từ WebSocket
-//                .thenApply(response -> ResponseEntity.ok(response))  // 🔹 Khi có dữ liệu, trả về ResponseEntity 200 OK
-//                .exceptionally(ex -> ResponseEntity.status(500).body("⚠ Error: " + ex.getMessage()));  // 🔹 Nếu có lỗi, trả về HTTP 500
     }
 
     //    "ctidTraderAccountId":42684044,
@@ -43,6 +38,7 @@ public class TradingController {
                 .thenApply(ResponseEntity::ok)
                 .exceptionally(ex -> ResponseEntity.status(500).body("⚠ Error: " + ex.getMessage()));
     }
+
     @PostMapping("/place-order")
     public CompletableFuture<ResponseEntity<String>> placeOrder(
             @RequestParam String accessToken,
@@ -65,7 +61,7 @@ public class TradingController {
             @RequestParam int positionId,
             @RequestParam double volume
     ) {
-        return connectionManager.closePosition(accessToken,ctidTraderAccountId, positionId, volume)
+        return connectionManager.closePosition(accessToken, ctidTraderAccountId, positionId, volume)
                 .thenApply(ResponseEntity::ok)
                 .exceptionally(ex -> ResponseEntity.status(500).body("⚠ Error: " + ex.getMessage()));
     }

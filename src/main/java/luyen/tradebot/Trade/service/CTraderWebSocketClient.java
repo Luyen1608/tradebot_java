@@ -13,6 +13,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 @Getter
@@ -40,6 +43,9 @@ public class CTraderWebSocketClient extends WebSocketClient {
     public void onOpen(ServerHandshake handshake) {
         logger.info("✅ Connected to cTrader WebSocket");
         sendAuthorizationRequest();
+//        authenticate();
+        // Bắt đầu gửi ping định kỳ để duy trì kết nối
+        startPingScheduler();
     }
 
     @Override
@@ -83,8 +89,16 @@ public class CTraderWebSocketClient extends WebSocketClient {
     @Override
     public void onClose(int code, String reason, boolean remote) {
         logger.warning("❌ Connection closed: " + reason);
-        stopPing();
-        reconnect();
+
+        new Thread(() -> {
+            try {
+                Thread.sleep(5000);
+                stopPing();
+                this.reconnect();
+            } catch (InterruptedException e) {
+                logger.severe("⚠ Error reconnecting: " + e.getMessage());
+            }
+        }).start();
     }
     private void startPing() {
         pingTimer = new Timer();
@@ -94,6 +108,15 @@ public class CTraderWebSocketClient extends WebSocketClient {
                 sendPing();
             }
         }, 5000, 15000); // Ping mỗi 15 giây
+    }
+    public void startPingScheduler() {
+        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+        scheduler.scheduleAtFixedRate(() -> {
+            if (this.isOpen()) {
+                this.send("{ \"payloadType\": 52 }"); // 52 là ProtoHeartbeatEvent
+                logger.info("📤 Sent heartbeat to keep connection alive.");
+            }
+        }, 5, 15, TimeUnit.SECONDS); // Gửi heartbeat mỗi 30 giây
     }
     private void stopPing() {
         if (pingTimer != null) {
@@ -105,6 +128,7 @@ public class CTraderWebSocketClient extends WebSocketClient {
         send("{ \"payloadType\": \"Ping\" }");
         System.out.println("📤 Sent Ping");
     }
+
 
     public void reconnect() {
         System.out.println("🔄 Reconnecting...");

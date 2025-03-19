@@ -10,9 +10,8 @@ import luyen.tradebot.Trade.dto.respone.BotResponse;
 import luyen.tradebot.Trade.dto.respone.ResponseData;
 import luyen.tradebot.Trade.service.BotService;
 import luyen.tradebot.Trade.service.CTraderConnectionManager;
-import org.springframework.beans.factory.annotation.Autowired;
+import luyen.tradebot.Trade.service.TracingService;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.concurrent.CompletableFuture;
@@ -27,6 +26,8 @@ public class AdminController {
     private final CTraderConnectionManager connectionManager;
 
     private final BotService botService;
+
+    private final TracingService tracingService;
 
     @PostMapping("/bot")
     public ResponseData<?> addBot(@Valid @RequestBody BotRequestDTO request) {
@@ -87,5 +88,20 @@ public class AdminController {
     @PostMapping("/request-account-list")
     public CompletableFuture<String> requestAccountList(@RequestParam String accessToken) {
         return connectionManager.requestAccountList(accessToken);
+    }
+
+    @GetMapping("/connected")
+    public ResponseData<?> getListConnect() {
+        return new ResponseData<>(HttpStatus.NO_CONTENT.value(), "List Connected", tracingService.getListConnected());
+    }
+
+    @GetMapping("/alertTrading")
+    public ResponseData<?> getListAlertTrading() {
+        return new ResponseData<>(HttpStatus.NO_CONTENT.value(), "List Alert Trading", tracingService.getListAlertTrading());
+    }
+
+    @GetMapping("/sendCtrader")
+    public ResponseData<?> getListSendCtrader() {
+        return new ResponseData<>(HttpStatus.NO_CONTENT.value(), "List Send Ctrader", tracingService.getListSendCtrader());
     }
 }
