@@ -1,0 +1,293 @@
+-- Table: public.tbl_accounts
+
+-- DROP TABLE IF EXISTS public.tbl_accounts;
+
+CREATE TABLE IF NOT EXISTS public.tbl_accounts
+(
+    id integer NOT NULL DEFAULT nextval('tbl_accounts_id_seq'::regclass),
+    account_id character varying(255) COLLATE pg_catalog."default",
+    client_id character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    client_secret character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    access_token text COLLATE pg_catalog."default",
+    refresh_token text COLLATE pg_catalog."default",
+    token_expiry date,
+    is_active boolean DEFAULT false,
+    is_connected boolean DEFAULT false,
+    last_connected date,
+    error_message text COLLATE pg_catalog."default",
+    bot_id bigint,
+    account_name character varying(255) COLLATE pg_catalog."default",
+    connection_status e_account_status,
+    ctid_trader_account_id integer,
+    type_account e_account_type,
+    created_at date,
+    updated_at date,
+    authenticated boolean,
+    CONSTRAINT tbl_accounts_pkey PRIMARY KEY (id),
+    CONSTRAINT tbl_accounts_bot_id_fkey FOREIGN KEY (bot_id)
+        REFERENCES public.tbl_bots (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.tbl_accounts
+    OWNER to postgres;
+
+
+
+-- Table: public.tbl_address
+
+-- DROP TABLE IF EXISTS public.tbl_address;
+
+CREATE TABLE IF NOT EXISTS public.tbl_address
+(
+    apartment_number character varying(255) COLLATE pg_catalog."default",
+    floor character varying(255) COLLATE pg_catalog."default",
+    building character varying(255) COLLATE pg_catalog."default",
+    street_number character varying(255) COLLATE pg_catalog."default",
+    street character varying(255) COLLATE pg_catalog."default",
+    city character varying(255) COLLATE pg_catalog."default",
+    country character varying(255) COLLATE pg_catalog."default",
+    address_type integer,
+    user_id integer,
+    created_at date NOT NULL,
+    updated_at date NOT NULL,
+    id smallint NOT NULL DEFAULT nextval('tbl_address_id_seq'::regclass),
+    CONSTRAINT tbl_address_pkey PRIMARY KEY (id)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.tbl_address
+    OWNER to postgres;
+
+
+-- Table: public.tbl_bots
+
+-- DROP TABLE IF EXISTS public.tbl_bots;
+
+CREATE TABLE IF NOT EXISTS public.tbl_bots
+(
+    id integer NOT NULL DEFAULT nextval('tbl_bots_id_seq'::regclass),
+    bot_name character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    description text COLLATE pg_catalog."default",
+    is_active boolean DEFAULT false,
+    created_at timestamp without time zone,
+    updated_at timestamp without time zone,
+    signal_token character varying(255) COLLATE pg_catalog."default",
+    status e_bot_status,
+    number_account integer,
+    max_account integer,
+    exchange character varying(255) COLLATE pg_catalog."default",
+    bot_from e_bot_from,
+    CONSTRAINT tbl_bots_pkey PRIMARY KEY (id)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.tbl_bots
+    OWNER to postgres;
+
+
+-- Table: public.tbl_order_positions
+
+-- DROP TABLE IF EXISTS public.tbl_order_positions;
+
+CREATE TABLE IF NOT EXISTS public.tbl_order_positions
+(
+    id integer NOT NULL DEFAULT nextval('tbl_order_positions_id_seq'::regclass),
+    position_id character varying(255) COLLATE pg_catalog."default",
+    status character varying(255) COLLATE pg_catalog."default",
+    error_message character varying(255) COLLATE pg_catalog."default",
+    CONSTRAINT tbl_order_positions_pkey PRIMARY KEY (id)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.tbl_order_positions
+    OWNER to postgres;
+
+
+-- Table: public.tbl_orders
+
+-- DROP TABLE IF EXISTS public.tbl_orders;
+
+CREATE TABLE IF NOT EXISTS public.tbl_orders
+(
+    id integer NOT NULL DEFAULT nextval('tbl_orders_id_seq'::regclass),
+    symbol_id character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    trade_side character varying(10) COLLATE pg_catalog."default" NOT NULL,
+    volume numeric(19,8) NOT NULL,
+    status character varying(20) COLLATE pg_catalog."default" NOT NULL,
+    open_time timestamp without time zone,
+    close_time timestamp without time zone,
+    order_type character varying(20) COLLATE pg_catalog."default",
+    account_id bigint,
+    comment character varying(255) COLLATE pg_catalog."default",
+    CONSTRAINT tbl_orders_pkey PRIMARY KEY (id),
+    CONSTRAINT tbl_orders_account_id_fkey FOREIGN KEY (account_id)
+        REFERENCES public.tbl_accounts (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.tbl_orders
+    OWNER to postgres;
+
+
+-- Table: public.tbl_token
+
+-- DROP TABLE IF EXISTS public.tbl_token;
+
+CREATE TABLE IF NOT EXISTS public.tbl_token
+(
+    id smallint NOT NULL DEFAULT nextval('tbl_token_id_seq'::regclass),
+    username character varying(255) COLLATE pg_catalog."default",
+    access_token character varying(255) COLLATE pg_catalog."default",
+    refresh_token character varying(255) COLLATE pg_catalog."default",
+    reset_token character varying(255) COLLATE pg_catalog."default",
+    created_at date,
+    updated_at date,
+    CONSTRAINT tbl_token_pkey PRIMARY KEY (id)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.tbl_token
+    OWNER to postgres;
+
+
+-- Table: public.tbl_user
+
+-- DROP TABLE IF EXISTS public.tbl_user;
+
+CREATE TABLE IF NOT EXISTS public.tbl_user
+(
+    first_name character varying(255) COLLATE pg_catalog."default",
+    last_name character varying(255) COLLATE pg_catalog."default",
+    date_of_birth date,
+    gender e_gender,
+    phone character varying(255) COLLATE pg_catalog."default",
+    email character varying(255) COLLATE pg_catalog."default",
+    user_name character varying(255) COLLATE pg_catalog."default",
+    password character varying(255) COLLATE pg_catalog."default",
+    user_status e_user_status,
+    user_type e_user_type,
+    created_at date,
+    updated_at date,
+    id smallint NOT NULL DEFAULT nextval('tbl_user_id_seq'::regclass),
+    CONSTRAINT tbl_user_pkey PRIMARY KEY (id)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.tbl_user
+    OWNER to postgres;
+
+
+-- Type: e_account_status
+
+-- DROP TYPE IF EXISTS public.e_account_status;
+
+CREATE TYPE public.e_account_status AS ENUM
+    ('CONNECT', 'DISCONNECT', 'ERROR', 'NONE');
+
+ALTER TYPE public.e_account_status
+    OWNER TO postgres;
+
+
+
+-- Type: e_account_type
+
+-- DROP TYPE IF EXISTS public.e_account_type;
+
+CREATE TYPE public.e_account_type AS ENUM
+    ('DEMO', 'LIVE');
+
+ALTER TYPE public.e_account_type
+    OWNER TO postgres;
+
+
+-- Type: e_action_trading
+
+-- DROP TYPE IF EXISTS public.e_action_trading;
+
+CREATE TYPE public.e_action_trading AS ENUM
+    ('ENTER_LONG', 'ENTER_SHORT', 'EXIT_LONG', 'EXIT_SHORT');
+
+ALTER TYPE public.e_action_trading
+    OWNER TO postgres;
+
+
+
+-- Type: e_bot_from
+
+-- DROP TYPE IF EXISTS public.e_bot_from;
+
+CREATE TYPE public.e_bot_from AS ENUM
+    ('OKX', 'Binance', 'Bybit', 'CoinstratPro');
+
+ALTER TYPE public.e_bot_from
+    OWNER TO postgres;
+
+
+-- Type: e_bot_status
+
+-- DROP TYPE IF EXISTS public.e_bot_status;
+
+CREATE TYPE public.e_bot_status AS ENUM
+    ('ACTIVE', 'INACTIVE', 'NONE');
+
+ALTER TYPE public.e_bot_status
+    OWNER TO postgres;
+
+
+-- Type: e_connect_status
+
+-- DROP TYPE IF EXISTS public.e_connect_status;
+
+CREATE TYPE public.e_connect_status AS ENUM
+    ('DISCONNECTED', 'CONNECTING', 'CONNECTED', 'ERROR');
+
+ALTER TYPE public.e_connect_status
+    OWNER TO postgres;
+
+
+
+-- Type: e_gender
+
+-- DROP TYPE IF EXISTS public.e_gender;
+
+CREATE TYPE public.e_gender AS ENUM
+    ('MALE', 'FEMALE', 'OTHER');
+
+ALTER TYPE public.e_gender
+    OWNER TO postgres;
+
+
+
+-- Type: e_user_status
+
+-- DROP TYPE IF EXISTS public.e_user_status;
+
+CREATE TYPE public.e_user_status AS ENUM
+    ('ACTIVE', 'INACTIVE', 'DELETED', 'NONE');
+
+ALTER TYPE public.e_user_status
+    OWNER TO postgres;
+
+
+
+-- Type: e_user_type
+
+-- DROP TYPE IF EXISTS public.e_user_type;
+
+CREATE TYPE public.e_user_type AS ENUM
+    ('ADMIN', 'USER', 'OTHER');
+
+ALTER TYPE public.e_user_type
+    OWNER TO postgres;
