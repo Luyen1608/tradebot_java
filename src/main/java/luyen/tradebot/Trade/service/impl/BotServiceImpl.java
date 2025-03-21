@@ -14,6 +14,7 @@ import luyen.tradebot.Trade.repository.UserRepository;
 import luyen.tradebot.Trade.service.BotService;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -33,11 +34,12 @@ public class BotServiceImpl implements BotService {
 
     @Override
     public long saveBot(BotRequestDTO bot) {
-       BotEntity botEntity = botRepository.save(BotEntity.builder()
+        BotEntity botEntity = botRepository.save(BotEntity.builder()
                 .botName(bot.getBotName())
                 .botFrom(bot.getBotFrom())
                 .status(bot.getBotStatus())
                 .exchange(bot.getExchange())
+                .signalToken(bot.getSignalToken())
                 .maxAccount(bot.getMaxAccount())
                 .description(bot.getDescription())
                 .signalToken(bot.getSignalToken())
@@ -52,32 +54,33 @@ public class BotServiceImpl implements BotService {
     }
 
     @Override
-    public void updateBot(long id, BotRequestDTO bot) {
+    public long updateBot(long id, BotRequestDTO bot) {
         BotEntity botEntity = botRepository.findById(id).orElseThrow(() -> new RuntimeException("Bot not found"));
         botEntity.setBotName(bot.getBotName());
         botEntity.setBotFrom(bot.getBotFrom());
         botEntity.setStatus(bot.getBotStatus());
         botEntity.setExchange(bot.getExchange());
         botEntity.setMaxAccount(bot.getMaxAccount());
+        bot.setSignalToken(bot.getSignalToken());
         botEntity.setDescription(bot.getDescription());
         botEntity.setSignalToken(bot.getSignalToken());
         botRepository.save(botEntity);
-
+        return botEntity.getId();
     }
 
     @Override
     public long saveAccount(long id, AccountRequestDTO account) {
         BotEntity bot = botRepository.findById(id).orElseThrow(() -> new RuntimeException("Bot not found"));
-       AccountEntity accountEntity = accountRepository.save(AccountEntity.builder()
+        AccountEntity accountEntity = accountRepository.save(AccountEntity.builder()
                 .bot(bot)
                 .accountName(account.getName())
                 .accessToken(account.getAccessToken())
                 .clientId(account.getClientId())
                 .ctidTraderAccountId(account.getCtidTraderAccountId())
-                .exprixeDate(account.getExpirationDate())
+                .tokenExpiry(account.getExpirationDate())
                 .typeAccount(account.getTypeAccount())
-                .secretId(account.getSecretId())
-                .status(account.getStatus())
+                .clientSecret(account.getSecretId())
+                .connectionStatus(account.getStatus())
                 .build());
         return accountEntity.getId();
     }
@@ -105,5 +108,46 @@ public class BotServiceImpl implements BotService {
 
     private BotEntity getBotById(String id) {
         return null;
+    }
+
+    public BotEntity createBot(BotRequestDTO botDTO) {
+        BotEntity bot = BotEntity.builder()
+                .botName(botDTO.getBotName())
+                .description(botDTO.getDescription())
+                .isActive(botDTO.isActive())
+                .signalToken(botDTO.getSignalToken())
+                .botFrom(botDTO.getBotFrom())
+                .maxAccount(botDTO.getMaxAccount())
+                .build();
+        return botRepository.save(bot);
+    }
+
+    public BotEntity updateBot(Long id, BotRequestDTO botDTO) {
+        BotEntity bot = botRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Bot not found"));
+
+        bot.setBotName(botDTO.getBotName());
+        bot.setDescription(botDTO.getDescription());
+        bot.setActive(botDTO.isActive());
+//        bot.setUpdatedAt(LocalDateTime.now());
+
+        return botRepository.save(bot);
+    }
+
+    public void deleteBot(Long id) {
+        botRepository.deleteById(id);
+    }
+
+    public BotEntity getBot(Long id) {
+        return botRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Bot not found"));
+    }
+
+    public List<BotEntity> getAllBots() {
+        return botRepository.findAll();
+    }
+
+    public List<BotEntity> getActiveBots() {
+        return botRepository.findByIsActive(true);
     }
 }

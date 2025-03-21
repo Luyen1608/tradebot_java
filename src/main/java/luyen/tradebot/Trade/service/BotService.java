@@ -18,12 +18,20 @@ public interface BotService {
 
     void deleteBot(long id);
 
-    void updateBot(long id, BotRequestDTO bot);
+    long updateBot(long id, BotRequestDTO bot);
 
     long saveAccount(long id, AccountRequestDTO account);
 
     BotResponse getBotById(long id);
 
     PageResponse<BotEntity> getAllBots(int pageNo, int pageSize, String sortBy);
+
+    BotEntity createBot(BotRequestDTO botDTO);
+
+    BotEntity getBot(Long id);
+
+    List<BotEntity> getAllBots();
+
+    List<BotEntity> getActiveBots();
 
 }

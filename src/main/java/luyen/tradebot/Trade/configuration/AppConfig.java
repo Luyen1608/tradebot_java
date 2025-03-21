@@ -1,5 +1,6 @@
 package luyen.tradebot.Trade.configuration;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -8,7 +9,9 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
@@ -19,19 +22,31 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import java.io.IOException;
 import java.util.List;
 
-
-//cách một
 @Configuration
-public class AppConfig  implements WebMvcConfigurer {
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("**")
-                .allowCredentials(true)
-                .allowedOrigins("*")
-                .allowedMethods("*")
-                .allowedHeaders("*");
+@EnableScheduling
+public class AppConfig {
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
+    }
+
+    @Bean
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper();
     }
 }
+//cách một
+//@Configuration
+//public class AppConfig  implements WebMvcConfigurer {
+//    @Override
+//    public void addCorsMappings(CorsRegistry registry) {
+//        registry.addMapping("**")
+//                .allowCredentials(true)
+//                .allowedOrigins("*")
+//                .allowedMethods("*")
+//                .allowedHeaders("*");
+//    }
+//}
 
 
 //cách 2 tạo bean

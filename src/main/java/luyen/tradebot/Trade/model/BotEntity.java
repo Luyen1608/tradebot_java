@@ -8,7 +8,9 @@ import luyen.tradebot.Trade.util.enumTraderBot.BotStatus;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Getter
@@ -16,7 +18,7 @@ import java.util.Set;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "tbl_bot")
+@Table(name = "tbl_bots")
 @Entity(name = "Bot")
 public class BotEntity  extends AbstractEntity {
 
@@ -51,13 +53,15 @@ public class BotEntity  extends AbstractEntity {
 
     @JsonIgnore
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, mappedBy = "bot")
-    private Set<AccountEntity> accounts;
+    private List<AccountEntity> accounts = new ArrayList<>();
 
     public void saveAccount(AccountEntity account) {
         if (account != null) {
-            accounts = new HashSet<>();
+            accounts = new ArrayList<>();
         }
         accounts.add(account);
         account.setBot(this);
+
     }
+    private boolean isActive;
 }

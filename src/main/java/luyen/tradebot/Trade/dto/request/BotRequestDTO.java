@@ -23,7 +23,7 @@ public class BotRequestDTO implements Serializable {
     @NotBlank(message = "signal Token not Blank")
     private String signalToken;
 
-//    @NotBlank(message = "Status not Blank")
+    //    @NotBlank(message = "Status not Blank")
     private BotStatus botStatus;
 
     @NotNull(message = "Max Account not Blank")
@@ -32,7 +32,7 @@ public class BotRequestDTO implements Serializable {
     @NotBlank(message = "Exchange not Blank")
     private String exchange;
 
-//    @NotBlank(message = "Bot from not Blank")
+    //    @NotBlank(message = "Bot from not Blank")
     private BotFrom botFrom;
 
     @NotBlank(message = "Description not Blank")
@@ -40,4 +40,8 @@ public class BotRequestDTO implements Serializable {
 
     @NotEmpty
     private Set<AccountRequestDTO> accountRequests;
+
+
+    private Long id;
+    private boolean isActive;
 }

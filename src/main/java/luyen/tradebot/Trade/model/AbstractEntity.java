@@ -12,18 +12,19 @@ import java.util.Date;
 @Setter
 @MappedSuperclass
 public abstract class AbstractEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Long id;
 
     @Column(name = "created_at", length = 255)
-    @Temporal(TemporalType.TIMESTAMP)
+    @Temporal(TemporalType.DATE)
     @CreationTimestamp
     private Date createAt;
 
     @Column(name = "updated_at", length = 255)
-    @Temporal(TemporalType.TIMESTAMP)
+    @Temporal(TemporalType.DATE)
     @UpdateTimestamp
     private Date updateAt;
 }
