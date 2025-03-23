@@ -4,14 +4,20 @@ package luyen.tradebot.Trade.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import luyen.tradebot.Trade.dto.request.AccountRequestDTO;
+import luyen.tradebot.Trade.dto.respone.ResponseCtraderDTO;
 import luyen.tradebot.Trade.model.AccountEntity;
 import luyen.tradebot.Trade.model.BotEntity;
+import luyen.tradebot.Trade.model.ConnectedEntity;
 import luyen.tradebot.Trade.repository.AccountRepository;
 import luyen.tradebot.Trade.repository.BotRepository;
 import luyen.tradebot.Trade.util.DateUtil;
+import luyen.tradebot.Trade.util.ValidateRepsone;
 import luyen.tradebot.Trade.util.enumTraderBot.AccountStatus;
 import luyen.tradebot.Trade.util.enumTraderBot.AccountType;
+import luyen.tradebot.Trade.util.enumTraderBot.ConnectStatus;
+import luyen.tradebot.Trade.util.enumTraderBot.ConnectionStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -36,23 +42,22 @@ public class AccountService {
     public List<Map<String, Object>> getAccounts(String accessToken) {
         return cTraderApiService.getAccounts(accessToken);
     }
-    public CompletableFuture<List<Map<String, Object>>> getTraderAccounts(Long accountId) {
+
+    public CompletableFuture<String> getTraderAccounts(Long accountId) {
         AccountEntity account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("Account not found"));
 
         if (!account.isConnected()) {
             throw new RuntimeException("Account is not connected");
         }
-
         CTraderConnection connection = connectionService.getConnection(accountId);
         if (connection == null) {
             throw new RuntimeException("No active connection for this account");
         }
-
         return cTraderApiService.getTraderAccounts(connection);
     }
 
-    public CompletableFuture<Boolean> authenticateTraderAccount(Long accountId, int ctidTraderAccountId, String traderAccountName) {
+    public CompletableFuture<String> authenticateTraderAccount(Long accountId, int ctidTraderAccountId, String traderAccountName) {
         AccountEntity account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("Account not found"));
 
@@ -65,26 +70,51 @@ public class AccountService {
             throw new RuntimeException("No active connection for this account");
         }
 
-        CompletableFuture<Boolean> future = cTraderApiService.authenticateTraderAccount(
+        CompletableFuture<String> future = cTraderApiService.authenticateTraderAccount(
                 connection, ctidTraderAccountId);
-
+        ConnectedEntity connectedEntity = new ConnectedEntity();
+        //{"payloadType":2103,"clientMsgId":"cm_0c252588","payload":{"ctidTraderAccountId":42683965}}
         future.thenAccept(success -> {
-            if (success) {
-                account.setCtidTraderAccountId(ctidTraderAccountId);
-                account.setAccountName(traderAccountName);
-                account.setAuthenticated(true);
-                account.setConnectionStatus(AccountStatus.AUTHENTICATED);
+            if (success !=null) {
+                ResponseCtraderDTO responseCtraderDTO = ValidateRepsone.formatResponse(success);
+                if (responseCtraderDTO.getPayloadReponse() ==2103){
+                    account.setCtidTraderAccountId(ctidTraderAccountId);
+                    account.setAuthenticated(true);
+                    account.setConnectionStatus(AccountStatus.AUTHENTICATED);
+
+
+
+
+                    account.setConnected(connectedEntity);
+
+                    log.info("Trader account authenticated for account: {}", accountId);
+                } else {
+                    connectedEntity.setAccountName(account.getAccountName());
+                    connectedEntity.setConnectionStatus(ConnectStatus.CONNECTED);
+                    connectedEntity.setBotName(account.getBot().getBotName());
+                    connectedEntity.setErrorCode(responseCtraderDTO.getErrorCode());
+                    connectedEntity.setErrorMessage(responseCtraderDTO.getDescription());
+
+                    account.setAuthenticated(false);
+
+                }
                 accountRepository.save(account);
-                log.info("Trader account authenticated for account: {}", accountId);
             }
         });
 
         return future;
     }
+
+    @Transactional
     public AccountEntity createAccount(AccountRequestDTO accountDTO) {
         BotEntity bot = botRepository.findById(accountDTO.getBotId())
                 .orElseThrow(() -> new RuntimeException("Bot not found"));
+        log.debug("Tạo tài khoản mới: {}", accountDTO.getClientId());
 
+        // Kiểm tra tài khoản đã tồn tại chưa
+        if (accountRepository.existsByClientId((accountDTO.getClientId()))) {
+            throw new IllegalArgumentException("Tài khoản với Client ID này đã tồn tại");
+        }
         AccountEntity account = AccountEntity.builder()
                 .accountName(accountDTO.getName())
                 .clientId(accountDTO.getClientId())
@@ -103,9 +133,9 @@ public class AccountService {
 
         // If account is active, establish connection
         if (savedAccount.isActive()) {
+            // Đảm bảo thêm thông tin kết nối vào ConnectionService
             connectionService.connectAccount(savedAccount);
         }
-
         return savedAccount;
     }
 
@@ -117,6 +147,7 @@ public class AccountService {
 
         // Update fields
         account.setActive(accountDTO.isActive());
+        account.setCtidTraderAccountId(accountDTO.getCtidTraderAccountId());
 
         if (accountDTO.getBotId() != null && !accountDTO.getBotId().equals(account.getBot().getId())) {
             BotEntity newBot = botRepository.findById(accountDTO.getBotId())
@@ -161,5 +192,26 @@ public class AccountService {
 
     public List<AccountEntity> getAccountsByBotId(Long botId) {
         return accountRepository.findByBotId(botId);
+    }
+
+    /**
+     * Chuyển đổi Entity Account sang DTO
+     */
+    private AccountRequestDTO convertToDTO(AccountEntity account) {
+        String uptimeStr = "";
+        return AccountRequestDTO.builder()
+                .id(account.getId())
+                .name(account.getAccountName())
+                .clientId(account.getClientId())
+                .status(account.getConnectionStatus())
+                .accountId(account.getAccountId())
+                .botId(account.getBot().getId())
+                .isAuthenticated(account.isAuthenticated())
+                .accessToken(account.getAccessToken())
+                .typeAccount(account.getTypeAccount())
+                .isConnected(account.isConnected())
+                .secretId(account.getClientSecret())
+                .expirationDate(account.getTokenExpiry())
+                .build();
     }
 }

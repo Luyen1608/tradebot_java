@@ -2,6 +2,7 @@ package luyen.tradebot.Trade.service;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import luyen.tradebot.Trade.util.enumTraderBot.AccountType;
@@ -10,6 +11,7 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -30,21 +32,35 @@ public class CTraderApiService {
     @Value("${ctrader.ws.live.url}")
     private String CTRADER_LIVE_WS_URL;
 
-    public CTraderConnection connect(String clientId, String clientSecret, String accessToken, AccountType accountType) {
+    private final Map<String, String> accountTokens = new HashMap<>(); // Lưu trữ token giả định
+    /**
+     * Khởi tạo service
+     */
+    public CTraderApiService() {
+        this.restTemplate = new RestTemplate();
+        this.objectMapper = new ObjectMapper();
+        // Giả định: Token được lấy trước hoặc hardcode cho ví dụ
+        accountTokens.put("account1", "token1");
+        accountTokens.put("account2", "token2");
+    }
+
+
+    public CTraderConnection connect(Long accountId, String clientId, String clientSecret,
+                                     String accessToken, AccountType accountType, CTraderConnectionService ctraderConnectionService) {
         // Implement WebSocket connection to cTrader API
         String wsUrl = "DEMO".equalsIgnoreCase(accountType.toString()) ?
                 CTRADER_DEMO_WS_URL : CTRADER_LIVE_WS_URL;
 
-        CTraderConnection connection = new CTraderConnection(clientId, accessToken, wsUrl);
+        CTraderConnection connection = new CTraderConnection(accountId, clientId, clientSecret,accessToken, ctraderConnectionService, wsUrl);
         connection.connect();
         return connection;
     }
-    public CompletableFuture<List<Map<String, Object>>> getTraderAccounts(CTraderConnection connection) {
+    public CompletableFuture<String> getTraderAccounts(CTraderConnection connection) {
         // Get trader accounts via WebSocket
         return connection.getAccountListByAccessToken();
     }
 
-    public CompletableFuture<Boolean> authenticateTraderAccount(
+    public CompletableFuture<String> authenticateTraderAccount(
             CTraderConnection connection, int ctidTraderAccountId) {
         // Authenticate specific trader account
         return connection.authenticateTraderAccount(ctidTraderAccountId);
@@ -99,5 +115,18 @@ public class CTraderApiService {
 
 
         return (List<Map<String, Object>>) response.getBody().get("accounts");
+    }
+    public String getAccessToken(Long accountId) {
+        // Trong thực tế, có thể gọi REST API để lấy token nếu cần
+        return accountTokens.getOrDefault(accountId, "default-token");
+    }
+    public Map<String, String> getAllAccountCredentials() {
+        // Trả về tất cả thông tin tài khoản (accountId -> accessToken)
+        return new HashMap<>(accountTokens);
+    }
+    // Ví dụ: Gọi REST API để lấy thông tin tài khoản nếu cTrader hỗ trợ
+    public String fetchAccountDetails(String accountId) {
+        String url = "https://some-ctrader-rest-api/accounts/" + accountId;
+        return restTemplate.getForObject(url, String.class);
     }
 }

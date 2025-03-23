@@ -44,6 +44,13 @@ public class AccountController {
         AccountEntity newAccount = accountService.createAccount(accountDTO);
         return new ResponseEntity<>(newAccount, HttpStatus.CREATED);
     }
+    @GetMapping("/{accountId}/trader-accounts")
+    public CompletableFuture<ResponseEntity<String>> getTraderAccounts(
+            @PathVariable Long accountId) {
+        return accountService.getTraderAccounts(accountId)
+                .thenApply(ResponseEntity::ok)
+                .exceptionally(ex -> ResponseEntity.status(500).body("⚠ Error: " + ex.getMessage()));
+    }
 
     @PutMapping("/{id}")
     public ResponseEntity<AccountEntity> updateAccount(@PathVariable Long id, @RequestBody AccountRequestDTO accountDTO) {
@@ -74,18 +81,13 @@ public class AccountController {
         List<AccountEntity> accounts = accountService.getAccountsByBotId(botId);
         return ResponseEntity.ok(accounts);
     }
-    @GetMapping("/{accountId}/trader-accounts")
-    public CompletableFuture<ResponseEntity<List<Map<String, Object>>>> getTraderAccounts(
-            @PathVariable Long accountId) {
-        return accountService.getTraderAccounts(accountId)
-                .thenApply(ResponseEntity::ok);
-    }
+
 
     @PostMapping("/{accountId}/authenticate")
-    public CompletableFuture<ResponseEntity<Boolean>> authenticateTraderAccount(
+    public CompletableFuture<ResponseEntity<String>> authenticateTraderAccount(
             @PathVariable Long accountId,
             @RequestParam int ctidTraderAccountId,
-            @RequestParam String traderAccountName) {
+            @RequestParam(required = false) String traderAccountName) {
         return accountService.authenticateTraderAccount(accountId, ctidTraderAccountId, traderAccountName)
                 .thenApply(ResponseEntity::ok);
     }

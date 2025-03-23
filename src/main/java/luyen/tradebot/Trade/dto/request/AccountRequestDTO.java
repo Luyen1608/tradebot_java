@@ -24,7 +24,6 @@ public class AccountRequestDTO implements Serializable {
         private AccountType typeAccount;
         private Date expirationDate;
 
-
         private Long id;
         private String accountId;
         private boolean isActive;

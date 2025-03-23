@@ -9,4 +9,6 @@ import java.util.Optional;
 public interface BotRepository extends JpaRepository<BotEntity, Long> {
     List<BotEntity> findByIsActive(boolean isActive);
     Optional<BotEntity> findBySignalToken(String signalToken);
+
+    Optional<Object> findByBotName(String botName);
 }

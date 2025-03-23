@@ -58,6 +58,11 @@ public class AccountEntity extends AbstractEntity {
     private BotEntity bot;
 
 
+    @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL,mappedBy = "connected")
+    @JoinColumn(name = "connected_id", referencedColumnName = "id")
+    private ConnectedEntity connected;
+
+
     private boolean isActive;
     private boolean isConnected;
     private Date lastConnected;

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+@Repository
 public interface AccountRepository extends JpaRepository<AccountEntity, Long> {
 
     List<AccountEntity> findByIsActive(boolean isActive);
@@ -18,4 +19,7 @@ public interface AccountRepository extends JpaRepository<AccountEntity, Long> {
 
     @Query("SELECT a FROM Account a WHERE a.bot.id = ?1 AND a.isActive = true AND a.authenticated = true")
     List<AccountEntity> findByBotIdAndIsActiveAndIsAuthenticated(Long botId, boolean isActive, boolean isAuthenticated);
+
+
+    boolean existsByClientId(String clientId);
 }

@@ -7,18 +7,21 @@ import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import luyen.tradebot.Trade.model.AccountEntity;
+import luyen.tradebot.Trade.model.ConnectedEntity;
 import luyen.tradebot.Trade.repository.AccountRepository;
 import luyen.tradebot.Trade.util.DateUtil;
 import luyen.tradebot.Trade.util.enumTraderBot.AccountStatus;
+import luyen.tradebot.Trade.util.enumTraderBot.ConnectStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -28,26 +31,31 @@ public class CTraderConnectionService {
     private final AccountRepository accountRepository;
     private final CTraderApiService cTraderApiService;
 
-    // Store all active connections
+    // Lưu trữ thông tin kết nối với khóa là accountId (không phải clientId)
     private final Map<Long, CTraderConnection> connections = new ConcurrentHashMap<>();
+
+    // Scheduled executor để thực hiện kiểm tra kết nối định kỳ
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     @PostConstruct
     public void init() {
-//        log.info("Initializing cTrader connections...");
-//        List<AccountEntity> activeAccounts = accountRepository.findByIsActive(true);
-//        for (AccountEntity account : activeAccounts) {
-//            connectAccount(account);
-//        }
+        log.info("Initializing cTrader connections...");
+        List<AccountEntity> activeAccounts = accountRepository.findByIsActive(true);
+        for (AccountEntity account : activeAccounts) {
+            connectAccount(account);
+        }
     }
 
     public void connectAccount(AccountEntity account) {
         try {
             // Create a new connection to cTrader API
             CTraderConnection connection = cTraderApiService.connect(
+                    account.getId(),
                     account.getClientId(),
                     account.getClientSecret(),
                     account.getAccessToken(),
-                    account.getTypeAccount()
+                    account.getTypeAccount(),
+                    this
             );
 
             // Store the connection
@@ -66,13 +74,13 @@ public class CTraderConnectionService {
                 try {
                     connection.authenticateTraderAccount(account.getCtidTraderAccountId())
                             .thenAccept(success -> {
-                                if (success) {
-                                    account.setAuthenticated(true);
-                                    account.setConnectionStatus(AccountStatus.AUTHENTICATED);
-                                    accountRepository.save(account);
-                                    log.info("Successfully authenticated trader account: {}",
-                                            account.getCtidTraderAccountId());
-                                }
+//                                if (success) {
+//                                    account.setAuthenticated(true);
+//                                    account.setConnectionStatus(AccountStatus.AUTHENTICATED);
+//                                    accountRepository.save(account);
+//                                    log.info("Successfully authenticated trader account: {}",
+//                                            account.getCtidTraderAccountId());
+//                                }
                             });
                 } catch (Exception e) {
                     log.error("Failed to authenticate trader account: {}",
@@ -108,6 +116,46 @@ public class CTraderConnectionService {
         }
     }
 
+    public void reconnect(CTraderConnection connection) {
+        Long accountId = connection.getAccountId();
+        log.info("Attempting to reconnect for account: " + accountId);
+        connection.close(); // Đóng kết nối cũ nếu còn mở
+        connections.remove(accountId);
+        // Tạo kết nối mới
+        CTraderConnection newConnection = new CTraderConnection(accountId, connection.getClientId(), connection.getSecretId(),
+                connection.getAccessToken(),this, connection.getWsUrl());
+        connections.put(accountId, newConnection);
+        newConnection.connect();
+    }
+    public void sendMessageToAccount(String accountId, String message) {
+        CTraderConnection connection = connections.get(accountId);
+        if (connection != null && connection.isConnected()) {
+            connection.sendMessage(message);
+        } else {
+            log.warn("No active connection for account: " + accountId);
+        }
+    }
+    // Thêm phương thức lấy danh sách kết nối
+    public List<ConnectedEntity> getCurrentConnections() {
+        return connections.entrySet().stream()
+                .map(entry -> new ConnectedEntity(
+                        entry.getKey(), // accountId
+                        entry.getValue().isConnected() ? ConnectStatus.CONNECTED : ConnectStatus.DISCONNECTED // status
+                ))
+                .collect(Collectors.toList());
+    }
+    public void stopAllConnections() {
+        for (CTraderConnection connection : connections.values()) {
+            connection.close();
+        }
+        connections.clear();
+    }
+
+    public boolean isAccountConnected(String accountId) {
+        CTraderConnection connection = connections.get(accountId);
+        return connection != null && connection.isConnected();
+    }
+
     // Scheduled task to check and reconnect accounts that are disconnected
     @Scheduled(fixedRate = 60000) // Every minute
     public void checkAndReconnectAccounts() {
@@ -121,7 +169,7 @@ public class CTraderConnectionService {
     }
 
     // Scheduled task to refresh access tokens
-    @Scheduled(fixedRate = 3600000) // Every hour
+//    @Scheduled(fixedRate = 3600000) // Every hour
     public void refreshTokens() {
         log.debug("Refreshing access tokens...");
         List<AccountEntity> activeAccounts = accountRepository.findByIsActive(true);
@@ -147,7 +195,6 @@ public class CTraderConnectionService {
     }
 
 
-
     // Get an active connection for an account
     public CTraderConnection getConnection(Long accountId) {
         return connections.get(accountId);
@@ -157,4 +204,5 @@ public class CTraderConnectionService {
     public List<Map<String, Object>> getAvailableAccounts(String accessToken) {
         return cTraderApiService.getAccounts(accessToken);
     }
+
 }

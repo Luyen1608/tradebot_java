@@ -17,14 +17,20 @@ import java.util.Date;
 @Entity(name = "connected")
 public class ConnectedEntity extends AbstractEntity{
 
+
+    public ConnectedEntity(Long accountId, ConnectStatus connectionStatus) {
+        this.account.setId(accountId);
+        this.connectionStatus = connectionStatus;
+    }
+
     @Column(name = "bot_name", length = 255)
     private String botName;
 
     @Column(name = "account_name", length = 255)
     private String accountName;
 
-    @Column(name = "account_id", length = 255)
-    private String accountId;
+    @OneToOne(mappedBy = "Account")
+    private AccountEntity account;
 
     @Column(name = "connection_status", length = 255)
     @Enumerated(EnumType.STRING)
@@ -39,5 +45,8 @@ public class ConnectedEntity extends AbstractEntity{
 
     @Column(name = "error_message", length = 255)
     private String errorMessage;
+
+    @Column(name = "error_code", length = 255)
+    private String errorCode;
 
 }

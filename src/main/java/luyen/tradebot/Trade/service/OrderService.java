@@ -33,67 +33,67 @@ public class OrderService {
     private final CTraderConnectionService connectionService;
 
     public OrderEntity placeOrder(OrderDTO orderDTO) {
-        AccountEntity account = accountRepository.findById(orderDTO.getAccountId())
+        BotEntity bot = (BotEntity) botRepository.findByBotName(orderDTO.getBotName())
                 .orElseThrow(() -> new RuntimeException("Account not found"));
+//        if (!account.isConnected()) {
+//            throw new RuntimeException("Account is not connected");
+//        }
 
-        if (!account.isConnected()) {
-            throw new RuntimeException("Account is not connected");
-        }
+//        OrderEntity order = OrderEntity.builder()
+//                .symbol(orderDTO.getSymbol())
+//                .symbolId(orderDTO.getSymbol() != null ? orderDTO.getSymbol().getId() : orderDTO.getSymbol().getId())
+//                .tradeSide(orderDTO.getTradeSide())
+//                .volume(orderDTO.getVolume())
+//                .status("PENDING")
+//                .orderType(orderDTO.getOrderType())
+//                .openTime(LocalDateTime.now())
+//                .account(account)
+//                .build();
 
-        OrderEntity order = OrderEntity.builder()
-                .symbol(orderDTO.getSymbol())
-                .symbolId(orderDTO.getSymbol() != null ? orderDTO.getSymbol().getId() : orderDTO.getSymbol().getId())
-                .tradeSide(orderDTO.getTradeSide())
-                .volume(orderDTO.getVolume())
-                .status("PENDING")
-                .orderType(orderDTO.getOrderType())
-                .openTime(LocalDateTime.now())
-                .account(account)
-                .build();
+//        OrderEntity savedOrder = orderRepository.save(order);
 
-        OrderEntity savedOrder = orderRepository.save(order);
+//        CTraderConnection connection = connectionService.getConnection(account.getId());
+//        if (connection == null) {
+//            savedOrder.setStatus("ERROR");
+//            savedOrder.setComment("No active connection for account");
+//            return orderRepository.save(savedOrder);
+//        }
+//
+//        OrderPosition position = OrderPosition.builder()
+//                .order(savedOrder)
+//                .account(account)
+//                .status("PENDING")
+//                .build();
+//
+//        OrderPosition savedPosition = orderPositionRepository.save(position);
+//
+//        CompletableFuture<String> future = connection.placeOrder(
+//                order.getSymbol(),
+//                order.getTradeSide(),
+//                order.getVolume(),
+//                order.getOrderType()
+//        );
 
-        CTraderConnection connection = connectionService.getConnection(account.getId());
-        if (connection == null) {
-            savedOrder.setStatus("ERROR");
-            savedOrder.setComment("No active connection for account");
-            return orderRepository.save(savedOrder);
-        }
+//        future.thenAccept(positionId -> {
+//            savedPosition.setPositionId(positionId);
+//            savedPosition.setStatus("OPEN");
+//            orderPositionRepository.save(savedPosition);
+//
+//            savedOrder.setStatus("OPEN");
+//            orderRepository.save(savedOrder);
+//        }).exceptionally(ex -> {
+//            savedPosition.setStatus("ERROR");
+//            savedPosition.setErrorMessage(ex.getMessage());
+//            orderPositionRepository.save(savedPosition);
+//
+//            savedOrder.setStatus("ERROR");
+//            savedOrder.setComment("Error: " + ex.getMessage());
+//            orderRepository.save(savedOrder);
+//            return null;
+//        });
 
-        OrderPosition position = OrderPosition.builder()
-                .order(savedOrder)
-                .account(account)
-                .status("PENDING")
-                .build();
-
-        OrderPosition savedPosition = orderPositionRepository.save(position);
-
-        CompletableFuture<String> future = connection.placeOrder(
-                order.getSymbol(),
-                order.getTradeSide(),
-                order.getVolume(),
-                order.getOrderType()
-        );
-
-        future.thenAccept(positionId -> {
-            savedPosition.setPositionId(positionId);
-            savedPosition.setStatus("OPEN");
-            orderPositionRepository.save(savedPosition);
-
-            savedOrder.setStatus("OPEN");
-            orderRepository.save(savedOrder);
-        }).exceptionally(ex -> {
-            savedPosition.setStatus("ERROR");
-            savedPosition.setErrorMessage(ex.getMessage());
-            orderPositionRepository.save(savedPosition);
-
-            savedOrder.setStatus("ERROR");
-            savedOrder.setComment("Error: " + ex.getMessage());
-            orderRepository.save(savedOrder);
-            return null;
-        });
-
-        return savedOrder;
+//        return savedOrder;
+        return null;
     }
 
     public OrderEntity closeOrder(Long orderId, Long accountId) {

@@ -2,8 +2,12 @@ package luyen.tradebot.Trade.service;
 
 
 import jakarta.websocket.*;
+import lombok.Data;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import luyen.tradebot.Trade.util.ValidateRepsone;
 import luyen.tradebot.Trade.util.enumTraderBot.OrderType;
 import luyen.tradebot.Trade.util.enumTraderBot.Symbol;
 import luyen.tradebot.Trade.util.enumTraderBot.TradeSide;
@@ -17,25 +21,39 @@ import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @RequiredArgsConstructor
+@Data
+@ClientEndpoint
 public class CTraderConnection {
-    private final String clientId;
+    private final Long accountId;
     private final String accessToken;
-    private final String wsUrl;
+
+    private String clientId;
+    private String secretId;
+    private String wsUrl;
+
+    private Session session;
+    private final CTraderConnectionService connectionService;
 
     private Session webSocketSession;
     private boolean connected = false;
+    private CompletableFuture<String> responseFuture; // Lưu trữ phản hồi từ WebSocket
 
     private int authenticatedTraderAccountId;
+
+    public CTraderConnection(Long accountId, String clientId, String secretId, String accessToken, CTraderConnectionService connectionService, String wsUrl) {
+        this.accountId = accountId;
+        this.accessToken = accessToken;
+        this.connectionService = connectionService;
+        this.wsUrl = wsUrl;
+        this.clientId = clientId;
+        this.secretId = secretId;
+    }
 
     public void connect() {
         try {
             WebSocketContainer container = ContainerProvider.getWebSocketContainer();
-            webSocketSession = (Session) container.connectToServer(new CTraderWebSocketEndpoint(),
-                    URI.create(wsUrl));
-
-            // Authenticate with access token
+            session = container.connectToServer(this, URI.create(wsUrl));
             sendAuthMessage();
-
             connected = true;
             log.info("Connected to cTrader WebSocket at {}", wsUrl);
         } catch (Exception e) {
@@ -43,6 +61,7 @@ public class CTraderConnection {
             throw new RuntimeException("WebSocket connection failed", e);
         }
     }
+
     public void disconnect() {
         if (webSocketSession != null && webSocketSession.isOpen()) {
             try {
@@ -59,17 +78,14 @@ public class CTraderConnection {
         // Implement authentication with access token
         String authMessage = String.format(
                 "{\"clientMsgId\": \"%s\",\"payloadType\": 2100,\"payload\": {\"clientId\": \"%s\",\"clientSecret\": \"%s\"}}",
-                generateClientMsgId(), clientId, accessToken
+                generateClientMsgId(), clientId, secretId
         );
         sendMessage(authMessage);
     }
 
     public void sendMessage(String message) {
-        if (webSocketSession != null && webSocketSession.isOpen()) {
-            webSocketSession.getAsyncRemote().sendText(message);
-        } else {
-            log.error("Cannot send message - WebSocket is not connected");
-            throw new IllegalStateException("WebSocket is not connected");
+        if (session != null && session.isOpen()) {
+            session.getAsyncRemote().sendText(message);
         }
     }
 
@@ -78,11 +94,11 @@ public class CTraderConnection {
         // Create ProtoOANewOrderReq message
         String orderMessage = createOrderMessage(symbol, tradeSide, volume, orderType);
 
-        CompletableFuture<String> future = new CompletableFuture<>();
         // In real implementation, track message ID and resolve future when response is received
 
-        sendMessage(orderMessage);
-        return future;
+//        sendMessage(orderMessage);
+//        return future;
+        return sendRequest(orderMessage);
     }
 
     public CompletableFuture<String> closePosition(String positionId) {
@@ -95,6 +111,7 @@ public class CTraderConnection {
         sendMessage(closeMessage);
         return future;
     }
+
     private String createGetAccountListMessage() {
         return String.format(
                 "{\"clientMsgId\": \"%s\",\"payloadType\": 2149,\"payload\": {\"accessToken\": \"%s\"}}",
@@ -104,10 +121,11 @@ public class CTraderConnection {
 
     private String createAuthenticateTraderAccountMessage(int ctidTraderAccountId) {
         return String.format(
-                "{\"clientMsgId\": \"%s\",\"payloadType\": 2102,\"payload\": {\"ctidTraderAccountId\": \"%s\",\"accessToken\": \"%s\"}}",
+                "{\"clientMsgId\": \"%s\",\"payloadType\": 2102,\"payload\": {\"ctidTraderAccountId\": %d,\"accessToken\": \"%s\"}}",
                 generateClientMsgId(), ctidTraderAccountId, accessToken
         );
     }
+
     private String createOrderMessage(Symbol symbol, TradeSide tradeSide,
                                       BigDecimal volume, OrderType orderType) {
         // This is a simplified version - in real implementation, use protobuf
@@ -127,30 +145,21 @@ public class CTraderConnection {
 
         return jsonBuilder.toString();
     }
-    public CompletableFuture<List<Map<String, Object>>> getAccountListByAccessToken() {
+
+    public CompletableFuture<String> getAccountListByAccessToken() {
         String message = createGetAccountListMessage();
-
-        CompletableFuture<List<Map<String, Object>>> future = new CompletableFuture<>();
-
-        sendMessage(message);
-
-        // Normally would set up a way to resolve this future when response comes back
-        // This is simplified for the example
-        return future;
+        return sendRequest(message);
     }
 
-    public CompletableFuture<Boolean> authenticateTraderAccount(int ctidTraderAccountId) {
+    public CompletableFuture<String> authenticateTraderAccount(int ctidTraderAccountId) {
         String message = createAuthenticateTraderAccountMessage(ctidTraderAccountId);
 
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
-
-        sendMessage(message);
         this.authenticatedTraderAccountId = ctidTraderAccountId;
-
+        return sendRequest(message);
         // Normally would set up a way to resolve this future when response comes back
         // This is simplified for the example
-        return future;
     }
+
     private String createClosePositionMessage(String positionId) {
         // This is a simplified version - in real implementation, use protobuf
         return String.format(
@@ -158,39 +167,58 @@ public class CTraderConnection {
                 generateClientMsgId(), authenticatedTraderAccountId, positionId
         );
     }
+
     private String generateClientMsgId() {
         // Generate a unique client message ID for tracking responses
         return "cm_" + UUID.randomUUID().toString().substring(0, 8);
     }
-
-
-    @ClientEndpoint
-    public class CTraderWebSocketEndpoint {
-        @OnOpen
-        public void onOpen(Session session) {
-            log.info("WebSocket connection opened");
-        }
-
-        @OnMessage
-        public void onMessage(String message) {
-            log.debug("Received message: {}", message);
-            // Process incoming messages, update message tracking and resolve futures
-        }
-
-        @OnClose
-        public void onClose(Session session, CloseReason reason) {
-            log.info("WebSocket connection closed: {}", reason);
-            connected = false;
-        }
-
-        @OnError
-        public void onError(Session session, Throwable throwable) {
-            log.error("WebSocket error", throwable);
+    public boolean isConnected() {
+        return session != null && session.isOpen();
+    }
+    public CompletableFuture<String> sendRequest(String message) {
+        if (session != null && session.isOpen()) {
+            responseFuture = new CompletableFuture<>();
+            session.getAsyncRemote().sendText(message);
+            return responseFuture;
+        } else {
+            return CompletableFuture.completedFuture("Connection not available for account: " + accountId);
         }
     }
-    // Helper method to parse JSON responses
-    private void parseJsonResponse(String jsonMessage) {
-        // In a real implementation, use a JSON library like Jackson to parse responses
-        // and resolve the appropriate CompletableFuture based on the requestId
+    @OnOpen
+    public void onOpen(Session session) {
+        this.session = session;
+        log.info("Connected to cTrader for account: " + accountId);
+    }
+
+    @OnMessage
+    public void onMessage(String message) {
+        log.info("Received message for account " + accountId + ": " + message);
+        if (responseFuture != null) {
+            responseFuture.complete(message); // Hoàn thành Future khi nhận được dữ liệu
+            responseFuture = null; // Reset để dùng cho request tiếp theo
+        }
+        // Xử lý dữ liệu từ cTrader (giá, lệnh, v.v.)
+    }
+
+    @OnClose
+    public void onClose(Session session, CloseReason reason) {
+        log.warn("Connection closed for account " + accountId + ": " + reason.getReasonPhrase());
+        connectionService.reconnect(this); // Tự động reconnect khi đóng
+    }
+
+    @OnError
+    public void onError(Session session, Throwable throwable) {
+        log.error("Error for account " + accountId + ": " + throwable.getMessage());
+        connectionService.reconnect(this); // Reconnect khi có lỗi
+    }
+
+    public void close() {
+        if (session != null && session.isOpen()) {
+            try {
+                session.close();
+            } catch (Exception e) {
+                log.error("Failed to close connection for account " + accountId + ": " + e.getMessage());
+            }
+        }
     }
 }
