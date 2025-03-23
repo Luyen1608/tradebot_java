@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -82,10 +83,14 @@ public class AccountService {
                     account.setAuthenticated(true);
                     account.setConnectionStatus(AccountStatus.AUTHENTICATED);
 
+                    connectedEntity.setAccount(account);
+                    connectedEntity.setConnectionStatus(ConnectStatus.CONNECTED);
+                    connectedEntity.setAccountName(account.getAccountName());
+                    connectedEntity.setLastConnectionTime(DateUtil.plusDate(0));
+//                    connectedEntity.setBotName(account.getBot().getBotName());
 
+                    account.setConnecting(connectedEntity);
 
-
-                    account.setConnected(connectedEntity);
 
                     log.info("Trader account authenticated for account: {}", accountId);
                 } else {

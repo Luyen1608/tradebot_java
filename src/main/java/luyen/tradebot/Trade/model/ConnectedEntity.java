@@ -29,7 +29,8 @@ public class ConnectedEntity extends AbstractEntity{
     @Column(name = "account_name", length = 255)
     private String accountName;
 
-    @OneToOne(mappedBy = "Account")
+    @OneToOne
+    @JoinColumn(name = "account_id", unique = true, nullable = false)
     private AccountEntity account;
 
     @Column(name = "connection_status", length = 255)
