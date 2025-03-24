@@ -19,7 +19,7 @@ import java.util.concurrent.CompletableFuture;
 @RequestMapping("/api/accounts")
 @RequiredArgsConstructor
 @Validated
-@Tag(name = "Mockup User Controller")
+@Tag(name = "Account Controller")
 public class AccountController {
     private final AccountService accountService;
 

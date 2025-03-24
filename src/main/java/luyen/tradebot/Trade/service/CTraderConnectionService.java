@@ -74,13 +74,13 @@ public class CTraderConnectionService {
                 try {
                     connection.authenticateTraderAccount(account.getCtidTraderAccountId())
                             .thenAccept(success -> {
-//                                if (success) {
-//                                    account.setAuthenticated(true);
-//                                    account.setConnectionStatus(AccountStatus.AUTHENTICATED);
-//                                    accountRepository.save(account);
-//                                    log.info("Successfully authenticated trader account: {}",
-//                                            account.getCtidTraderAccountId());
-//                                }
+                                if (success != null) {
+                                    account.setAuthenticated(true);
+                                    account.setConnectionStatus(AccountStatus.AUTHENTICATED);
+                                    accountRepository.save(account);
+                                    log.info("Successfully authenticated trader account: {}",
+                                            account.getCtidTraderAccountId());
+                                }
                             });
                 } catch (Exception e) {
                     log.error("Failed to authenticate trader account: {}",

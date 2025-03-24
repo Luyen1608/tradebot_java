@@ -10,6 +10,7 @@ import luyen.tradebot.Trade.model.BotEntity;
 import luyen.tradebot.Trade.model.ConnectedEntity;
 import luyen.tradebot.Trade.repository.AccountRepository;
 import luyen.tradebot.Trade.repository.BotRepository;
+import luyen.tradebot.Trade.repository.ConnectedRepository;
 import luyen.tradebot.Trade.util.DateUtil;
 import luyen.tradebot.Trade.util.ValidateRepsone;
 import luyen.tradebot.Trade.util.enumTraderBot.AccountStatus;
@@ -23,6 +24,7 @@ import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 @Service
@@ -31,6 +33,9 @@ import java.util.concurrent.CompletableFuture;
 public class AccountService {
 
     private final AccountRepository accountRepository;
+
+    private final ConnectedRepository connectedRepository;
+
     private final BotRepository botRepository;
     private final CTraderApiService cTraderApiService;
     private final CTraderConnectionService connectionService;
@@ -73,8 +78,12 @@ public class AccountService {
 
         CompletableFuture<String> future = cTraderApiService.authenticateTraderAccount(
                 connection, ctidTraderAccountId);
-        ConnectedEntity connectedEntity = new ConnectedEntity();
+        ConnectedEntity connectedEntity = connectedRepository.findByAccountId(accountId);
+        if (connectedEntity == null) {
+            connectedEntity = new ConnectedEntity();
+        }
         //{"payloadType":2103,"clientMsgId":"cm_0c252588","payload":{"ctidTraderAccountId":42683965}}
+        ConnectedEntity finalConnectedEntity = connectedEntity;
         future.thenAccept(success -> {
             if (success !=null) {
                 ResponseCtraderDTO responseCtraderDTO = ValidateRepsone.formatResponse(success);
@@ -83,25 +92,23 @@ public class AccountService {
                     account.setAuthenticated(true);
                     account.setConnectionStatus(AccountStatus.AUTHENTICATED);
 
-                    connectedEntity.setAccount(account);
-                    connectedEntity.setConnectionStatus(ConnectStatus.CONNECTED);
-                    connectedEntity.setAccountName(account.getAccountName());
-                    connectedEntity.setLastConnectionTime(DateUtil.plusDate(0));
+                    finalConnectedEntity.setAccount(account);
+                    finalConnectedEntity.setConnectionStatus(ConnectStatus.CONNECTED);
+                    finalConnectedEntity.setAccountName(account.getAccountName());
+                    finalConnectedEntity.setLastConnectionTime(DateUtil.plusDate(0));
 //                    connectedEntity.setBotName(account.getBot().getBotName());
 
-                    account.setConnecting(connectedEntity);
+                    account.setConnecting(finalConnectedEntity);
 
 
                     log.info("Trader account authenticated for account: {}", accountId);
                 } else {
-                    connectedEntity.setAccountName(account.getAccountName());
-                    connectedEntity.setConnectionStatus(ConnectStatus.CONNECTED);
-                    connectedEntity.setBotName(account.getBot().getBotName());
-                    connectedEntity.setErrorCode(responseCtraderDTO.getErrorCode());
-                    connectedEntity.setErrorMessage(responseCtraderDTO.getDescription());
-
-                    account.setAuthenticated(false);
-
+                    finalConnectedEntity.setAccountName(account.getAccountName());
+                    finalConnectedEntity.setConnectionStatus(ConnectStatus.CONNECTED);
+                    finalConnectedEntity.setBotName(account.getBot().getBotName());
+                    finalConnectedEntity.setErrorCode(responseCtraderDTO.getErrorCode());
+                    finalConnectedEntity.setErrorMessage(responseCtraderDTO.getDescription());
+                    account.setAuthenticated(account.isAuthenticated());
                 }
                 accountRepository.save(account);
             }
