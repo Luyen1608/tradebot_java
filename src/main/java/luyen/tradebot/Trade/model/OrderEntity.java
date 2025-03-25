@@ -29,7 +29,7 @@ public class OrderEntity extends AbstractEntity {
     private Symbol symbol;
 
     @Column(name = "symbol_id")
-    private Integer symbolId;
+    private int symbolId;
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
@@ -44,7 +44,7 @@ public class OrderEntity extends AbstractEntity {
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private OrderType orderType; // MARKET, LIMIT, STOP
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_id")
     private AccountEntity account;
 

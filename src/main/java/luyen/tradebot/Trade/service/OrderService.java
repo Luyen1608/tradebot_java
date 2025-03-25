@@ -159,18 +159,18 @@ public class OrderService {
             return;
         }
 
-        Symbol symbol = Symbol.fromId(webhookDTO.getSymbolId());
-        TradeSide tradeSide = TradeSide.fromValue(webhookDTO.getTradeSide());
-        OrderType orderType = OrderType.fromValue(webhookDTO.getOrderType());
+        Symbol symbol = Symbol.valueOf(webhookDTO.getSymbol());
+        TradeSide tradeSide = TradeSide.valueOf(webhookDTO.getTradeSide());
+        OrderType orderType = OrderType.valueOf(webhookDTO.getOrderType());
 
         // Create a single order record
         OrderEntity order = OrderEntity.builder()
-                .symbol(symbol)
-                .symbolId(symbol.getId())
-                .tradeSide(tradeSide)
+                .symbol(Symbol.fromString(webhookDTO.getSymbol()))
+                .symbolId(Symbol.valueOf(webhookDTO.getSymbol()).getId())
+                .tradeSide(TradeSide.fromString(webhookDTO.getTradeSide()))
                 .volume(webhookDTO.getVolume())
                 .status("OPEN")
-                .orderType(orderType)
+                .orderType(OrderType.fromString(webhookDTO.getTradeSide()))
                 .comment("Created via webhook for bot: " + bot.getBotName())
                 .openTime(LocalDateTime.now())
                 .account(accounts.get(0)) // Use the first account as the reference account
@@ -235,7 +235,7 @@ public class OrderService {
     }
 
     public void processWebhookClose(OrderWebhookDTO webhookDTO) {
-        Symbol symbol = Symbol.fromId(webhookDTO.getSymbolId());
+        Symbol symbol = Symbol.fromString(webhookDTO.getSymbol());
         List<OrderEntity> openOrders = orderRepository.findOpenOrdersBySymbolIdAndBotSignalToken(
                 symbol.getId(), webhookDTO.getSignalToken());
 

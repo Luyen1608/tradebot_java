@@ -1,6 +1,9 @@
 package luyen.tradebot.Trade.dto;
 
 import lombok.Data;
+import luyen.tradebot.Trade.util.enumTraderBot.OrderType;
+import luyen.tradebot.Trade.util.enumTraderBot.Symbol;
+import luyen.tradebot.Trade.util.enumTraderBot.TradeSide;
 
 import java.math.BigDecimal;
 

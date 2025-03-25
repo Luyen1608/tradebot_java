@@ -63,7 +63,7 @@ public class AccountService {
         return cTraderApiService.getTraderAccounts(connection);
     }
 
-    public CompletableFuture<String> authenticateTraderAccount(Long accountId, int ctidTraderAccountId, String traderAccountName) {
+    public CompletableFuture<String> authenticateTraderAccount(Long accountId, int ctidTraderAccountId, String type, String traderAccountName) {
         AccountEntity account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("Account not found"));
 
@@ -89,12 +89,14 @@ public class AccountService {
                 ResponseCtraderDTO responseCtraderDTO = ValidateRepsone.formatResponse(success);
                 if (responseCtraderDTO.getPayloadReponse() ==2103){
                     account.setCtidTraderAccountId(ctidTraderAccountId);
+                    account.setTypeAccount(AccountType.valueOf(type));
                     account.setAuthenticated(true);
                     account.setConnectionStatus(AccountStatus.AUTHENTICATED);
 
+                    finalConnectedEntity.setAccountName(account.getAccountName());
                     finalConnectedEntity.setAccount(account);
                     finalConnectedEntity.setConnectionStatus(ConnectStatus.CONNECTED);
-                    finalConnectedEntity.setAccountName(account.getAccountName());
+
                     finalConnectedEntity.setLastConnectionTime(DateUtil.plusDate(0));
 //                    connectedEntity.setBotName(account.getBot().getBotName());
 

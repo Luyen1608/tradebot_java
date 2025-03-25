@@ -34,4 +34,5 @@ public enum Symbol {
             throw new IllegalArgumentException("Unknown symbol: " + text);
         }
     }
+
 }
