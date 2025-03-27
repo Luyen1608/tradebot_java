@@ -64,7 +64,7 @@ public class CTraderApiService {
         return connection.getAccountListByAccessToken();
     }
 
-    public CompletableFuture<String> placeOrder(CTraderConnection connection, Symbol symbol, TradeSide tradeSide, BigDecimal volume, OrderType orderType) {
+    public CompletableFuture<String> placeOrder(CTraderConnection connection, int symbol, int tradeSide, int volume, int orderType) {
         // Authenticate specific trader account
         return connection.placeOrder(symbol,tradeSide,volume,orderType);
     }

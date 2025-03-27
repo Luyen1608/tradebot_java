@@ -4,18 +4,15 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
+import luyen.tradebot.Trade.dto.MessageTradingViewDTO;
 import luyen.tradebot.Trade.dto.OrderWebhookDTO;
 import luyen.tradebot.Trade.dto.request.OrderDTO;
 import luyen.tradebot.Trade.dto.respone.OrderResponseCtrader;
 import luyen.tradebot.Trade.dto.respone.ResponseCtraderDTO;
-import luyen.tradebot.Trade.model.AccountEntity;
-import luyen.tradebot.Trade.model.BotEntity;
-import luyen.tradebot.Trade.model.OrderEntity;
-import luyen.tradebot.Trade.model.OrderPosition;
-import luyen.tradebot.Trade.repository.AccountRepository;
-import luyen.tradebot.Trade.repository.BotRepository;
-import luyen.tradebot.Trade.repository.OrderPositionRepository;
-import luyen.tradebot.Trade.repository.OrderRepository;
+import luyen.tradebot.Trade.model.*;
+import luyen.tradebot.Trade.repository.*;
+import luyen.tradebot.Trade.util.Convert;
+import luyen.tradebot.Trade.util.SaveInfo;
 import luyen.tradebot.Trade.util.ValidateRepsone;
 import luyen.tradebot.Trade.util.enumTraderBot.*;
 import org.springframework.stereotype.Service;
@@ -34,7 +31,8 @@ public class OrderService {
     private final BotRepository botRepository;
     private final OrderPositionRepository orderPositionRepository;
     private final CTraderConnectionService connectionService;
-
+    private final AlertTradingRepository alertTradingRepository;
+    private final SaveInfo saveInfo;
     private final CTraderApiService cTraderApiService;
 
     public OrderEntity placeOrder(OrderDTO orderDTO) {
@@ -152,7 +150,10 @@ public class OrderService {
         return order;
     }
 
-    public void processWebhookOrder(OrderWebhookDTO webhookDTO) {
+    public void processWebhookOrder(MessageTradingViewDTO messageTradingViewDTO) {
+
+        OrderWebhookDTO webhookDTO = Convert.convertTradeviewToCtrader(messageTradingViewDTO);
+
         BotEntity bot = botRepository.findBySignalToken(webhookDTO.getSignalToken())
                 .orElseThrow(() -> new RuntimeException("Bot not found with signal token: " + webhookDTO.getSignalToken()));
 
@@ -163,20 +164,31 @@ public class OrderService {
             log.warn("No active authenticated accounts found for bot: {}", bot.getId());
             return;
         }
+        //convert  string to LocalDateTime
+        LocalDateTime timestamp = LocalDateTime.parse(messageTradingViewDTO.getTimestamp());
 
-        Symbol symbol = Symbol.valueOf(webhookDTO.getSymbol());
-        TradeSide tradeSide = TradeSide.valueOf(webhookDTO.getTradeSide());
-        OrderType orderType = OrderType.valueOf(webhookDTO.getOrderType());
+        //create a single AlertTradingEntity record with messageTradingViewDTO
+        AlertTradingEntity alertTradingEntity = AlertTradingEntity.builder()
+                .action(AcctionTrading.fromString(messageTradingViewDTO.getAction()))
+                .instrument(messageTradingViewDTO.getInstrument())
+                .timestamp(LocalDateTime.parse(messageTradingViewDTO.getTimestamp()))
+                .signalToken(messageTradingViewDTO.getSignalToken())
+                .maxLag(messageTradingViewDTO.getMaxLag())
+                .investmentType(messageTradingViewDTO.getInvestmentType())
+                .amount(Double.valueOf(messageTradingViewDTO.getAmount()))
+                .build();
 
-        // Create a single order record
-        OrderEntity order = OrderEntity.builder()
-                .symbol(Symbol.fromString(webhookDTO.getSymbol()))
-                .symbolId(Symbol.valueOf(webhookDTO.getSymbol()).getId())
-                .tradeSide(TradeSide.fromString(webhookDTO.getTradeSide()))
-                .volume(webhookDTO.getVolume())
+        AlertTradingEntity saveAlertTradingEntity = alertTradingRepository.save(alertTradingEntity);
+
+                // Create a single order record
+                OrderEntity order = OrderEntity.builder()
+                .symbol(Symbol.fromId(webhookDTO.getSymbol()))
+                .symbolId(Symbol.fromId(webhookDTO.getSymbol()).getId())
+                .tradeSide(TradeSide.fromValue(webhookDTO.getTradeSide()))
+                .volume(new BigDecimal(webhookDTO.getVolume()))
                 .status("OPEN")
-                .orderType(OrderType.fromString(webhookDTO.getOrderType()))
-                .comment("Created via webhook for bot: " + bot.getBotName())
+                .orderType(OrderType.fromValue(webhookDTO.getOrderType()))
+                .comment("Created Order webhook for bot: " + bot.getBotName())
                 .openTime(LocalDateTime.now())
                 .account(accounts.get(0)) // Use the first account as the reference account
                 .botId(bot.getId()) // Use the first account as the reference account
@@ -210,7 +222,7 @@ public class OrderService {
 
                 OrderPosition savedPosition = orderPositionRepository.save(position);
 
-                CompletableFuture<String> future = cTraderApiService.placeOrder(connection, symbol, tradeSide, webhookDTO.getVolume(), orderType);
+                CompletableFuture<String> future = cTraderApiService.placeOrder(connection, webhookDTO.getSymbol(), webhookDTO.getTradeSide(), webhookDTO.getVolume(), webhookDTO.getOrderType());
                 future.thenAccept(result -> {
                     ResponseCtraderDTO responseCtraderDTO = ValidateRepsone.formatResponsePlaceOrder(result);
                     //kiểm tra payloadReponse có trong list của enumer không và seting giá trị vào positionEntity
@@ -261,6 +273,7 @@ public class OrderService {
             }
         }
     }
+
 
     public void processWebhookClose(OrderWebhookDTO webhookDTO) {
         Symbol symbol = Symbol.fromString(webhookDTO.getSymbol());

@@ -2,6 +2,7 @@ package luyen.tradebot.Trade.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import luyen.tradebot.Trade.dto.MessageTradingViewDTO;
 import luyen.tradebot.Trade.dto.OrderWebhookDTO;
 import luyen.tradebot.Trade.service.OrderService;
 import org.slf4j.Logger;
@@ -19,7 +20,7 @@ public class WebhookController {
     private final OrderService orderService;
 
     @PostMapping("/order")
-    public ResponseEntity<String> processOrder(@RequestBody OrderWebhookDTO webhookDTO) {
+    public ResponseEntity<String> processOrder(@RequestBody MessageTradingViewDTO webhookDTO) {
         log.info("Received order webhook: {}", webhookDTO);
 
         if ("close".equalsIgnoreCase(webhookDTO.getType())) {

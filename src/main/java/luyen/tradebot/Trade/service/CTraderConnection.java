@@ -93,8 +93,8 @@ public class CTraderConnection {
         }
     }
 
-    public CompletableFuture<String> placeOrder(Symbol symbol, TradeSide tradeSide,
-                                                BigDecimal volume, OrderType orderType) {
+    public CompletableFuture<String> placeOrder(int symbol, int tradeSide,
+                                                int volume, int orderType) {
         // Create ProtoOANewOrderReq message
         String orderMessage = createOrderMessage(symbol, tradeSide, volume, orderType);
 
@@ -139,22 +139,20 @@ public class CTraderConnection {
         );
     }
 
-    private String createOrderMessage(Symbol symbol, TradeSide tradeSide,
-                                      BigDecimal volume, OrderType orderType) {
+    private String createOrderMessage(int symbol, int tradeSide,
+                                      int volume, int orderType) {
         // This is a simplified version - in real implementation, use protobuf
         // JSON format for order placement
-       // thực hiện nhân volume với 1000 và convert sang kiểu dữ liệu là integer
-        int volumeInt = volume.multiply(BigDecimal.valueOf(1000)).intValue();
         StringBuilder jsonBuilder = new StringBuilder();
         jsonBuilder.append("{");
         jsonBuilder.append("\"clientMsgId\": \"").append(generateClientMsgId()).append("\",");
         jsonBuilder.append("\"payloadType\": 2106,");
         jsonBuilder.append("\"payload\": {");
         jsonBuilder.append("\"ctidTraderAccountId\": ").append(authenticatedTraderAccountId).append(",");
-        jsonBuilder.append("\"symbolId\": ").append(symbol.getId()).append(",");
-        jsonBuilder.append("\"tradeSide\": ").append(tradeSide.getValue()).append(",");
-        jsonBuilder.append("\"orderType\": ").append(orderType.getValue()).append(",");
-        jsonBuilder.append("\"volume\": ").append(volumeInt);
+        jsonBuilder.append("\"symbolId\": ").append(symbol).append(",");
+        jsonBuilder.append("\"tradeSide\": ").append(tradeSide).append(",");
+        jsonBuilder.append("\"orderType\": ").append(orderType).append(",");
+        jsonBuilder.append("\"volume\": ").append(volume);
 
         jsonBuilder.append("}}");
 
