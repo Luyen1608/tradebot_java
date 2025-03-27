@@ -135,10 +135,10 @@ public class CTraderConnection {
         jsonBuilder.append("\"clientMsgId\": \"").append(generateClientMsgId()).append("\",");
         jsonBuilder.append("\"payloadType\": 2106,");
         jsonBuilder.append("\"payload\": {");
-        jsonBuilder.append("\"ctidTraderAccountId\": \"").append(authenticatedTraderAccountId).append("\",");
-        jsonBuilder.append("\"symbol\": \"").append(symbol).append("\",");
-        jsonBuilder.append("\"tradeSide\": \"").append(tradeSide).append("\",");
-        jsonBuilder.append("\"orderType\": ").append(OrderType.MARKET.getValue()).append(",");
+        jsonBuilder.append("\"ctidTraderAccountId\": ").append(authenticatedTraderAccountId).append(",");
+        jsonBuilder.append("\"symbolId\": ").append(symbol.getId()).append(",");
+        jsonBuilder.append("\"tradeSide\": ").append(tradeSide.getValue()).append(",");
+        jsonBuilder.append("\"orderType\": ").append(orderType.getValue()).append(",");
         jsonBuilder.append("\"volume\": ").append(volume);
 
         jsonBuilder.append("}}");
@@ -155,6 +155,7 @@ public class CTraderConnection {
         String message = createAuthenticateTraderAccountMessage(ctidTraderAccountId);
 
         this.authenticatedTraderAccountId = ctidTraderAccountId;
+        log.info("Authenticated for account: {}", ctidTraderAccountId);
         return sendRequest(message);
         // Normally would set up a way to resolve this future when response comes back
         // This is simplified for the example

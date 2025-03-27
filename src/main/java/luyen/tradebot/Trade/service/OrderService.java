@@ -170,7 +170,7 @@ public class OrderService {
                 .tradeSide(TradeSide.fromString(webhookDTO.getTradeSide()))
                 .volume(webhookDTO.getVolume())
                 .status("OPEN")
-                .orderType(OrderType.fromString(webhookDTO.getTradeSide()))
+                .orderType(OrderType.fromString(webhookDTO.getOrderType()))
                 .comment("Created via webhook for bot: " + bot.getBotName())
                 .openTime(LocalDateTime.now())
                 .account(accounts.get(0)) // Use the first account as the reference account

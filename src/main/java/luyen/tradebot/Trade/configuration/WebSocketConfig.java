@@ -16,8 +16,4 @@ public class WebSocketConfig implements WebSocketConfigurer {
         registry.addHandler(new MyWebSocketHandler(), "/ws").setAllowedOrigins("*");
     }
 
-    @Bean
-    public ServerEndpointExporter serverEndpointExporter() {
-        return new ServerEndpointExporter();
-    }
 }

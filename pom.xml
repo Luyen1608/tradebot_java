@@ -79,12 +79,6 @@
             <artifactId>jakarta.websocket-api</artifactId>
             <scope>provided</scope>
         </dependency>
-
-<!--        <dependency>-->
-<!--            <groupId>mysql</groupId>-->
-<!--            <artifactId>mysql-connector-java</artifactId>-->
-<!--            <scope>runtime</scope>-->
-<!--        </dependency>-->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
@@ -100,32 +94,21 @@
             <version>5.1.2</version>
             <optional>true</optional>
         </dependency>
-        <!-- Protobuf for binary serialization -->
-
-
-        <!-- WebSocket Client Implementation -->
-<!--        <dependency>-->
-<!--            <groupId>org.glassfish.tyrus</groupId>-->
-<!--            <artifactId>tyrus-client</artifactId>-->
-<!--        </dependency>-->
-<!--        <dependency>-->
-<!--            <groupId>org.glassfish.tyrus</groupId>-->
-<!--            <artifactId>tyrus-container-grizzly-client</artifactId>-->
-<!--        </dependency>-->
         <dependency>
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka</artifactId>
         </dependency>
 
         <!--        <dependency>-->
-<!--            <groupId>com.h2database</groupId>  &lt;!&ndash; Use H2 for testing &ndash;&gt;-->
-<!--            <artifactId>h2</artifactId>-->
-<!--            <scope>runtime</scope>-->
-<!--        </dependency>-->
+        <!--            <groupId>com.h2database</groupId>  &lt;!&ndash; Use H2 for testing &ndash;&gt;-->
+        <!--            <artifactId>h2</artifactId>-->
+        <!--            <scope>runtime</scope>-->
+        <!--        </dependency>-->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
     <profiles>

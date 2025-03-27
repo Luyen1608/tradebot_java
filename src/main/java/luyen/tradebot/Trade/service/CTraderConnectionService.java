@@ -124,8 +124,10 @@ public class CTraderConnectionService {
         // Tạo kết nối mới
         CTraderConnection newConnection = new CTraderConnection(accountId, connection.getClientId(), connection.getSecretId(),
                 connection.getAccessToken(),this, connection.getWsUrl());
+        newConnection.setAuthenticatedTraderAccountId(connection.getAuthenticatedTraderAccountId());
         connections.put(accountId, newConnection);
         newConnection.connect();
+        newConnection.authenticateTraderAccount(newConnection.getAuthenticatedTraderAccountId());
     }
     public void sendMessageToAccount(String accountId, String message) {
         CTraderConnection connection = connections.get(accountId);

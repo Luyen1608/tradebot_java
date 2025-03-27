@@ -1,7 +1,5 @@
 package luyen.tradebot.Trade.model;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import luyen.tradebot.Trade.util.enumTraderBot.AccountStatus;
@@ -9,9 +7,7 @@ import luyen.tradebot.Trade.util.enumTraderBot.AccountType;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.time.LocalDateTime;
 import java.util.Date;
-import java.util.Set;
 
 @Getter
 @Setter

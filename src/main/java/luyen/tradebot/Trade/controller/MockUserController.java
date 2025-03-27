@@ -5,35 +5,23 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.transaction.Transaction;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
-import luyen.tradebot.Trade.configuration.Translator;
-import luyen.tradebot.Trade.controller.request.UserCreationRequest;
 import luyen.tradebot.Trade.dto.request.UserRequestDTO;
 import luyen.tradebot.Trade.dto.respone.ResponseData;
 import luyen.tradebot.Trade.dto.respone.ResponseError;
-import luyen.tradebot.Trade.dto.respone.ResponseSuccess;
 import luyen.tradebot.Trade.dto.respone.UserDetailResponse;
 import luyen.tradebot.Trade.exception.ResourceNotFoundException;
 import luyen.tradebot.Trade.service.UserService;
 import luyen.tradebot.Trade.util.UserStatus;
-import org.apache.catalina.User;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/mockUser")
@@ -52,9 +40,10 @@ public class MockUserController {
 
         try {
             long userId = userService.save(request);
-            return new ResponseData<>(HttpStatus.CREATED.value(), "Add user success",userId);
+            return new ResponseData<>(HttpStatus.CREATED.value(), "Add user success", userId);
         } catch (Exception e) {
-            log.error("error message = {} ",   e.getMessage(), e.getCause());
+// Add @Slf4j annotation to class to enable logging
+            log.error("error message = {} ", e.getMessage(), e.getCause());
             return new ResponseError(HttpStatus.BAD_REQUEST.value(), "Add User Fail");
         }
 
@@ -65,6 +54,7 @@ public class MockUserController {
 ////        result.put("data",userService.save(request));
 //        return new ResponseEntity<>(result, HttpStatus.CREATED);
     }
+
     @Operation(summary = "summary", description = "description", responses = {
             @ApiResponse(responseCode = "202", description = "User Updated successfully",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -85,7 +75,7 @@ public class MockUserController {
             userService.updateUser(id, user);
             return new ResponseData<>(HttpStatus.OK.value(), "User Updated successfully");
         } catch (Exception e) {
-            log.error("error message = {} ",   e.getMessage(), e.getCause());
+            log.error("error message = {} ", e.getMessage(), e.getCause());
             return new ResponseError(HttpStatus.BAD_REQUEST.value(), "Update User Fail");
         }
 
@@ -99,7 +89,7 @@ public class MockUserController {
             userService.changeStatus(userId, status);
             return new ResponseData<>(HttpStatus.ACCEPTED.value(), "User changed Status");
         } catch (Exception e) {
-            log.error("error message = {} ",   e.getMessage(), e.getCause());
+            log.error("error message = {} ", e.getMessage(), e.getCause());
             return new ResponseError(HttpStatus.BAD_REQUEST.value(), "Update Status Fail");
         }
     }
@@ -112,7 +102,7 @@ public class MockUserController {
             userService.delete(userId);
             return new ResponseData<>(HttpStatus.NO_CONTENT.value(), "User Deleted Successfully");
         } catch (Exception e) {
-            log.error("error message = {} ",   e.getMessage(), e.getCause());
+            log.error("error message = {} ", e.getMessage(), e.getCause());
             return new ResponseError(HttpStatus.BAD_REQUEST.value(), "Delete User Fail");
         }
     }
@@ -124,7 +114,7 @@ public class MockUserController {
         try {
             return new ResponseData<>(HttpStatus.OK.value(), "Get user", userService.getUser(userId));
         } catch (ResourceNotFoundException e) {
-            log.error("error message getUser = {} ",   e.getMessage(), e.getCause());
+            log.error("error message getUser = {} ", e.getMessage(), e.getCause());
             return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
 
@@ -140,8 +130,9 @@ public class MockUserController {
             @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(required = false) String sortBy) {
         System.out.println("Request Get ListUser");
-        return new ResponseData<>(HttpStatus.OK.value(), "Get List User", userService.getAllUsersWithSortBys(pageNo,pageSize,sortBy));
+        return new ResponseData<>(HttpStatus.OK.value(), "Get List User", userService.getAllUsersWithSortBys(pageNo, pageSize, sortBy));
     }
+
     @GetMapping("/list-multiple")
     @Operation(summary = "Request Get ListUser with sort by multiple column")
     @ResponseStatus(HttpStatus.OK)
@@ -151,8 +142,9 @@ public class MockUserController {
             @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(required = false) String... sorts) {
         System.out.println("Request Get ListUser with sort by multiple column");
-        return new ResponseData<>(HttpStatus.OK.value(), "Get List User", userService.getAllUsersWithSortBysMultipleColums(pageNo,pageSize, sorts));
+        return new ResponseData<>(HttpStatus.OK.value(), "Get List User", userService.getAllUsersWithSortBysMultipleColums(pageNo, pageSize, sorts));
     }
+
     @Operation(summary = "get list user by sort page and search")
     @GetMapping("/search")
     @ResponseStatus(HttpStatus.OK)
@@ -163,7 +155,7 @@ public class MockUserController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String sorts) {
         System.out.println("Request Get ListUser with sort by multiple column");
-        return new ResponseData<>(HttpStatus.OK.value(), "Get List User", userService.getAllUsersWithSearch(pageNo,pageSize, search, sorts));
+        return new ResponseData<>(HttpStatus.OK.value(), "Get List User", userService.getAllUsersWithSearch(pageNo, pageSize, search, sorts));
     }
 
     @Operation(summary = "get list user by Criteria")
@@ -178,8 +170,9 @@ public class MockUserController {
             @RequestParam(required = false) String... search) {
         //firstName:hung, lastName:nguyen, address:hanoi
         System.out.println("Request Get ListUser with sort by multiple column");
-        return new ResponseData<>(HttpStatus.OK.value(), "Get List User", userService.advanceSearchByCriteria(pageNo,pageSize, sorts,address, search));
+        return new ResponseData<>(HttpStatus.OK.value(), "Get List User", userService.advanceSearchByCriteria(pageNo, pageSize, sorts, address, search));
     }
+
     @Operation(summary = "Search with speciticaion  ", description = "Send a request API get user list by page and search with user and address")
     @GetMapping("/search-speciticaion")
     @ResponseStatus(HttpStatus.OK)
@@ -188,6 +181,6 @@ public class MockUserController {
                                                 @RequestParam(required = false) String[] address) {
         //firstName:hung, lastName:nguyen, address:hanoi
         System.out.println("Request Get ListUser with sort by multiple column");
-        return new ResponseData<>(HttpStatus.OK.value(), "Get List User", userService.searchBySpeciticaion(pageable, user,address));
+        return new ResponseData<>(HttpStatus.OK.value(), "Get List User", userService.searchBySpeciticaion(pageable, user, address));
     }
 }
