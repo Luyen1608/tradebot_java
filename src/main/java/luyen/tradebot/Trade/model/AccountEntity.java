@@ -39,7 +39,9 @@ public class AccountEntity extends AbstractEntity {
     private AccountStatus connectionStatus;
 
     @Column(name = "ctid_trader_account_id", length = 255)
-    private int ctidTraderAccountId;
+    private Integer ctidTraderAccountId;
+
+    private Integer traderLogin;
 
     @Column(name = "type_account", length = 255)
     @Enumerated(EnumType.STRING)

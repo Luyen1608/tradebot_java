@@ -87,9 +87,10 @@ public class AccountController {
     public CompletableFuture<ResponseEntity<String>> authenticateTraderAccount(
             @PathVariable Long accountId,
             @RequestParam int ctidTraderAccountId,
+            @RequestParam int traderLogin,
             @RequestParam String type,
             @RequestParam(required = false) String traderAccountName) {
-        return accountService.authenticateTraderAccount(accountId, ctidTraderAccountId,type, traderAccountName)
+        return accountService.authenticateTraderAccount(accountId, ctidTraderAccountId,traderLogin,type, traderAccountName)
                 .thenApply(ResponseEntity::ok);
     }
 }

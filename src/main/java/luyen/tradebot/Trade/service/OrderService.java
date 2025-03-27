@@ -1,9 +1,13 @@
 package luyen.tradebot.Trade.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import luyen.tradebot.Trade.dto.OrderWebhookDTO;
 import luyen.tradebot.Trade.dto.request.OrderDTO;
+import luyen.tradebot.Trade.dto.respone.OrderResponseCtrader;
+import luyen.tradebot.Trade.dto.respone.ResponseCtraderDTO;
 import luyen.tradebot.Trade.model.AccountEntity;
 import luyen.tradebot.Trade.model.BotEntity;
 import luyen.tradebot.Trade.model.OrderEntity;
@@ -12,9 +16,8 @@ import luyen.tradebot.Trade.repository.AccountRepository;
 import luyen.tradebot.Trade.repository.BotRepository;
 import luyen.tradebot.Trade.repository.OrderPositionRepository;
 import luyen.tradebot.Trade.repository.OrderRepository;
-import luyen.tradebot.Trade.util.enumTraderBot.OrderType;
-import luyen.tradebot.Trade.util.enumTraderBot.Symbol;
-import luyen.tradebot.Trade.util.enumTraderBot.TradeSide;
+import luyen.tradebot.Trade.util.ValidateRepsone;
+import luyen.tradebot.Trade.util.enumTraderBot.*;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -31,6 +34,8 @@ public class OrderService {
     private final BotRepository botRepository;
     private final OrderPositionRepository orderPositionRepository;
     private final CTraderConnectionService connectionService;
+
+    private final CTraderApiService cTraderApiService;
 
     public OrderEntity placeOrder(OrderDTO orderDTO) {
         BotEntity bot = (BotEntity) botRepository.findByBotName(orderDTO.getBotName())
@@ -174,6 +179,7 @@ public class OrderService {
                 .comment("Created via webhook for bot: " + bot.getBotName())
                 .openTime(LocalDateTime.now())
                 .account(accounts.get(0)) // Use the first account as the reference account
+                .botId(bot.getId()) // Use the first account as the reference account
                 .build();
 
         OrderEntity savedOrder = orderRepository.save(order);
@@ -203,16 +209,38 @@ public class OrderService {
                         .build();
 
                 OrderPosition savedPosition = orderPositionRepository.save(position);
-//                Symbol symbol, TradeSide tradeSide,
-//                        BigDecimal volume, OrderType orderType
 
-                CompletableFuture<String> future = connection.placeOrder(symbol,tradeSide,webhookDTO.getVolume(),orderType);
-                future.thenAccept(positionId -> {
-                    savedPosition.setPositionId(positionId);
+                CompletableFuture<String> future = cTraderApiService.placeOrder(connection, symbol, tradeSide, webhookDTO.getVolume(), orderType);
+                future.thenAccept(result -> {
+                    ResponseCtraderDTO responseCtraderDTO = ValidateRepsone.formatResponsePlaceOrder(result);
+                    //kiểm tra payloadReponse có trong list của enumer không và seting giá trị vào positionEntity
+                    PayloadType payloadType = PayloadType.fromValue(responseCtraderDTO.getPayloadReponse());
+                    if (payloadType == PayloadType.UNKNOWN) {
+                        log.warn("⚠ Received an unknown payloadType: " + payloadType);
+                    } else {
+                        savedPosition.setPayloadType(payloadType.toString());
+                    }
+
+                    //làm tương tự payloadType nhưng với executionType
+                    ProtoOAExecutionType executionType = ProtoOAExecutionType.fromCode(responseCtraderDTO.getExecutionType());
+                    if (executionType == ProtoOAExecutionType.UNKNOWN) {
+                        log.warn("⚠ Received an unknown executionType: " + executionType);
+                    } else {
+                        savedPosition.setExecutionType(executionType.toString());
+                    }
+
+                    //kiểm tra nếu có lỗi thì được hiện setErrorMessage vào trong savePosition
+                    if (!responseCtraderDTO.getErrorCode().equals("N/A")) {
+                        savedPosition.setErrorMessage(responseCtraderDTO.getDescription());
+                        savedPosition.setErrorCode(responseCtraderDTO.getErrorCode());
+                        orderPositionRepository.save(savedPosition);
+                        return;
+                    }
+                    savedPosition.setPositionId(responseCtraderDTO.getPositionId());
                     savedPosition.setStatus("OPEN");
                     orderPositionRepository.save(savedPosition);
                     log.info("Order placed successfully for account: {}, positionId: {}",
-                            account.getId(), positionId);
+                            account.getId(), responseCtraderDTO.getPositionId());
                 }).exceptionally(ex -> {
                     savedPosition.setStatus("ERROR");
                     savedPosition.setErrorMessage("Error: " + ex.getMessage());

@@ -6,11 +6,15 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import luyen.tradebot.Trade.util.enumTraderBot.AccountType;
+import luyen.tradebot.Trade.util.enumTraderBot.OrderType;
+import luyen.tradebot.Trade.util.enumTraderBot.Symbol;
+import luyen.tradebot.Trade.util.enumTraderBot.TradeSide;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,6 +62,11 @@ public class CTraderApiService {
     public CompletableFuture<String> getTraderAccounts(CTraderConnection connection) {
         // Get trader accounts via WebSocket
         return connection.getAccountListByAccessToken();
+    }
+
+    public CompletableFuture<String> placeOrder(CTraderConnection connection, Symbol symbol, TradeSide tradeSide, BigDecimal volume, OrderType orderType) {
+        // Authenticate specific trader account
+        return connection.placeOrder(symbol,tradeSide,volume,orderType);
     }
 
     public CompletableFuture<String> authenticateTraderAccount(

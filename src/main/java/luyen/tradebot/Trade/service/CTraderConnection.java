@@ -11,6 +11,7 @@ import luyen.tradebot.Trade.util.ValidateRepsone;
 import luyen.tradebot.Trade.util.enumTraderBot.OrderType;
 import luyen.tradebot.Trade.util.enumTraderBot.Symbol;
 import luyen.tradebot.Trade.util.enumTraderBot.TradeSide;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.math.BigDecimal;
 import java.net.URI;
@@ -26,6 +27,9 @@ import java.util.concurrent.CompletableFuture;
 public class CTraderConnection {
     private final Long accountId;
     private final String accessToken;
+
+    @Value("${tradebot.prefix}")
+    public static String prefix;
 
     private String clientId;
     private String secretId;
@@ -101,7 +105,7 @@ public class CTraderConnection {
         return sendRequest(orderMessage);
     }
 
-    public CompletableFuture<String> closePosition(String positionId) {
+    public CompletableFuture<String> closePosition(Integer positionId) {
         // Create ProtoOAClosePositionReq message
         String closeMessage = createClosePositionMessage(positionId);
 
@@ -126,10 +130,21 @@ public class CTraderConnection {
         );
     }
 
+    // tạo message ProtoOAAmendPositionSLTPReq giống createOrderMessage (tài liệu tham khảo https://help.ctrader.com/open-api/messages/#protooaamendpositionsltpreq)
+    private String createAmendPositionMessage(String positionId, BigDecimal stopLoss, BigDecimal takeProfit) {
+        // This is a simplified version - in real implementation, use protobuf
+        return String.format(
+                "{\"clientMsgId\": \"%s\",\"payloadType\": 2114,\"payload\": {\"ctidTraderAccountId\": %d,\"positionId\": \"%s\",\"stopLoss\": %s,\"takeProfit\": %s}}",
+                generateClientMsgId(), authenticatedTraderAccountId, positionId, stopLoss, takeProfit
+        );
+    }
+
     private String createOrderMessage(Symbol symbol, TradeSide tradeSide,
                                       BigDecimal volume, OrderType orderType) {
         // This is a simplified version - in real implementation, use protobuf
         // JSON format for order placement
+       // thực hiện nhân volume với 1000 và convert sang kiểu dữ liệu là integer
+        int volumeInt = volume.multiply(BigDecimal.valueOf(1000)).intValue();
         StringBuilder jsonBuilder = new StringBuilder();
         jsonBuilder.append("{");
         jsonBuilder.append("\"clientMsgId\": \"").append(generateClientMsgId()).append("\",");
@@ -139,7 +154,7 @@ public class CTraderConnection {
         jsonBuilder.append("\"symbolId\": ").append(symbol.getId()).append(",");
         jsonBuilder.append("\"tradeSide\": ").append(tradeSide.getValue()).append(",");
         jsonBuilder.append("\"orderType\": ").append(orderType.getValue()).append(",");
-        jsonBuilder.append("\"volume\": ").append(volume);
+        jsonBuilder.append("\"volume\": ").append(volumeInt);
 
         jsonBuilder.append("}}");
 
@@ -161,17 +176,17 @@ public class CTraderConnection {
         // This is simplified for the example
     }
 
-    private String createClosePositionMessage(String positionId) {
+    private String createClosePositionMessage(Integer positionId) {
         // This is a simplified version - in real implementation, use protobuf
         return String.format(
-                "{\"clientMsgId\": \"%s\",\"payloadType\": 2113,\"payload\": {\"ctidTraderAccountId\": \"%s\",\"positionId\": \"%s\"}}",
+                "{\"clientMsgId\": \"%s\",\"payloadType\": 2113,\"payload\": {\"ctidTraderAccountId\": \"%s\",\"positionId\": \"%d\"}}",
                 generateClientMsgId(), authenticatedTraderAccountId, positionId
         );
     }
 
     private String generateClientMsgId() {
         // Generate a unique client message ID for tracking responses
-        return "cm_" + UUID.randomUUID().toString().substring(0, 8);
+        return prefix + UUID.randomUUID().toString().substring(0, 8);
     }
     public boolean isConnected() {
         return session != null && session.isOpen();

@@ -4,10 +4,11 @@ package luyen.tradebot.Trade.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Getter
+@Setter
 @Entity(name = "OrderPosition")
 @Table(name = "tbl_order_positions")
 public class OrderPosition extends AbstractEntity{
@@ -21,7 +22,16 @@ public class OrderPosition extends AbstractEntity{
     @JoinColumn(name = "account_id")
     private AccountEntity account;
 
-    private String positionId;
+    private Integer positionId;
+
+    //setting default value
+    private String errorCode;
+
+    private String executionType;
+
+    private String payloadType;
+
+
     private String status; // PENDING, OPEN, CLOSED, ERROR
     private String errorMessage;
 }

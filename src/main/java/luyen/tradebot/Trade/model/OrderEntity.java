@@ -35,6 +35,7 @@ public class OrderEntity extends AbstractEntity {
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private TradeSide tradeSide; // BUY, SELL
 
+    private Long botId;
     private BigDecimal volume;
     private String status; // PENDING, OPEN, CLOSED, CANCELED, ERROR
     private LocalDateTime openTime;
@@ -43,6 +44,9 @@ public class OrderEntity extends AbstractEntity {
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private OrderType orderType; // MARKET, LIMIT, STOP
+
+    private Double stopLoss;
+    private Double takeProfit;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_id")

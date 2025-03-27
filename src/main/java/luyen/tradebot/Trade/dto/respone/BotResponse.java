@@ -7,6 +7,7 @@ import luyen.tradebot.Trade.util.enumTraderBot.BotFrom;
 import luyen.tradebot.Trade.util.enumTraderBot.BotStatus;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.Date;
 
 @Getter
@@ -19,7 +20,7 @@ public class BotResponse implements Serializable {
     private BotStatus status;
     private int numberAccount;
     private int maxAccount;
-    private Date createDate;
+    private LocalDateTime createDate;
     private String exchange;
     private BotFrom botFrom;
     private String description;

@@ -3,8 +3,6 @@ package luyen.tradebot.Trade.service;
 
 import jakarta.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import luyen.tradebot.Trade.model.AccountEntity;
 import luyen.tradebot.Trade.model.ConnectedEntity;
@@ -15,9 +13,9 @@ import luyen.tradebot.Trade.util.enumTraderBot.ConnectStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;

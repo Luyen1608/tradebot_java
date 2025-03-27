@@ -13,6 +13,8 @@ public class OrderDTO {
     private TradeSide tradeSide;
     private OrderType orderType;
     private BigDecimal volume;
+    private BigDecimal stopLoss;
+    private BigDecimal takeProfit;
     private String botName;
 
 }

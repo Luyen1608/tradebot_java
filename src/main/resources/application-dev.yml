@@ -9,8 +9,8 @@ spring:
   datasource:
     url: ${POSTGRESQL_URL:jdbc:postgresql://localhost:5432/trade_bot}
     username: ${POSTGRESQL_USER:postgres}
-    password: ${POSTGRESQL_PASSWORD:123}
-#    password: ${POSTGRESQL_PASSWORD:luyendv@123}
+    password: ${POSTGRESQL_PASSWORD:luyendv@123}
+  #    password: ${POSTGRESQL_PASSWORD:123}
   jpa:
     properties:
       hibernate:
