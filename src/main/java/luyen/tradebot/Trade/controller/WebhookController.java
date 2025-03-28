@@ -23,12 +23,13 @@ public class WebhookController {
     public ResponseEntity<String> processOrder(@RequestBody MessageTradingViewDTO webhookDTO) {
         log.info("Received order webhook: {}", webhookDTO);
 
-        if ("close".equalsIgnoreCase(webhookDTO.getType())) {
-            orderService.processWebhookClose(webhookDTO);
-            return ResponseEntity.ok("Close position request processed");
-        } else {
+        //kiểm tra getAction là ENTER_LONG hoặc ENTER_SHORT thì chạy vào hàm processWebhookclose
+        if ("ENTER_LONG".equalsIgnoreCase(webhookDTO.getAction()) || "ENTER_SHORT".equalsIgnoreCase(webhookDTO.getAction())) {
             orderService.processWebhookOrder(webhookDTO);
             return ResponseEntity.ok("Order placed successfully");
+        } else {
+            orderService.processWebhookClose(webhookDTO);
+            return ResponseEntity.ok("Close position request processed");
         }
     }
 }

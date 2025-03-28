@@ -13,6 +13,11 @@ public class Convert {
     public static OrderWebhookDTO convertTradeviewToCtrader(MessageTradingViewDTO messageTradingViewDTO) {
         BigDecimal volume = new BigDecimal(messageTradingViewDTO.getAmount());
         int volumeInt = volume.multiply(BigDecimal.valueOf(1000)).intValue();
+        // kiểm tra Instrument nếu có dạng BTSUSD.xxx thì chỉ lấy BTSUSD x là số lượng k nhất định
+        if (messageTradingViewDTO.getInstrument().contains(".")) {
+            String[] parts = messageTradingViewDTO.getInstrument().split("\\.");
+            messageTradingViewDTO.setInstrument(parts[0]);
+        }
         OrderWebhookDTO webhookDTO = OrderWebhookDTO.builder()
                 .symbol(Symbol.fromString(messageTradingViewDTO.getInstrument()).getId())
                 .tradeSide(TradeSide.fromString(AcctionTrading.fromString(messageTradingViewDTO.getAction()).toString()).getValue())

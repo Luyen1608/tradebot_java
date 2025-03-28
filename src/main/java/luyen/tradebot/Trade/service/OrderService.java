@@ -180,8 +180,8 @@ public class OrderService {
 
         AlertTradingEntity saveAlertTradingEntity = alertTradingRepository.save(alertTradingEntity);
 
-                // Create a single order record
-                OrderEntity order = OrderEntity.builder()
+        // Create a single order record
+        OrderEntity order = OrderEntity.builder()
                 .symbol(Symbol.fromId(webhookDTO.getSymbol()))
                 .symbolId(Symbol.fromId(webhookDTO.getSymbol()).getId())
                 .tradeSide(TradeSide.fromValue(webhookDTO.getTradeSide()))
@@ -275,8 +275,15 @@ public class OrderService {
     }
 
 
-    public void processWebhookClose(OrderWebhookDTO webhookDTO) {
-        Symbol symbol = Symbol.fromString(webhookDTO.getSymbol());
+    public void processWebhookClose(MessageTradingViewDTO webhookDTO) {
+
+        log.info("Processing close order for signalToken: {}", webhookDTO.getSignalToken());
+        //Lấy ra Botentity có signalToken = webhookDTO.getSignalToken()
+        BotEntity bot = botRepository.findBySignalToken(webhookDTO.getSignalToken())
+                .orElseThrow(() -> new RuntimeException("Bot not found with signal token: " + webhookDTO.getSignalToken()));
+
+        Symbol symbol = Symbol.fromString(webhookDTO.getInstrument());
+
         List<OrderEntity> openOrders = orderRepository.findOpenOrdersBySymbolIdAndBotSignalToken(
                 symbol.getId(), webhookDTO.getSignalToken());
 
