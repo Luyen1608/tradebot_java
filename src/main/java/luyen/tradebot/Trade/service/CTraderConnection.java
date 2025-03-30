@@ -1,42 +1,41 @@
 package luyen.tradebot.Trade.service;
 
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.websocket.*;
 import lombok.Data;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import luyen.tradebot.Trade.util.ValidateRepsone;
-import luyen.tradebot.Trade.util.enumTraderBot.OrderType;
-import luyen.tradebot.Trade.util.enumTraderBot.Symbol;
-import luyen.tradebot.Trade.util.enumTraderBot.TradeSide;
+import luyen.tradebot.Trade.repository.OrderPositionRepository;
+import luyen.tradebot.Trade.repository.OrderRepository;
+import luyen.tradebot.Trade.util.enumTraderBot.ErrorCode;
+import luyen.tradebot.Trade.util.enumTraderBot.PayloadType;
+import luyen.tradebot.Trade.util.enumTraderBot.ProtoOAExecutionType;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.math.BigDecimal;
 import java.net.URI;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 @Slf4j
-@RequiredArgsConstructor
 @Data
 @ClientEndpoint
 public class CTraderConnection {
-    private final Long accountId;
-    private final String accessToken;
+    private Long accountId;
+    private String accessToken;
 
     @Value("${tradebot.prefix}")
-    public static String prefix;
+    private String prefix = "trade365_";
 
     private String clientId;
     private String secretId;
     private String wsUrl;
 
     private Session session;
-    private final CTraderConnectionService connectionService;
+
+    private CTraderConnectionService connectionService;
+
 
     private Session webSocketSession;
     private boolean connected = false;
@@ -44,6 +43,12 @@ public class CTraderConnection {
 
     private int authenticatedTraderAccountId;
 
+    //    private OrderPositionRepository orderPositionRepository;
+//
+//    public CTraderConnection() {
+//        // Lấy Bean từ Spring Context
+//        this.orderPositionRepository = SpringContextHolder.getBean(OrderPositionRepository.class);
+//    }
     public CTraderConnection(Long accountId, String clientId, String secretId, String accessToken, CTraderConnectionService connectionService, String wsUrl) {
         this.accountId = accountId;
         this.accessToken = accessToken;
@@ -100,20 +105,14 @@ public class CTraderConnection {
 
         // In real implementation, track message ID and resolve future when response is received
 
-//        sendMessage(orderMessage);
-//        return future;
         return sendRequest(orderMessage);
     }
 
-    public CompletableFuture<String> closePosition(Integer positionId) {
+    public CompletableFuture<String> closePosition(int ctidTraderAccountId, int positionId, int volume) {
         // Create ProtoOAClosePositionReq message
-        String closeMessage = createClosePositionMessage(positionId);
+        String closeMessage = createClosePositionMessage(ctidTraderAccountId, positionId, volume);
 
-        CompletableFuture<String> future = new CompletableFuture<>();
-        // In real implementation, track message ID and resolve future when response is received
-
-        sendMessage(closeMessage);
-        return future;
+        return sendRequest(closeMessage);
     }
 
     private String createGetAccountListMessage() {
@@ -174,21 +173,30 @@ public class CTraderConnection {
         // This is simplified for the example
     }
 
-    private String createClosePositionMessage(Integer positionId) {
+    private String createClosePositionMessage(int ctidTraderAccountId, int positionId, int volume) {
         // This is a simplified version - in real implementation, use protobuf
-        return String.format(
-                "{\"clientMsgId\": \"%s\",\"payloadType\": 2113,\"payload\": {\"ctidTraderAccountId\": \"%s\",\"positionId\": \"%d\"}}",
-                generateClientMsgId(), authenticatedTraderAccountId, positionId
-        );
+        StringBuilder jsonBuilder = new StringBuilder();
+        jsonBuilder.append("{");
+        jsonBuilder.append("\"clientMsgId\": \"").append(generateClientMsgId()).append("\",");
+        jsonBuilder.append("\"payloadType\": 2111,");
+        jsonBuilder.append("\"payload\": {");
+        jsonBuilder.append("\"ctidTraderAccountId\": ").append(authenticatedTraderAccountId).append(",");
+        jsonBuilder.append("\"positionId\": ").append(positionId).append(",");
+        jsonBuilder.append("\"volume\": ").append(volume);
+        jsonBuilder.append("}}");
+
+        return jsonBuilder.toString();
     }
 
     private String generateClientMsgId() {
         // Generate a unique client message ID for tracking responses
         return prefix + UUID.randomUUID().toString().substring(0, 8);
     }
+
     public boolean isConnected() {
         return session != null && session.isOpen();
     }
+
     public CompletableFuture<String> sendRequest(String message) {
         if (session != null && session.isOpen()) {
             responseFuture = new CompletableFuture<>();
@@ -198,6 +206,7 @@ public class CTraderConnection {
             return CompletableFuture.completedFuture("Connection not available for account: " + accountId);
         }
     }
+
     @OnOpen
     public void onOpen(Session session) {
         this.session = session;
@@ -207,10 +216,26 @@ public class CTraderConnection {
     @OnMessage
     public void onMessage(String message) {
         log.info("Received message for account " + accountId + ": " + message);
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode rootNode = objectMapper.readTree(message);
+            int payloadType = rootNode.get("payloadType").asInt();
+            if (payloadType == PayloadType.PROTO_OA_EXECUTION_EVENT.getValue()) {
+                processOrderExecutionResponse(rootNode);
+            } else if (payloadType == PayloadType.PROTO_OA_ORDER_ERROR_EVENT.getValue()) {
+                processOrderErrorEvent(rootNode);
+            } else {
+                log.warn("Unknown payload type: " + payloadType);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         if (responseFuture != null) {
             responseFuture.complete(message); // Hoàn thành Future khi nhận được dữ liệu
             responseFuture = null; // Reset để dùng cho request tiếp theo
         }
+        // lấy ra executionType trong đoạn này để kiểm tra : {"payloadType":2126,"clientMsgId":"trade365_e64af3df","payload":{"ctidTraderAccountId":42683965,"executionType":3,"position":{"positionId":9880523,"tradeData":{"symbolId":433,"volume":10,"tradeSide":1,"openTimestamp":1743305982603,"guaranteedStopLoss":false,"measurementUnits":"ADA"},"positionStatus":1,"swap":0,"price":0.68123,"utcLastUpdateTimestamp":1743305982603,"commission":0,"marginRate":0.67967,"mirroringCommission":0,"guaranteedStopLoss":false,"usedMargin":1,"moneyDigits":2},"order":{"orderId":16481737,"tradeData":{"symbolId":433,"volume":10,"tradeSide":1,"openTimestamp":1743305982325,"guaranteedStopLoss":false,"measurementUnits":"ADA","closeTimestamp":1743305982603},"orderType":1,"orderStatus":2,"executionPrice":0.68123,"executedVolume":10,"utcLastUpdateTimestamp":1743305982603,"closingOrder":false,"clientOrderId":"trade365_e64af3df","timeInForce":3,"positionId":9880523},"deal":{"dealId":15516749,"orderId":16481737,"positionId":9880523,"volume":10,"filledVolume":10,"symbolId":433,"createTimestamp":1743305982325,"executionTimestamp":1743305982603,"utcLastUpdateTimestamp":1743305982603,"executionPrice":0.68123,"tradeSide":1,"dealStatus":2,"marginRate":0.67967,"commission":0,"baseToUsdConversionRate":0.67967,"moneyDigits":2},"isServerEvent":false}}
+
         // Xử lý dữ liệu từ cTrader (giá, lệnh, v.v.)
     }
 
@@ -235,4 +260,52 @@ public class CTraderConnection {
             }
         }
     }
+
+    private void processOrderExecutionResponse(JsonNode rootNode) {
+        int executionType = rootNode.path("payload").path("executionType").asInt();
+        String clientMsgId = rootNode.path("clientMsgId").asText();
+        int positionId = rootNode.path("payload").path("position").path("positionId").asInt();
+        String orderStatus = ProtoOAExecutionType.fromCode(executionType).getStatus();
+        int orderId = rootNode.path("payload").path("order").path("orderId").asInt();
+        int orderType = rootNode.path("payload").path("order").path("orderType").asInt();
+//        int orderStatus = rootNode.path("payload").path("order").path("orderStatus").asInt();
+        String errorCode = rootNode.path("payload").has("errorCode") ?
+                rootNode.path("payload").get("errorCode").asText(null) : null;
+        //update order_postion theo orderId và positionId
+        OrderPositionRepository orderPositionRepository = SpringContextHolder.getBean(OrderPositionRepository.class);
+        orderPositionRepository.updateByOrderCtraderIdAndPositionId(
+                ProtoOAExecutionType.fromCode(executionType).getDescription(),
+                errorCode != null ? ErrorCode.fromName(errorCode).getDescription() : null,
+                errorCode, orderStatus, clientMsgId);
+    }
+
+    private void processOrderErrorEvent(JsonNode rootNode) {
+        /*{
+           "payloadType":2132,
+           "clientMsgId":"trade365_40ce75b8",
+           "payload":{
+              "errorCode":"TRADING_BAD_VOLUME",
+              "ctidTraderAccountId":42684029,
+              "description":"Order volume = 0.00 is smaller than minimum allowed volume = 0.01."
+           }
+        }*/
+        String clientMsgId = rootNode.path("clientMsgId").asText();
+        String orderStatus = ProtoOAExecutionType.ORDER_REJECTED.getStatus();
+        String errorCode = rootNode.path("payload").has("errorCode") ?
+                rootNode.path("payload").get("errorCode").asText(null) : null;
+        String descriptionError = rootNode.path("payload").has("description") ?
+                rootNode.path("payload").get("description").asText(null) : null;
+        OrderPositionRepository orderPositionRepository = SpringContextHolder.getBean(OrderPositionRepository.class);
+        orderPositionRepository.updateErrorCodeAndErrorMessageByClientMsgId(
+                errorCode,
+                descriptionError != null ? descriptionError : errorCode != null ? ErrorCode.fromName(errorCode).getDescription() : null,
+                orderStatus,
+                clientMsgId);
+//        OrderRepository orderRepository = SpringContextHolder.getBean(OrderRepository.class);
+//        orderRepository.updateStatusById(
+//                ProtoOAExecutionType.ORDER_REJECTED.getStatus(), );
+
+
+    }
+
 }

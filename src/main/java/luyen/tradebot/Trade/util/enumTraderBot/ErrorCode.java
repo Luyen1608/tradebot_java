@@ -2,32 +2,33 @@ package luyen.tradebot.Trade.util.enumTraderBot;
 
 public enum ErrorCode {
 
-    NOT_ENOUGH_MONEY("Not enough funds to allocate margin.");
-
-    ErrorCode(String s) {
+    NOT_ENOUGH_MONEY("Not enough funds to allocate margin."),
+    TRADING_BAD_VOLUME("Invalid volume"),
+    POSITION_NOT_FOUND("Position not found.");
+    private final String description;
+    ErrorCode(String description) {
+        this.description = description;
     }
-    //tạo thêm các function get giá trị và text theo enum
-    public String getValue() {
-        return this.name();
+    public String getDescription() {
+        return description;
     }
-    public String getText() {
-        return this.toString();
+    public String getName() {
+        return name();
     }
-    public static ErrorCode fromValue(String value) {
-        for (ErrorCode errorCode : ErrorCode.values()) {
-            if (errorCode.getValue().equals(value)) {
-                return errorCode;
+    public static ErrorCode fromName(String name) {
+        for (ErrorCode type : ErrorCode.values()) {
+            if (type.name().equals(name)) {
+                return type;
             }
         }
-        throw new IllegalArgumentException("Invalid ErrorCode value: " + value);
+        throw new IllegalArgumentException("Unknown ErrorCode: " + name);
     }
-    //fromString
-    public static ErrorCode fromString(String text) {
-        for (ErrorCode errorCode : ErrorCode.values()) {
-            if (errorCode.getText().equals(text)) {
-                return errorCode;
+    public static ErrorCode fromCode(int code) {
+        for (ErrorCode type : ErrorCode.values()) {
+            if (type.ordinal() == code) {
+                return type;
             }
         }
-        throw new IllegalArgumentException("Invalid ErrorCode text: " + text);
+        throw new IllegalArgumentException("Unknown ErrorCode: " + code);
     }
 }

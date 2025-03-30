@@ -17,5 +17,6 @@ public class ResponseCtraderDTO {
     private int payloadType;
     private int executionType;
     private int positionId;
+    private int orderCtraderId;
     private String systemType;
 }

@@ -1,12 +1,13 @@
 package luyen.tradebot.Trade.dto;
 
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
+@Builder
 @Getter
 @Setter
-
+@AllArgsConstructor
+@NoArgsConstructor
 public class MessageTradingViewDTO {
 
     //    {
@@ -25,5 +26,5 @@ public class MessageTradingViewDTO {
     private String maxLag;
     private String investmentType;
     private String amount;
-    private String orderType;
+    private String orderType = "MARKET";
 }

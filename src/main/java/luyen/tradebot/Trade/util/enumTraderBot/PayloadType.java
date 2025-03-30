@@ -5,6 +5,7 @@ public enum PayloadType {
     PROTO_OA_EXECUTION_EVENT(2126),
     PROTO_OA_ACCOUNT_AUTH_REQ(2102),
     PROTO_OA_ACCOUNT_AUTH_RES(2103),
+    PROTO_OA_ORDER_ERROR_EVENT(2132),
     UNKNOWN(-1);
 
     private final int value;

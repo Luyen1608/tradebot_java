@@ -31,6 +31,12 @@ public class OrderPosition extends AbstractEntity{
 
     private String payloadType;
 
+    @Column(name = "order_ctrader_id")
+    private int orderCtraderId;
+
+    @Column(name = "client_msg_id")
+    private String clientMsgId;
+
 
     private String status; // PENDING, OPEN, CLOSED, ERROR
     private String errorMessage;

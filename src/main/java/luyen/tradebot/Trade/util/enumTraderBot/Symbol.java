@@ -6,7 +6,6 @@ public enum Symbol {
     BTCUSD(101),
     XAUUSD(41),
     ADAUSD(433);
-
     private final int id;
 
     Symbol(int id) {

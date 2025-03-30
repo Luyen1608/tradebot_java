@@ -1,30 +1,24 @@
 package luyen.tradebot.Trade.util.enumTraderBot;
 
-import com.fasterxml.jackson.annotation.JsonValue;
+import lombok.Getter;
 
+@Getter
 public enum ProtoOAExecutionType {
-    ORDER_ACCEPTED(2, "Order passed validation."),
-    ORDER_EXECUTED(3, "Order executed."),
-    ORDER_REJECTED(7, "Order rejected."),
-    ORDER_CANCELLED(5, "Order cancelled."),
-    ORDER_EXPIRED(6, "Order expired."),
-    ORDER_FILLED(3, "Order filled."),
-    UNKNOWN(-1, "Unknown execution type.");
+    ORDER_ACCEPTED(2, "Order passed validation.", "PROCESS"), // đơn hàng được chấp nhật
+    ORDER_FILLED(3, "Order filled.", "OPEN"), // đơn hàng đã hoàn thành
+    ORDER_CANCELLED(5, "Order cancelled.", "CANCELLED"),
+    ORDER_EXPIRED(6, "Order expired.", "EXPIRED"),
+    ORDER_REJECTED(7, "Order rejected.", "REJECTED"), // đơn hàng bị từ chối
+    UNKNOWN(-1, "Unknown execution type.", "NA");
 
     private final int code;
     private final String description;
+    private final String status;
 
-    ProtoOAExecutionType(int code, String description) {
+    ProtoOAExecutionType(int code, String description, String status) {
         this.code = code;
         this.description = description;
-    }
-
-    public int getCode() {
-        return code;
-    }
-
-    public String getDescription() {
-        return description;
+        this.status = status;
     }
 
     public static ProtoOAExecutionType fromCode(int code) {

@@ -16,6 +16,7 @@ import luyen.tradebot.Trade.util.SaveInfo;
 import luyen.tradebot.Trade.util.ValidateRepsone;
 import luyen.tradebot.Trade.util.enumTraderBot.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -34,6 +35,7 @@ public class OrderService {
     private final AlertTradingRepository alertTradingRepository;
     private final SaveInfo saveInfo;
     private final CTraderApiService cTraderApiService;
+    private final ValidateRepsone validateRepsone;
 
     public OrderEntity placeOrder(OrderDTO orderDTO) {
         BotEntity bot = (BotEntity) botRepository.findByBotName(orderDTO.getBotName())
@@ -124,7 +126,7 @@ public class OrderService {
             return order;
         }
 
-        CompletableFuture<String> future = connection.closePosition(position.getPositionId());
+        CompletableFuture<String> future = connection.closePosition(position.getPositionId(), 1, 1);
 
         future.thenAccept(result -> {
             position.setStatus("CLOSED");
@@ -149,7 +151,7 @@ public class OrderService {
 
         return order;
     }
-
+    @Transactional
     public void processWebhookOrder(MessageTradingViewDTO messageTradingViewDTO) {
 
         OrderWebhookDTO webhookDTO = Convert.convertTradeviewToCtrader(messageTradingViewDTO);
@@ -165,13 +167,12 @@ public class OrderService {
             return;
         }
         //convert  string to LocalDateTime
-        LocalDateTime timestamp = LocalDateTime.parse(messageTradingViewDTO.getTimestamp());
 
         //create a single AlertTradingEntity record with messageTradingViewDTO
         AlertTradingEntity alertTradingEntity = AlertTradingEntity.builder()
                 .action(AcctionTrading.fromString(messageTradingViewDTO.getAction()))
                 .instrument(messageTradingViewDTO.getInstrument())
-                .timestamp(LocalDateTime.parse(messageTradingViewDTO.getTimestamp()))
+                .timestamp(Convert.convertStringToDateTime(messageTradingViewDTO.getTimestamp()))
                 .signalToken(messageTradingViewDTO.getSignalToken())
                 .maxLag(messageTradingViewDTO.getMaxLag())
                 .investmentType(messageTradingViewDTO.getInvestmentType())
@@ -194,7 +195,7 @@ public class OrderService {
                 .botId(bot.getId()) // Use the first account as the reference account
                 .build();
 
-        OrderEntity savedOrder = orderRepository.save(order);
+        OrderEntity savedOrder = orderRepository.saveAndFlush(order);
 
         // Process order for each account
         for (AccountEntity account : accounts) {
@@ -202,14 +203,12 @@ public class OrderService {
                 CTraderConnection connection = connectionService.getConnection(account.getId());
                 if (connection == null) {
                     log.error("No active connection for account: {}", account.getId());
-
                     OrderPosition position = OrderPosition.builder()
                             .order(savedOrder)
                             .account(account)
                             .status("ERROR")
                             .errorMessage("No active connection for account")
                             .build();
-
                     orderPositionRepository.save(position);
                     continue;
                 }
@@ -224,7 +223,23 @@ public class OrderService {
 
                 CompletableFuture<String> future = cTraderApiService.placeOrder(connection, webhookDTO.getSymbol(), webhookDTO.getTradeSide(), webhookDTO.getVolume(), webhookDTO.getOrderType());
                 future.thenAccept(result -> {
-                    ResponseCtraderDTO responseCtraderDTO = ValidateRepsone.formatResponsePlaceOrder(result);
+                    ResponseCtraderDTO responseCtraderDTO = validateRepsone.formatResponsePlaceOrder(result);
+                    if (responseCtraderDTO.getPayloadReponse() == PayloadType.PROTO_OA_ORDER_ERROR_EVENT.getValue()) {
+
+
+                        //save position
+                        savedPosition.setErrorCode(responseCtraderDTO.getErrorCode());
+                        savedPosition.setErrorMessage(responseCtraderDTO.getDescription());
+                        savedPosition.setStatus(ProtoOAExecutionType.ORDER_REJECTED.getStatus());
+                        savedPosition.setPayloadType(PayloadType.PROTO_OA_ORDER_ERROR_EVENT.name());
+                        savedPosition.setClientMsgId(responseCtraderDTO.getClientMsgId());
+                        orderPositionRepository.save(savedPosition);
+
+                        //save order
+                        savedOrder.setStatus(ProtoOAExecutionType.ORDER_REJECTED.getStatus());
+                        int number = orderRepository.updateStatusById(ProtoOAExecutionType.ORDER_REJECTED.getStatus() , savedOrder.getId());
+                        return;
+                    }
                     //kiểm tra payloadReponse có trong list của enumer không và seting giá trị vào positionEntity
                     PayloadType payloadType = PayloadType.fromValue(responseCtraderDTO.getPayloadReponse());
                     if (payloadType == PayloadType.UNKNOWN) {
@@ -242,13 +257,15 @@ public class OrderService {
                     }
 
                     //kiểm tra nếu có lỗi thì được hiện setErrorMessage vào trong savePosition
-                    if (!responseCtraderDTO.getErrorCode().equals("N/A")) {
+                    if (!responseCtraderDTO.getErrorCode().isEmpty()) {
                         savedPosition.setErrorMessage(responseCtraderDTO.getDescription());
                         savedPosition.setErrorCode(responseCtraderDTO.getErrorCode());
                         orderPositionRepository.save(savedPosition);
                         return;
                     }
                     savedPosition.setPositionId(responseCtraderDTO.getPositionId());
+                    savedPosition.setOrderCtraderId(responseCtraderDTO.getOrderCtraderId());
+                    savedPosition.setClientMsgId(responseCtraderDTO.getClientMsgId());
                     savedPosition.setStatus("OPEN");
                     orderPositionRepository.save(savedPosition);
                     log.info("Order placed successfully for account: {}, positionId: {}",
@@ -273,7 +290,16 @@ public class OrderService {
             }
         }
     }
+    @Transactional
+    public void updateError (OrderPosition savedPosition, OrderEntity savedOrder){
+        //save position
 
+        orderPositionRepository.save(savedPosition);
+
+        //save order
+//        orderRepository.save(savedOrder);
+        return;
+    }
 
     public void processWebhookClose(MessageTradingViewDTO webhookDTO) {
 
@@ -282,17 +308,19 @@ public class OrderService {
         BotEntity bot = botRepository.findBySignalToken(webhookDTO.getSignalToken())
                 .orElseThrow(() -> new RuntimeException("Bot not found with signal token: " + webhookDTO.getSignalToken()));
 
-        Symbol symbol = Symbol.fromString(webhookDTO.getInstrument());
+        List<AccountEntity> accounts = accountRepository.findByBotIdAndIsActiveAndIsAuthenticated(
+                bot.getId(), true, true);
 
-        List<OrderEntity> openOrders = orderRepository.findOpenOrdersBySymbolIdAndBotSignalToken(
-                symbol.getId(), webhookDTO.getSignalToken());
+        Symbol symbol = Symbol.fromString(webhookDTO.getInstrument());
+        TradeSide tradeSideInput = TradeSide.fromString(AcctionTrading.fromString(webhookDTO.getAction()).getValue());
+        List<OrderEntity> openOrders = orderRepository.findOpenOrdersBySymbolIdAndBotSignalTokenAndTradeSide(
+                symbol.getId(), tradeSideInput, webhookDTO.getSignalToken());
 
         if (openOrders.isEmpty()) {
             log.warn("No open orders found for signalToken: {} and symbol: {}",
                     webhookDTO.getSignalToken(), symbol.getId());
             return;
         }
-
         for (OrderEntity order : openOrders) {
             List<OrderPosition> positions = orderPositionRepository.findByOrderId(order.getId());
 
@@ -317,8 +345,9 @@ public class OrderService {
 
                     position.setStatus("CLOSING");
                     orderPositionRepository.save(position);
-
-                    CompletableFuture<String> future = connection.closePosition(position.getPositionId());
+                    int volumeInt = order.getVolume().multiply(BigDecimal.valueOf(1000)).intValue();
+                    CompletableFuture<String> future = cTraderApiService.closePosition(connection,
+                            account.getCtidTraderAccountId(), position.getPositionId(), volumeInt);
 
                     future.thenAccept(result -> {
                         position.setStatus("CLOSED");

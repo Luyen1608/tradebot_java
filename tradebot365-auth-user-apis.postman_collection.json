@@ -1,0 +1,325 @@
+{
+  "info": {
+    "name": "Trade Bot 365 - Auth & User APIs",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auth/login",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        },
+        "description": "Đăng nhập người dùng vào hệ thống và trả về token xác thực.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"string\",\n  \"password\": \"string\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Register",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auth/register",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "register"
+          ]
+        },
+        "description": "Đăng ký tài khoản mới và trả về token xác thực.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"string\",\n  \"password\": \"string\",\n  \"name\": \"string\",\n  \"firstName\": \"string\",\n  \"lastName\": \"string\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Reset Password",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auth/reset-password",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "reset-password"
+          ]
+        },
+        "description": "Gửi email với hướng dẫn đặt lại mật khẩu.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"string\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Verify Email",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auth/verify-email",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "verify-email"
+          ]
+        },
+        "description": "Xác thực email người dùng thông qua token.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"token\": \"string\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Get Profile",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auth/profile",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "profile"
+          ]
+        },
+        "description": "Lấy thông tin hồ sơ của người dùng đã đăng nhập."
+      }
+    },
+    {
+      "name": "Update Profile",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/users/profile",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "users",
+            "profile"
+          ]
+        },
+        "description": "Cập nhật thông tin hồ sơ của người dùng.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"string\",\n  \"firstName\": \"string\",\n  \"lastName\": \"string\",\n  \"phone\": \"string\",\n  \"country\": \"string\",\n  \"city\": \"string\",\n  \"address\": \"string\",\n  \"postalCode\": \"string\",\n  \"avatar\": \"string\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Change Password",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/users/change-password",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "users",
+            "change-password"
+          ]
+        },
+        "description": "Thay đổi mật khẩu của người dùng.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"currentPassword\": \"string\",\n  \"newPassword\": \"string\",\n  \"confirmPassword\": \"string\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Get User Preferences",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/users/preferences",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "users",
+            "preferences"
+          ]
+        },
+        "description": "Lấy cài đặt ưu tiên của người dùng."
+      }
+    },
+    {
+      "name": "Update User Preferences",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/users/preferences",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "users",
+            "preferences"
+          ]
+        },
+        "description": "Cập nhật cài đặt ưu tiên của người dùng.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"theme\": \"light\",\n  \"language\": \"en\",\n  \"notificationsEnabled\": true,\n  \"emailNotificationsEnabled\": true,\n  \"smsNotificationsEnabled\": true\n}"
+        }
+      }
+    },
+    {
+      "name": "Get User Notifications",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/users/notifications",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "users",
+            "notifications"
+          ]
+        },
+        "description": "Lấy danh sách thông báo của người dùng."
+      }
+    },
+    {
+      "name": "Mark Notification as Read",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/users/notifications/:notificationId",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "users",
+            "notifications",
+            ":notificationId"
+          ]
+        },
+        "description": "Đánh dấu thông báo đã đọc.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"read\": true\n}"
+        }
+      }
+    }
+  ]
+}
