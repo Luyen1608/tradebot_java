@@ -32,6 +32,27 @@ public enum Symbol {
             throw new IllegalArgumentException("Unknown symbol: " + text);
         }
     }
+    //fromString full ví dụ BTCUSDT.P se ra BTCUSD
+    public static Symbol fromStringFull(String text) {
+        try {
+            String[] parts = text.split("\\.");
+            if (parts.length != 2) {
+                throw new IllegalArgumentException("Invalid symbol format: " + text);
+            }
+            return Symbol.fromString(parts[0]);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Unknown symbol: " + text);
+        }
+    }
+
+    //fromstring luon lấy 6 ký tự dau để so sánh BTCUSDDT
+    public static Symbol fromString6(String text) {
+        try {
+            return Symbol.valueOf(text.substring(0, 6).toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Unknown symbol: " + text);
+        }
+    }
 
 
 

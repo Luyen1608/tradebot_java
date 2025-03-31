@@ -151,6 +151,7 @@ public class OrderService {
 
         return order;
     }
+
     @Transactional
     public void processWebhookOrder(MessageTradingViewDTO messageTradingViewDTO) {
 
@@ -237,7 +238,7 @@ public class OrderService {
 
                         //save order
                         savedOrder.setStatus(ProtoOAExecutionType.ORDER_REJECTED.getStatus());
-                        int number = orderRepository.updateStatusById(ProtoOAExecutionType.ORDER_REJECTED.getStatus() , savedOrder.getId());
+                        int number = orderRepository.updateStatusById(ProtoOAExecutionType.ORDER_REJECTED.getStatus(), savedOrder.getId());
                         return;
                     }
                     //kiểm tra payloadReponse có trong list của enumer không và seting giá trị vào positionEntity
@@ -290,8 +291,9 @@ public class OrderService {
             }
         }
     }
+
     @Transactional
-    public void updateError (OrderPosition savedPosition, OrderEntity savedOrder){
+    public void updateError(OrderPosition savedPosition, OrderEntity savedOrder) {
         //save position
 
         orderPositionRepository.save(savedPosition);
@@ -311,7 +313,7 @@ public class OrderService {
         List<AccountEntity> accounts = accountRepository.findByBotIdAndIsActiveAndIsAuthenticated(
                 bot.getId(), true, true);
 
-        Symbol symbol = Symbol.fromString(webhookDTO.getInstrument());
+        Symbol symbol = Symbol.fromString6(webhookDTO.getInstrument());
         TradeSide tradeSideInput = TradeSide.fromString(AcctionTrading.fromString(webhookDTO.getAction()).getValue());
         List<OrderEntity> openOrders = orderRepository.findOpenOrdersBySymbolIdAndBotSignalTokenAndTradeSide(
                 symbol.getId(), tradeSideInput, webhookDTO.getSignalToken());
@@ -345,27 +347,38 @@ public class OrderService {
 
                     position.setStatus("CLOSING");
                     orderPositionRepository.save(position);
-                    int volumeInt = order.getVolume().multiply(BigDecimal.valueOf(1000)).intValue();
+                    int volumeInt = order.getVolume().intValue();
                     CompletableFuture<String> future = cTraderApiService.closePosition(connection,
                             account.getCtidTraderAccountId(), position.getPositionId(), volumeInt);
 
                     future.thenAccept(result -> {
-                        position.setStatus("CLOSED");
-                        orderPositionRepository.save(position);
-
-                        // Check if all positions for this order are closed
-                        List<OrderPosition> openPositions = orderPositionRepository.findByOrderId(order.getId()).stream()
-                                .filter(p -> "OPEN".equals(p.getStatus()))
-                                .toList();
-
-                        if (openPositions.isEmpty()) {
-                            order.setStatus("CLOSED");
-                            order.setCloseTime(LocalDateTime.now());
-                            orderRepository.save(order);
+                        ResponseCtraderDTO responseCtraderDTO = validateRepsone.formatResponsePlaceOrder(result);
+                        if (responseCtraderDTO.getPayloadReponse() == PayloadType.PROTO_OA_ORDER_ERROR_EVENT.getValue()) {
+                            //save position
+                            position.setErrorCode(responseCtraderDTO.getErrorCode());
+                            position.setErrorMessage(responseCtraderDTO.getDescription());
+                            position.setStatus(ProtoOAExecutionType.ORDER_REJECTED.getStatus());
+                            position.setPayloadType(PayloadType.PROTO_OA_ORDER_ERROR_EVENT.name());
+                            position.setClientMsgId(responseCtraderDTO.getClientMsgId());
+                            orderPositionRepository.save(position);
+                            return;
                         }
+                            position.setStatus("CLOSED");
+                            orderPositionRepository.save(position);
 
-                        log.info("Position closed successfully for account: {}, positionId: {}",
-                                account.getId(), position.getPositionId());
+                            // Check if all positions for this order are closed
+                            List<OrderPosition> openPositions = orderPositionRepository.findByOrderId(order.getId()).stream()
+                                    .filter(p -> "OPEN".equals(p.getStatus()))
+                                    .toList();
+
+                            if (openPositions.isEmpty()) {
+                                order.setStatus("CLOSED");
+                                order.setCloseTime(LocalDateTime.now());
+                                orderRepository.save(order);
+                            }
+
+                            log.info("Position closed successfully for account: {}, positionId: {}",
+                                    account.getId(), position.getPositionId());
                     }).exceptionally(ex -> {
                         position.setStatus("ERROR_CLOSING");
                         position.setErrorMessage("Error closing: " + ex.getMessage());

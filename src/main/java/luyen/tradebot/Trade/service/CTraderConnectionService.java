@@ -187,7 +187,7 @@ public class CTraderConnectionService {
                     connectAccount(account);
                 }
 
-                log.info("Successfully refreshed token for account: {}", account.getAccountId());
+//                log.info("Successfully refreshed token for account: {}", account.getAccountId());
             } catch (Exception e) {
                 log.error("Failed to refresh token for account: {}", account.getAccountId(), e);
             }

@@ -29,4 +29,25 @@ public interface OrderRepository extends JpaRepository<OrderEntity, Long> {
             " WHERE o.id = :id")
     int updateStatusById(@Param("status") String status,
                                                          @Param("id") Long id);
+    //lấy row đàu tiên by bot id and status and symbolId
+    @Query("SELECT o FROM Order o WHERE o.botId = ?1 AND o.status = ?2 AND o.symbolId = ?3")
+    OrderEntity findFirstByBotIdAndStatusAndSymbolId(Long botId, String status, Integer symbolId);
+
+
+
+
+
+
+
+    //
+    //
+    // => chỉ lấy orderEntity đầu tiên
+    @Query("SELECT o FROM Order o WHERE o.account.id = ?1 AND o.status = ?2")
+    OrderEntity findFirstByAccountIdAndStatus(Long accountId, String status);
+
+    List<OrderEntity> findByBotIdAndStatusAndSymbolId(Long botId, String status, Integer symbolId);
+
+
+
+
 }

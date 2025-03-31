@@ -22,4 +22,7 @@ public interface AccountRepository extends JpaRepository<AccountEntity, Long> {
 
 
     boolean existsByClientId(String clientId);
+
+    //find account by id
+
 }

@@ -56,4 +56,9 @@ public interface OrderPositionRepository extends JpaRepository<OrderPosition, Lo
                                                     @Param("orderStatus") String orderStatus,
                                                     @Param("clientMsgId") String clientMsgId);
 
+
+    //lấy OrderPosition có orderId = orders.getId và status = Open
+    @Query("SELECT op FROM OrderPosition op WHERE op.order.id = ?1 AND op.status = 'OPEN'")
+    List<OrderPosition> findByOrderIdAndStatus(Long orderId, String status);
+
 }
