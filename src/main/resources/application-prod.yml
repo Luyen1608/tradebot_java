@@ -1,0 +1,41 @@
+server:
+  port: 8086
+spring:
+  config:
+    activate:
+      on-profile: prod
+  devtools:
+    add-properties: true
+  datasource:
+    url: ${POSTGRESQL_URL:jdbc:postgresql://103.72.96.109:5433/postgres}
+    username: ${POSTGRESQL_USER:supabase_admin}
+    password: ${POSTGRESQL_PASSWORD:tradebot@1608}
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    show_sql: false
+    hibernate:
+      ddl-auto: none
+  data:
+    redis:
+      port: 6379
+      host: redis
+  kafka:
+    bootstrap-servers: ""
+#    bootstrap-servers: localhost:29092
+
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+open:
+  api:
+    serverName: api-service dev
+    server: https://localhost:${server.port}
+    title: ${API_TITLE:DUMMY-API-TITLE}
+    version: 1.0.0
+    description: API for backend description dev
+
