@@ -15,8 +15,12 @@ import org.springframework.beans.factory.annotation.Value;
 
 import java.math.BigDecimal;
 import java.net.URI;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Data
@@ -27,28 +31,17 @@ public class CTraderConnection {
 
     @Value("${tradebot.prefix}")
     private String prefix = "trade365_";
-
+    private ScheduledExecutorService pingScheduler;
     private String clientId;
     private String secretId;
     private String wsUrl;
-
     private Session session;
-
     private CTraderConnectionService connectionService;
-
-
     private Session webSocketSession;
     private boolean connected = false;
     private CompletableFuture<String> responseFuture; // Lưu trữ phản hồi từ WebSocket
-
     private int authenticatedTraderAccountId;
 
-    //    private OrderPositionRepository orderPositionRepository;
-//
-//    public CTraderConnection() {
-//        // Lấy Bean từ Spring Context
-//        this.orderPositionRepository = SpringContextHolder.getBean(OrderPositionRepository.class);
-//    }
     public CTraderConnection(Long accountId, String clientId, String secretId, String accessToken, CTraderConnectionService connectionService, String wsUrl) {
         this.accountId = accountId;
         this.accessToken = accessToken;
@@ -89,13 +82,7 @@ public class CTraderConnection {
                 "{\"clientMsgId\": \"%s\",\"payloadType\": 2100,\"payload\": {\"clientId\": \"%s\",\"clientSecret\": \"%s\"}}",
                 generateClientMsgId(), clientId, secretId
         );
-        sendMessage(authMessage);
-    }
-
-    public void sendMessage(String message) {
-        if (session != null && session.isOpen()) {
-            session.getAsyncRemote().sendText(message);
-        }
+        sendRequest(authMessage);
     }
 
     public CompletableFuture<String> placeOrder(int symbol, int tradeSide,
@@ -136,6 +123,19 @@ public class CTraderConnection {
                 "{\"clientMsgId\": \"%s\",\"payloadType\": 2114,\"payload\": {\"ctidTraderAccountId\": %d,\"positionId\": \"%s\",\"stopLoss\": %s,\"takeProfit\": %s}}",
                 generateClientMsgId(), authenticatedTraderAccountId, positionId, stopLoss, takeProfit
         );
+    }
+
+    private String createHeartbeatMessage() {
+        // This is a simplified version - in real implementation, use protobuf
+        // JSON format for order placement
+        StringBuilder jsonBuilder = new StringBuilder();
+        jsonBuilder.append("{");
+        jsonBuilder.append("\"clientMsgId\": \"").append(generateClientMsgId()).append("\",");
+        jsonBuilder.append("\"payloadType\": 51");
+
+        jsonBuilder.append("}");
+
+        return jsonBuilder.toString();
     }
 
     private String createOrderMessage(int symbol, int tradeSide,
@@ -201,6 +201,7 @@ public class CTraderConnection {
         if (session != null && session.isOpen()) {
             responseFuture = new CompletableFuture<>();
             session.getAsyncRemote().sendText(message);
+            log.info("Sending message in local: {}", message);
             return responseFuture;
         } else {
             return CompletableFuture.completedFuture("Connection not available for account: " + accountId);
@@ -211,6 +212,28 @@ public class CTraderConnection {
     public void onOpen(Session session) {
         this.session = session;
         log.info("Connected to cTrader for account: " + accountId);
+        startPingScheduler();
+    }
+
+    public void startPingScheduler() {
+        if (pingScheduler == null || pingScheduler.isShutdown()) {
+            pingScheduler = Executors.newSingleThreadScheduledExecutor();
+            pingScheduler.scheduleAtFixedRate(() -> {
+                synchronized (session) {
+                    if (session != null && session.isOpen()) {
+                        try {
+                            // 1. Tạo ProtoHeartbeatEvent
+                            String message = createHeartbeatMessage();
+                            // 2. Gửi qua WebSocket
+                            session.getAsyncRemote().sendText(message);
+                            System.out.println("Sent ProtoHeartbeatEvent ping to cTrader server...");
+                        } catch (Exception e) {
+                            System.err.println("Failed to send heartbeat: " + e.getMessage());
+                        }
+                    }
+                }
+            }, 0, 15, TimeUnit.SECONDS); // ping mỗi 15 giây
+        }
     }
 
     @OnMessage
@@ -220,23 +243,32 @@ public class CTraderConnection {
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode rootNode = objectMapper.readTree(message);
             int payloadType = rootNode.get("payloadType").asInt();
-            if (payloadType == PayloadType.PROTO_OA_EXECUTION_EVENT.getValue()) {
-                processOrderExecutionResponse(rootNode);
-            } else if (payloadType == PayloadType.PROTO_OA_ORDER_ERROR_EVENT.getValue()) {
-                processOrderErrorEvent(rootNode);
-            } else {
-                log.warn("Unknown payload type: " + payloadType);
+            PayloadType payloadTypeEnum = PayloadType.fromValue(payloadType);
+            switch (Objects.requireNonNull(payloadTypeEnum)) {
+                case PROTO_OA_EXECUTION_EVENT:
+                    processOrderExecutionResponse(rootNode);
+                    break;
+                case PROTO_OA_ORDER_ERROR_EVENT:
+                case PROTO_OA_ERROR_RES:
+                    processOrderErrorEvent(rootNode);
+                    break;
+                case PROTO_OA_APPLICATION_AUTH_RES:
+                    log.info("Successfully authenticated trader account: {}",
+                            authenticatedTraderAccountId);
+                    break;
+                default:
+                    log.warn("Unknown payload type: " + payloadType);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
         if (responseFuture != null) {
             responseFuture.complete(message); // Hoàn thành Future khi nhận được dữ liệu
+            //ghi log message
+            log.info("Message Ctrader response: {}", message);
             responseFuture = null; // Reset để dùng cho request tiếp theo
         }
         // lấy ra executionType trong đoạn này để kiểm tra : {"payloadType":2126,"clientMsgId":"trade365_e64af3df","payload":{"ctidTraderAccountId":42683965,"executionType":3,"position":{"positionId":9880523,"tradeData":{"symbolId":433,"volume":10,"tradeSide":1,"openTimestamp":1743305982603,"guaranteedStopLoss":false,"measurementUnits":"ADA"},"positionStatus":1,"swap":0,"price":0.68123,"utcLastUpdateTimestamp":1743305982603,"commission":0,"marginRate":0.67967,"mirroringCommission":0,"guaranteedStopLoss":false,"usedMargin":1,"moneyDigits":2},"order":{"orderId":16481737,"tradeData":{"symbolId":433,"volume":10,"tradeSide":1,"openTimestamp":1743305982325,"guaranteedStopLoss":false,"measurementUnits":"ADA","closeTimestamp":1743305982603},"orderType":1,"orderStatus":2,"executionPrice":0.68123,"executedVolume":10,"utcLastUpdateTimestamp":1743305982603,"closingOrder":false,"clientOrderId":"trade365_e64af3df","timeInForce":3,"positionId":9880523},"deal":{"dealId":15516749,"orderId":16481737,"positionId":9880523,"volume":10,"filledVolume":10,"symbolId":433,"createTimestamp":1743305982325,"executionTimestamp":1743305982603,"utcLastUpdateTimestamp":1743305982603,"executionPrice":0.68123,"tradeSide":1,"dealStatus":2,"marginRate":0.67967,"commission":0,"baseToUsdConversionRate":0.67967,"moneyDigits":2},"isServerEvent":false}}
-
-        // Xử lý dữ liệu từ cTrader (giá, lệnh, v.v.)
     }
 
     @OnClose
@@ -266,9 +298,6 @@ public class CTraderConnection {
         String clientMsgId = rootNode.path("clientMsgId").asText();
         int positionId = rootNode.path("payload").path("position").path("positionId").asInt();
         String orderStatus = ProtoOAExecutionType.fromCode(executionType).getStatus();
-        int orderId = rootNode.path("payload").path("order").path("orderId").asInt();
-        int orderType = rootNode.path("payload").path("order").path("orderType").asInt();
-//        int orderStatus = rootNode.path("payload").path("order").path("orderStatus").asInt();
         String errorCode = rootNode.path("payload").has("errorCode") ?
                 rootNode.path("payload").get("errorCode").asText(null) : null;
         //update order_postion theo orderId và positionId

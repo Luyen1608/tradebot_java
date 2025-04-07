@@ -12,6 +12,9 @@ import java.util.List;
 public interface AccountRepository extends JpaRepository<AccountEntity, Long> {
 
     List<AccountEntity> findByIsActive(boolean isActive);
+    //get list account active and authenticated
+    List<AccountEntity> findByIsActiveAndAuthenticated(boolean isActive, boolean isAuthenticated);
+
     List<AccountEntity> findByBotId(Long botId);
 
     @Query("SELECT a FROM Account a WHERE a.isActive = true AND a.isConnected = false")

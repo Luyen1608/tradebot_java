@@ -38,7 +38,7 @@ public class CTraderConnectionService {
     @PostConstruct
     public void init() {
         log.info("Initializing cTrader connections...");
-        List<AccountEntity> activeAccounts = accountRepository.findByIsActive(true);
+        List<AccountEntity> activeAccounts = accountRepository.findByIsActiveAndAuthenticated(true, true);
         for (AccountEntity account : activeAccounts) {
             connectAccount(account);
         }
@@ -76,7 +76,7 @@ public class CTraderConnectionService {
                                     account.setAuthenticated(true);
                                     account.setConnectionStatus(AccountStatus.AUTHENTICATED);
                                     accountRepository.save(account);
-                                    log.info("Successfully authenticated trader account: {}",
+                                    log.info("Save authenticated trader account: {}",
                                             account.getCtidTraderAccountId());
                                 }
                             });
@@ -126,14 +126,6 @@ public class CTraderConnectionService {
         connections.put(accountId, newConnection);
         newConnection.connect();
         newConnection.authenticateTraderAccount(newConnection.getAuthenticatedTraderAccountId());
-    }
-    public void sendMessageToAccount(String accountId, String message) {
-        CTraderConnection connection = connections.get(accountId);
-        if (connection != null && connection.isConnected()) {
-            connection.sendMessage(message);
-        } else {
-            log.warn("No active connection for account: " + accountId);
-        }
     }
     // Thêm phương thức lấy danh sách kết nối
     public List<ConnectedEntity> getCurrentConnections() {
