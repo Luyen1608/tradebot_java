@@ -344,7 +344,6 @@ public class OrderService {
                         log.error("No active connection for account: {}", account.getId());
                         continue;
                     }
-
                     position.setStatus("CLOSING");
                     orderPositionRepository.save(position);
                     int volumeInt = order.getVolume().intValue();

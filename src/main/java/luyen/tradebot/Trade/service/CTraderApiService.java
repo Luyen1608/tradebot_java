@@ -46,11 +46,13 @@ public class CTraderApiService {
 
 
     public CTraderConnection connect(Long accountId, String clientId, String clientSecret,
-                                     String accessToken, AccountType accountType, CTraderConnectionService ctraderConnectionService) {
+                                     String accessToken, AccountType accountType, CTraderConnectionService ctraderConnectionService, String wsUrl) {
         // Implement WebSocket connection to cTrader API
-        String wsUrl = "DEMO".equalsIgnoreCase(accountType.toString()) ?
-                CTRADER_DEMO_WS_URL : CTRADER_LIVE_WS_URL;
 
+        if (wsUrl ==null){
+            wsUrl = "DEMO".equalsIgnoreCase(accountType.toString()) ?
+                    CTRADER_DEMO_WS_URL : CTRADER_LIVE_WS_URL;
+        }
         CTraderConnection connection = new CTraderConnection(accountId, clientId, clientSecret, accessToken, ctraderConnectionService, wsUrl);
         connection.connect();
         return connection;

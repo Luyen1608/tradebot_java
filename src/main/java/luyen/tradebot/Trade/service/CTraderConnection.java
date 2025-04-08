@@ -41,6 +41,7 @@ public class CTraderConnection {
     private boolean connected = false;
     private CompletableFuture<String> responseFuture; // Lưu trữ phản hồi từ WebSocket
     private int authenticatedTraderAccountId;
+    private String accountType;
 
     public CTraderConnection(Long accountId, String clientId, String secretId, String accessToken, CTraderConnectionService connectionService, String wsUrl) {
         this.accountId = accountId;
@@ -56,12 +57,24 @@ public class CTraderConnection {
             WebSocketContainer container = ContainerProvider.getWebSocketContainer();
             session = container.connectToServer(this, URI.create(wsUrl));
             sendAuthMessage();
-            connected = true;
-            log.info("Connected to cTrader WebSocket at {}", wsUrl);
+            log.info("WebSocket connection established at {}, waiting for authentication...", wsUrl);
         } catch (Exception e) {
             log.error("Failed to connect to cTrader WebSocket at {}", wsUrl, e);
             throw new RuntimeException("WebSocket connection failed", e);
         }
+    }
+
+    public boolean isConnectionSuccessful() {
+        return session != null && session.isOpen() && connected;
+    }
+
+    /**
+     * +     * Kiểm tra xem kết nối đã được xác thực ứng dụng chưa
+     * +     * @return true nếu kết nối đã được xác thực ứng dụng
+     * +
+     */
+    public boolean isApplicationAuthenticated() {
+        return isConnectionSuccessful() && connected;
     }
 
     public void disconnect() {
@@ -164,10 +177,18 @@ public class CTraderConnection {
     }
 
     public CompletableFuture<String> authenticateTraderAccount(int ctidTraderAccountId) {
-        String message = createAuthenticateTraderAccountMessage(ctidTraderAccountId);
-
+        // Lưu trữ ID tài khoản để sử dụng sau khi kết nối được xác thực
         this.authenticatedTraderAccountId = ctidTraderAccountId;
-        log.info("Authenticated for account: {}", ctidTraderAccountId);
+
+        // Kiểm tra xem kết nối đã được xác thực ứng dụng chưa
+        if (!isApplicationAuthenticated()) {
+            log.warn("Cannot authenticate trader account: {} - Application not authenticated yet", ctidTraderAccountId);
+            CompletableFuture<String> future = new CompletableFuture<>();
+            future.complete("Application not authenticated yet. Will authenticate trader account when ready.");
+            return future;
+        }
+        String message = createAuthenticateTraderAccountMessage(ctidTraderAccountId);
+        log.info("Sending authentication request for trader account: {}", ctidTraderAccountId);
         return sendRequest(message);
         // Normally would set up a way to resolve this future when response comes back
         // This is simplified for the example
@@ -199,6 +220,12 @@ public class CTraderConnection {
 
     public CompletableFuture<String> sendRequest(String message) {
         if (session != null && session.isOpen()) {
+            // Kiểm tra xem đây có phải là yêu cầu xác thực ứng dụng không
+            boolean isAuthRequest = message.contains("\"payloadType\": 2100");
+            if (!isAuthRequest && !connected) {
+                log.warn("Cannot send request - Application not authenticated yet: {}", message);
+                return CompletableFuture.completedFuture("Application not authenticated yet. Request will be sent when ready.");
+            }
             responseFuture = new CompletableFuture<>();
             session.getAsyncRemote().sendText(message);
             log.info("Sending message in local: {}", message);
@@ -212,7 +239,7 @@ public class CTraderConnection {
     public void onOpen(Session session) {
         this.session = session;
         log.info("Connected to cTrader for account: " + accountId);
-        startPingScheduler();
+//        startPingScheduler();
     }
 
     public void startPingScheduler() {
@@ -248,16 +275,27 @@ public class CTraderConnection {
                 case PROTO_OA_EXECUTION_EVENT:
                     processOrderExecutionResponse(rootNode);
                     break;
+
                 case PROTO_OA_ORDER_ERROR_EVENT:
                 case PROTO_OA_ERROR_RES:
                     processOrderErrorEvent(rootNode);
                     break;
                 case PROTO_OA_APPLICATION_AUTH_RES:
-                    log.info("Successfully authenticated trader account: {}",
-                            authenticatedTraderAccountId);
+                    connected = true;
+                    log.info("Successfully Application authenticated");
+                    if (authenticatedTraderAccountId != 0) {
+                        log.info("Auto authenticating trader account: {}", authenticatedTraderAccountId);
+                        authenticateTraderAccount(authenticatedTraderAccountId);
+                    }
+                    break;
+                case PROTO_OA_ACCOUNT_AUTH_RES:
+                    log.info("Successfully authenticated trader account: {}", authenticatedTraderAccountId);
+                    break;
+                case PROTO_OA_HEART_BEAT:
+                    log.info("Account Heart Beat Event Normal: {}", accountId);
                     break;
                 default:
-                    log.warn("Unknown payload type: " + payloadType);
+//                    log.info("Unknown payload type: {}", payloadType);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -273,13 +311,30 @@ public class CTraderConnection {
 
     @OnClose
     public void onClose(Session session, CloseReason reason) {
-        log.warn("Connection closed for account " + accountId + ": " + reason.getReasonPhrase());
+        log.warn("Connection closed for account = {} and session ID={}", accountId + ": " + reason.getReasonPhrase(), session.getId());
+        try {
+            if (session != null && session.isOpen()) {
+                session.close();
+            }
+        } catch (Exception e) {
+            log.error("Error closing session for account " + accountId, e);
+        }
+        // log clientSessionId
+        log.info("Session close by Client Session Id: {}", session.getId());
         connectionService.reconnect(this); // Tự động reconnect khi đóng
+
     }
 
     @OnError
     public void onError(Session session, Throwable throwable) {
         log.error("Error for account " + accountId + ": " + throwable.getMessage());
+        try {
+            if (session != null && session.isOpen()) {
+                session.close();
+            }
+        } catch (Exception e) {
+            log.error("Error closing session for account " + accountId, e);
+        }
         connectionService.reconnect(this); // Reconnect khi có lỗi
     }
 

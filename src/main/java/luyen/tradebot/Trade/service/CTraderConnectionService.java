@@ -32,9 +32,6 @@ public class CTraderConnectionService {
     // Lưu trữ thông tin kết nối với khóa là accountId (không phải clientId)
     private final Map<Long, CTraderConnection> connections = new ConcurrentHashMap<>();
 
-    // Scheduled executor để thực hiện kiểm tra kết nối định kỳ
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-
     @PostConstruct
     public void init() {
         log.info("Initializing cTrader connections...");
@@ -53,7 +50,9 @@ public class CTraderConnectionService {
                     account.getClientSecret(),
                     account.getAccessToken(),
                     account.getTypeAccount(),
-                    this
+                    this,
+                    null
+
             );
 
             // Store the connection
@@ -120,12 +119,22 @@ public class CTraderConnectionService {
         connection.close(); // Đóng kết nối cũ nếu còn mở
         connections.remove(accountId);
         // Tạo kết nối mới
-        CTraderConnection newConnection = new CTraderConnection(accountId, connection.getClientId(), connection.getSecretId(),
-                connection.getAccessToken(),this, connection.getWsUrl());
+        CTraderConnection newConnection = cTraderApiService.connect(
+                accountId,
+                connection.getClientId(),
+                connection.getSecretId(),
+                connection.getAccessToken(),
+                null,
+                this,
+                connection.getWsUrl()
+        );
         newConnection.setAuthenticatedTraderAccountId(connection.getAuthenticatedTraderAccountId());
         connections.put(accountId, newConnection);
-        newConnection.connect();
-        newConnection.authenticateTraderAccount(newConnection.getAuthenticatedTraderAccountId());
+        // check khi connect thành công thì mới tiếp tục authenticate trader account
+        if (newConnection.isConnectionSuccessful()) {
+            newConnection.authenticateTraderAccount(newConnection.getAuthenticatedTraderAccountId());
+            return;
+        }
     }
     // Thêm phương thức lấy danh sách kết nối
     public List<ConnectedEntity> getCurrentConnections() {
