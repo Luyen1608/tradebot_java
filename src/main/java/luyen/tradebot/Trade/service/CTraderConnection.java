@@ -15,12 +15,10 @@ import org.springframework.beans.factory.annotation.Value;
 
 import java.math.BigDecimal;
 import java.net.URI;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 @Slf4j
 @Data
@@ -42,6 +40,8 @@ public class CTraderConnection {
     private CompletableFuture<String> responseFuture; // Lưu trữ phản hồi từ WebSocket
     private int authenticatedTraderAccountId;
     private String accountType;
+    private final Map<String, CompletableFuture<String>> pendingRequests = new ConcurrentHashMap<>();
+
 
     public CTraderConnection(Long accountId, String clientId, String secretId, String accessToken, CTraderConnectionService connectionService, String wsUrl) {
         this.accountId = accountId;
@@ -100,12 +100,20 @@ public class CTraderConnection {
 
     public CompletableFuture<String> placeOrder(int symbol, int tradeSide,
                                                 int volume, int orderType) {
+        String clientMsgId = generateClientMsgId();
+        String orderMessage = createOrderMessage(symbol, tradeSide, volume, orderType, clientMsgId);
+
+        CompletableFuture<String> future = new CompletableFuture<>();
+        pendingRequests.put(clientMsgId, future);
+        sendRequest(orderMessage);
+        return future;
         // Create ProtoOANewOrderReq message
-        String orderMessage = createOrderMessage(symbol, tradeSide, volume, orderType);
+//        String orderMessage = createOrderMessage(symbol, tradeSide, volume, orderType);
 
         // In real implementation, track message ID and resolve future when response is received
 
-        return sendRequest(orderMessage);
+//        sendRequest(orderMessage);
+//        return future;
     }
 
     public CompletableFuture<String> closePosition(int ctidTraderAccountId, int positionId, int volume) {
@@ -152,12 +160,12 @@ public class CTraderConnection {
     }
 
     private String createOrderMessage(int symbol, int tradeSide,
-                                      int volume, int orderType) {
+                                      int volume, int orderType, String clientMsgId) {
         // This is a simplified version - in real implementation, use protobuf
         // JSON format for order placement
         StringBuilder jsonBuilder = new StringBuilder();
         jsonBuilder.append("{");
-        jsonBuilder.append("\"clientMsgId\": \"").append(generateClientMsgId()).append("\",");
+        jsonBuilder.append("\"clientMsgId\": \"").append(clientMsgId).append("\",");
         jsonBuilder.append("\"payloadType\": 2106,");
         jsonBuilder.append("\"payload\": {");
         jsonBuilder.append("\"ctidTraderAccountId\": ").append(authenticatedTraderAccountId).append(",");
@@ -269,6 +277,13 @@ public class CTraderConnection {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode rootNode = objectMapper.readTree(message);
+            String clientMsgId = rootNode.path("clientMsgId").asText();
+            if (pendingRequests.containsKey(clientMsgId)) {
+                pendingRequests.get(clientMsgId).complete(message);
+                pendingRequests.remove(clientMsgId);
+            } else {
+                log.warn("Received response with unknown clientMsgId: {}", clientMsgId);
+            }
             int payloadType = rootNode.get("payloadType").asInt();
             PayloadType payloadTypeEnum = PayloadType.fromValue(payloadType);
             switch (Objects.requireNonNull(payloadTypeEnum)) {

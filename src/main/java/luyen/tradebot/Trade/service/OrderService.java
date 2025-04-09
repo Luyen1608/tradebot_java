@@ -226,8 +226,6 @@ public class OrderService {
                 future.thenAccept(result -> {
                     ResponseCtraderDTO responseCtraderDTO = validateRepsone.formatResponsePlaceOrder(result);
                     if (responseCtraderDTO.getPayloadReponse() == PayloadType.PROTO_OA_ORDER_ERROR_EVENT.getValue()) {
-
-
                         //save position
                         savedPosition.setErrorCode(responseCtraderDTO.getErrorCode());
                         savedPosition.setErrorMessage(responseCtraderDTO.getDescription());
@@ -235,7 +233,6 @@ public class OrderService {
                         savedPosition.setPayloadType(PayloadType.PROTO_OA_ORDER_ERROR_EVENT.name());
                         savedPosition.setClientMsgId(responseCtraderDTO.getClientMsgId());
                         orderPositionRepository.save(savedPosition);
-
                         //save order
                         savedOrder.setStatus(ProtoOAExecutionType.ORDER_REJECTED.getStatus());
                         int number = orderRepository.updateStatusById(ProtoOAExecutionType.ORDER_REJECTED.getStatus(), savedOrder.getId());
