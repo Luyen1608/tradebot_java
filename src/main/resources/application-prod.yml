@@ -7,7 +7,7 @@ spring:
   devtools:
     add-properties: true
   datasource:
-    url: ${POSTGRESQL_URL:jdbc:postgresql://localhost:5432/trade_bot}
+    url: ${POSTGRESQL_URL:jdbc:postgresql://103.75.184.167:5432/trade_bot}
     username: ${POSTGRESQL_USER:postgres}
     password: ${POSTGRESQL_PASSWORD:tradebot@1608}
 #    username: ${POSTGRESQL_USER:tradebot_user}
