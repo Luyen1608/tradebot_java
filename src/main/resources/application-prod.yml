@@ -7,9 +7,10 @@ spring:
   devtools:
     add-properties: true
   datasource:
-    url: ${POSTGRESQL_URL:jdbc:postgresql://103.72.96.109:5433/postgres}
-    username: ${POSTGRESQL_USER:supabase_admin}
+    url: ${POSTGRESQL_URL:jdbc:postgresql://localhost:5432/trade_bot}
+    username: ${POSTGRESQL_USER:postgres}
     password: ${POSTGRESQL_PASSWORD:tradebot@1608}
+#    username: ${POSTGRESQL_USER:tradebot_user}
   jpa:
     properties:
       hibernate:
@@ -33,7 +34,7 @@ springdoc:
     enabled: true
 open:
   api:
-    serverName: api-service dev
+    serverName: api-service prod
     server: https://localhost:${server.port}
     title: ${API_TITLE:DUMMY-API-TITLE}
     version: 1.0.0
