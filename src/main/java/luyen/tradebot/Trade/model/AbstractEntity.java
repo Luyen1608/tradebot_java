@@ -1,5 +1,6 @@
 package luyen.tradebot.Trade.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -22,10 +23,12 @@ public abstract class AbstractEntity {
     @Column(name = "created_at", length = 255)
 //    @Temporal(TemporalType.DATE)
     @CreationTimestamp
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createAt;
 
     @Column(name = "updated_at", length = 255)
 //    @Temporal(TemporalType.DATE)
     @UpdateTimestamp
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updateAt;
 }

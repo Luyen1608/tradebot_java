@@ -40,4 +40,8 @@ public class OrderPosition extends AbstractEntity{
 
     private String status; // PENDING, OPEN, CLOSED, ERROR
     private String errorMessage;
+
+
+
+
 }

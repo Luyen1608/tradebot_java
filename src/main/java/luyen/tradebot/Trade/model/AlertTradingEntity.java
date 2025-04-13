@@ -1,5 +1,6 @@
 package luyen.tradebot.Trade.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.*;
 import luyen.tradebot.Trade.util.enumTraderBot.AcctionTrading;
@@ -16,7 +17,7 @@ import java.time.LocalTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "tbl_alert_trading")
-@Entity(name = "trading")
+@Entity
 public class AlertTradingEntity extends AbstractEntity {
 
     @Column(name = "action", length = 255)
@@ -28,7 +29,7 @@ public class AlertTradingEntity extends AbstractEntity {
     private String instrument;
 
     @Column(name = "timestamp")
-    @Temporal(TemporalType.TIMESTAMP)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDateTime timestamp;
 
     @Column(name = "signal_token", length = 255)
