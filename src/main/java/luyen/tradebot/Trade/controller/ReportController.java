@@ -32,7 +32,7 @@ public class ReportController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String sorts,
             @RequestParam(required = false)  @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate timestamp) {
-        System.out.println("Request Get ListUser with sort by multiple column");
+        System.out.println("Request get list alert Trading view with sort by multiple column");
         if(timestamp != null){
             LocalDateTime date = timestamp.atStartOfDay();
             Page<AlertTradingEntity> page = alertTradingService.getAlertTradings(pageNo, pageSize, search, sorts, date);
