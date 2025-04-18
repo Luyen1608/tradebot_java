@@ -9,6 +9,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -17,8 +18,8 @@ public abstract class AbstractEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    private Long id;
+    @Column(name = "id",columnDefinition = "uuid")
+    private UUID id;
 
     @Column(name = "created_at", length = 255)
 //    @Temporal(TemporalType.DATE)

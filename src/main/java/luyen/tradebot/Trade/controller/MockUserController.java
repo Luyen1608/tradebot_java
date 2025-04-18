@@ -23,6 +23,8 @@ import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/mockUser")
 @Validated
@@ -36,10 +38,10 @@ public class MockUserController {
     @PostMapping(value = "/")
 //    @RequestMapping(method=RequestMethod.POST, headers = "apiKey=v1.0")
 //    @ResponseStatus(HttpStatus.CREATED)
-    public ResponseData<Long> addUser(@Valid @RequestBody UserRequestDTO request) {
+    public ResponseData<UUID> addUser(@Valid @RequestBody UserRequestDTO request) {
 
         try {
-            long userId = userService.save(request);
+            UUID userId = userService.save(request);
             return new ResponseData<>(HttpStatus.CREATED.value(), "Add user success", userId);
         } catch (Exception e) {
 // Add @Slf4j annotation to class to enable logging
@@ -69,7 +71,7 @@ public class MockUserController {
     })
     @PutMapping("/{userId}")
 //    @ResponseStatus(HttpStatus.ACCEPTED)
-    public ResponseData<?> updateUser(@PathVariable("userId") @Min(1) long id, @RequestBody UserRequestDTO user) {
+    public ResponseData<?> updateUser(@PathVariable("userId") @Min(1) UUID id, @RequestBody UserRequestDTO user) {
         System.out.println("Request Update User=" + id);
         try {
             userService.updateUser(id, user);
@@ -83,7 +85,7 @@ public class MockUserController {
 
     @PatchMapping("/{userId}")
 //    @ResponseStatus(HttpStatus.ACCEPTED)
-    public ResponseData<?> changeStatus(@PathVariable long userId, @RequestParam(required = false) UserStatus status) {
+    public ResponseData<?> changeStatus(@PathVariable UUID userId, @RequestParam(required = false) UserStatus status) {
         System.out.println("Request Change Status=" + status);
         try {
             userService.changeStatus(userId, status);
@@ -96,7 +98,7 @@ public class MockUserController {
 
     @DeleteMapping("/{userId}")
 //    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public ResponseData<?> deleteUser(@PathVariable long userId) {
+    public ResponseData<?> deleteUser(@PathVariable UUID userId) {
         System.out.println("Request Delete User=" + userId);
         try {
             userService.delete(userId);
@@ -109,7 +111,7 @@ public class MockUserController {
 
     @GetMapping("/{userId}")
     @ResponseStatus(HttpStatus.OK)
-    public ResponseData<UserDetailResponse> getUser(@PathVariable @Min(1) long userId) {
+    public ResponseData<UserDetailResponse> getUser(@PathVariable @Min(1) UUID userId) {
         System.out.println("Request Get User=" + userId);
         try {
             return new ResponseData<>(HttpStatus.OK.value(), "Get user", userService.getUser(userId));

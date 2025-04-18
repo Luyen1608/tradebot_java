@@ -9,18 +9,19 @@ import lombok.Getter;
 import luyen.tradebot.Trade.util.PhoneNumber;
 
 import java.io.Serializable;
+import java.util.UUID;
 
 @Getter
 @Builder
 @AllArgsConstructor
 public class UserDetailResponse  implements Serializable {
-    private Long id;
+    private UUID id;
     private String firstName;
     private String lastName;
     private String email;
     private String phone;
 
-    public UserDetailResponse(Long id, String firstName, String lastName) {
+    public UserDetailResponse(UUID id, String firstName, String lastName) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;

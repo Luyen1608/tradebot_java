@@ -6,9 +6,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface ConnectedRepository extends JpaRepository<ConnectedEntity, Long> {
-    ConnectedEntity findByAccountId(Long accountId);
+public interface ConnectedRepository extends JpaRepository<ConnectedEntity, UUID> {
+    ConnectedEntity findByAccountId(UUID accountId);
 
 }

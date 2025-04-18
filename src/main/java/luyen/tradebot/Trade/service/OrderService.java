@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 @Service
@@ -101,7 +102,7 @@ public class OrderService {
         return null;
     }
 
-    public OrderEntity closeOrder(Long orderId, Long accountId) {
+    public OrderEntity closeOrder(UUID orderId, UUID accountId) {
         OrderEntity order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
@@ -392,7 +393,7 @@ public class OrderService {
         }
     }
 
-    public List<OrderEntity> getOrdersByAccountId(Long accountId) {
+    public List<OrderEntity> getOrdersByAccountId(UUID accountId) {
         return orderRepository.findByAccountId(accountId);
     }
 
@@ -400,11 +401,11 @@ public class OrderService {
         return orderRepository.findByStatus(status);
     }
 
-    public List<OrderPosition> getPositionsByOrderId(Long orderId) {
+    public List<OrderPosition> getPositionsByOrderId(UUID orderId) {
         return orderPositionRepository.findByOrderId(orderId);
     }
 
-    public List<OrderPosition> getPositionsByAccountId(Long accountId) {
+    public List<OrderPosition> getPositionsByAccountId(UUID accountId) {
         return orderPositionRepository.findByAccountId(accountId);
     }
 }

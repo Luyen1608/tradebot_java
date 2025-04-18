@@ -26,10 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -46,7 +43,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public long save(UserRequestDTO req) {
+    public UUID save(UserRequestDTO req) {
         log.info("Saving user {}", req);
         UserEntity user = UserEntity.builder()
                 .firstName(req.getFirstName())
@@ -78,7 +75,7 @@ public class UserServiceImpl implements UserService {
         return user.getId();
     }
     @Override
-    public void updateUser(long id, UserRequestDTO req) {
+    public void updateUser(UUID id, UserRequestDTO req) {
         UserEntity user = getUserById(id);
         user.setFirstName(req.getFirstName());
         user.setLastName(req.getLastName());
@@ -97,7 +94,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void changeStatus(long id, UserStatus status) {
+    public void changeStatus(UUID id, UserStatus status) {
         UserEntity user = getUserById(id);
         user.setUserStatus(status);
         userRepository.save(user);
@@ -110,7 +107,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserResponse findByid(Long id) {
+    public UserResponse findByid(UUID id) {
         return null;
     }
 
@@ -153,13 +150,13 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void delete(Long id) {
+    public void delete(UUID id) {
         userRepository.deleteById(id);
         log.info("User has deleted Successfully");
     }
 
     @Override
-    public UserDetailResponse getUser(long userId) {
+    public UserDetailResponse getUser(UUID userId) {
         UserEntity user = getUserById(userId);
         return UserDetailResponse.builder()
                 .id(userId)
@@ -274,7 +271,7 @@ public class UserServiceImpl implements UserService {
     }
 
 
-    private UserEntity getUserById(long userId) {
+    private UserEntity getUserById(UUID userId) {
         return userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User with id " + userId + " not found"));
     }
 }

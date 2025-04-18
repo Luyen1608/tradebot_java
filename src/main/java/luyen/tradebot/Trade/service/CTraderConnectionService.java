@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -30,7 +31,7 @@ public class CTraderConnectionService {
     private final CTraderApiService cTraderApiService;
 
     // Lưu trữ thông tin kết nối với khóa là accountId (không phải clientId)
-    private final Map<Long, CTraderConnection> connections = new ConcurrentHashMap<>();
+    private final Map<UUID, CTraderConnection> connections = new ConcurrentHashMap<>();
 
     @PostConstruct
     public void init() {
@@ -114,7 +115,7 @@ public class CTraderConnectionService {
     }
 
     public void reconnect(CTraderConnection connection) {
-        Long accountId = connection.getAccountId();
+        UUID accountId = connection.getAccountId();
         log.info("Attempting to reconnect for account: " + accountId);
         connection.close(); // Đóng kết nối cũ nếu còn mở
         connections.remove(accountId);
@@ -197,7 +198,7 @@ public class CTraderConnectionService {
 
 
     // Get an active connection for an account
-    public CTraderConnection getConnection(Long accountId) {
+    public CTraderConnection getConnection(UUID accountId) {
         return connections.get(accountId);
     }
 

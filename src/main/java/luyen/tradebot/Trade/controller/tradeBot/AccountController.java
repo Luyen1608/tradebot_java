@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 @RestController
@@ -46,26 +47,26 @@ public class AccountController {
     }
     @GetMapping("/{accountId}/trader-accounts")
     public CompletableFuture<ResponseEntity<String>> getTraderAccounts(
-            @PathVariable Long accountId) {
+            @PathVariable UUID accountId) {
         return accountService.getTraderAccounts(accountId)
                 .thenApply(ResponseEntity::ok)
                 .exceptionally(ex -> ResponseEntity.status(500).body("⚠ Error: " + ex.getMessage()));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<AccountEntity> updateAccount(@PathVariable Long id, @RequestBody AccountRequestDTO accountDTO) {
+    public ResponseEntity<AccountEntity> updateAccount(@PathVariable UUID id, @RequestBody AccountRequestDTO accountDTO) {
         AccountEntity updatedAccount = accountService.updateAccount(id, accountDTO);
         return ResponseEntity.ok(updatedAccount);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteAccount(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteAccount(@PathVariable UUID id) {
         accountService.deleteAccount(id);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<AccountEntity> getAccount(@PathVariable Long id) {
+    public ResponseEntity<AccountEntity> getAccount(@PathVariable UUID id) {
         AccountEntity account = accountService.getAccount(id);
         return ResponseEntity.ok(account);
     }
@@ -77,7 +78,7 @@ public class AccountController {
     }
 
     @GetMapping("/bot/{botId}")
-    public ResponseEntity<List<AccountEntity>> getAccountsByBotId(@PathVariable Long botId) {
+    public ResponseEntity<List<AccountEntity>> getAccountsByBotId(@PathVariable UUID botId) {
         List<AccountEntity> accounts = accountService.getAccountsByBotId(botId);
         return ResponseEntity.ok(accounts);
     }
@@ -85,7 +86,7 @@ public class AccountController {
 
     @PostMapping("/{accountId}/authenticate")
     public CompletableFuture<ResponseEntity<String>> authenticateTraderAccount(
-            @PathVariable Long accountId,
+            @PathVariable UUID accountId,
             @RequestParam int ctidTraderAccountId,
             @RequestParam int traderLogin,
             @RequestParam String type,

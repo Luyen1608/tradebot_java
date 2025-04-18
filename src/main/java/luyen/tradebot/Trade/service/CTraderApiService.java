@@ -13,6 +13,7 @@ import org.springframework.web.client.RestTemplate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 @Service
@@ -45,7 +46,7 @@ public class CTraderApiService {
     }
 
 
-    public CTraderConnection connect(Long accountId, String clientId, String clientSecret,
+    public CTraderConnection connect(UUID accountId, String clientId, String clientSecret,
                                      String accessToken, AccountType accountType, CTraderConnectionService ctraderConnectionService, String wsUrl) {
         // Implement WebSocket connection to cTrader API
 

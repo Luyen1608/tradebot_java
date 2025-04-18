@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -25,13 +26,13 @@ public class OrderController {
     }
 
     @PostMapping("/{orderId}/account/{accountId}/close")
-    public ResponseEntity<OrderEntity> closeOrder(@PathVariable Long orderId, @PathVariable Long accountId) {
+    public ResponseEntity<OrderEntity> closeOrder(@PathVariable UUID orderId, @PathVariable UUID accountId) {
         OrderEntity order = orderService.closeOrder(orderId, accountId);
         return ResponseEntity.ok(order);
     }
 
     @GetMapping("/account/{accountId}")
-    public ResponseEntity<List<OrderEntity>> getOrdersByAccountId(@PathVariable Long accountId) {
+    public ResponseEntity<List<OrderEntity>> getOrdersByAccountId(@PathVariable UUID accountId) {
         List<OrderEntity> orders = orderService.getOrdersByAccountId(accountId);
         return ResponseEntity.ok(orders);
     }
@@ -42,13 +43,13 @@ public class OrderController {
         return ResponseEntity.ok(orders);
     }
     @GetMapping("/{orderId}/positions")
-    public ResponseEntity<List<OrderPosition>> getPositionsByOrderId(@PathVariable Long orderId) {
+    public ResponseEntity<List<OrderPosition>> getPositionsByOrderId(@PathVariable UUID orderId) {
         List<OrderPosition> positions = orderService.getPositionsByOrderId(orderId);
         return ResponseEntity.ok(positions);
     }
 
     @GetMapping("/positions/account/{accountId}")
-    public ResponseEntity<List<OrderPosition>> getPositionsByAccountId(@PathVariable Long accountId) {
+    public ResponseEntity<List<OrderPosition>> getPositionsByAccountId(@PathVariable UUID accountId) {
         List<OrderPosition> positions = orderService.getPositionsByAccountId(accountId);
         return ResponseEntity.ok(positions);
     }

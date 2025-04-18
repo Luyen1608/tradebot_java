@@ -7,6 +7,7 @@ import luyen.tradebot.Trade.util.enumTraderBot.AccountType;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.UUID;
 
 
 @Getter
@@ -24,13 +25,13 @@ public class AccountRequestDTO implements Serializable {
         private AccountType typeAccount;
         private Date expirationDate;
 
-        private Long id;
+        private UUID id;
         private String accountId;
         private boolean isActive;
         private boolean isConnected;
         private boolean isAuthenticated;
         private String connectionStatus;
-        private Long botId;
+        private UUID botId;
 
 
 

@@ -10,30 +10,31 @@ import luyen.tradebot.Trade.util.UserStatus;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface UserService {
 
     List<UserResponse> fillAll();
 
-    UserResponse findByid(Long id);
+    UserResponse findByid(UUID id);
 
     UserResponse findByUsername(String username);
 
     UserResponse findByEmail(String email);
 
-    long save(UserRequestDTO req);
+    UUID save(UserRequestDTO req);
 
     void update(UserUpdateRequest req);
 
-    void updateUser(long id, UserRequestDTO req);
+    void updateUser(UUID id, UserRequestDTO req);
 
-    void changeStatus(long id, UserStatus status);
+    void changeStatus(UUID id, UserStatus status);
 
     void changePassword(UserPasswordRequest req);
 
-    void delete(Long id);
+    void delete(UUID id);
 
-    UserDetailResponse getUser(long userId);
+    UserDetailResponse getUser(UUID userId);
 
     PageResponse<?> getAllUsersWithSortBys(int pageNo, int pageSize, String sortBy);
 

@@ -7,6 +7,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.util.Date;
+import java.util.UUID;
 
 @Getter
 @Builder
@@ -18,7 +19,7 @@ import java.util.Date;
 public class ConnectedEntity extends AbstractEntity{
 
 
-    public ConnectedEntity(Long accountId, ConnectStatus connectionStatus) {
+    public ConnectedEntity(UUID accountId, ConnectStatus connectionStatus) {
         this.account.setId(accountId);
         this.connectionStatus = connectionStatus;
     }

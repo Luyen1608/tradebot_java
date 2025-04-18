@@ -24,7 +24,7 @@ import java.util.concurrent.*;
 @Data
 @ClientEndpoint
 public class CTraderConnection {
-    private Long accountId;
+    private UUID accountId;
     private String accessToken;
 
     @Value("${tradebot.prefix}")
@@ -43,7 +43,7 @@ public class CTraderConnection {
     private final Map<String, CompletableFuture<String>> pendingRequests = new ConcurrentHashMap<>();
 
 
-    public CTraderConnection(Long accountId, String clientId, String secretId, String accessToken, CTraderConnectionService connectionService, String wsUrl) {
+    public CTraderConnection(UUID accountId, String clientId, String secretId, String accessToken, CTraderConnectionService connectionService, String wsUrl) {
         this.accountId = accountId;
         this.accessToken = accessToken;
         this.connectionService = connectionService;

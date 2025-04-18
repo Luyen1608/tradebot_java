@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/bots")
@@ -24,19 +25,19 @@ public class BotController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateBot(@PathVariable Long id, @RequestBody BotRequestDTO botDTO) {
-        Long updatedBot = botService.updateBot(id, botDTO);
+    public ResponseEntity<?> updateBot(@PathVariable UUID id, @RequestBody BotRequestDTO botDTO) {
+        UUID updatedBot = botService.updateBot(id, botDTO);
         return ResponseEntity.ok(updatedBot);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteBot(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteBot(@PathVariable UUID id) {
         botService.deleteBot(id);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<BotEntity> getBot(@PathVariable Long id) {
+    public ResponseEntity<BotEntity> getBot(@PathVariable UUID id) {
         BotEntity bot = botService.getBot(id);
         return ResponseEntity.ok(bot);
     }

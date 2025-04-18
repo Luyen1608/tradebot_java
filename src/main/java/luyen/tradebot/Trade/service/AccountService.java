@@ -21,10 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 @Service
@@ -49,7 +46,7 @@ public class AccountService {
         return cTraderApiService.getAccounts(accessToken);
     }
 
-    public CompletableFuture<String> getTraderAccounts(Long accountId) {
+    public CompletableFuture<String> getTraderAccounts(UUID accountId) {
         AccountEntity account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("Account not found"));
 
@@ -63,7 +60,7 @@ public class AccountService {
         return cTraderApiService.getTraderAccounts(connection);
     }
 
-    public CompletableFuture<String> authenticateTraderAccount(Long accountId, int ctidTraderAccountId, int traderLogin, String type, String traderAccountName) {
+    public CompletableFuture<String> authenticateTraderAccount(UUID accountId, int ctidTraderAccountId, int traderLogin, String type, String traderAccountName) {
         AccountEntity account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("Account not found"));
 
@@ -154,7 +151,7 @@ public class AccountService {
         return savedAccount;
     }
 
-    public AccountEntity updateAccount(Long id, AccountRequestDTO accountDTO) {
+    public AccountEntity updateAccount(UUID id, AccountRequestDTO accountDTO) {
         AccountEntity account = accountRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Account not found"));
 
@@ -184,7 +181,7 @@ public class AccountService {
         return savedAccount;
     }
 
-    public void deleteAccount(Long id) {
+    public void deleteAccount(UUID id) {
         AccountEntity account = accountRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Account not found"));
 
@@ -196,7 +193,7 @@ public class AccountService {
         accountRepository.delete(account);
     }
 
-    public AccountEntity getAccount(Long id) {
+    public AccountEntity getAccount(UUID id) {
         return accountRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Account not found"));
     }
@@ -205,7 +202,7 @@ public class AccountService {
         return accountRepository.findAll();
     }
 
-    public List<AccountEntity> getAccountsByBotId(Long botId) {
+    public List<AccountEntity> getAccountsByBotId(UUID botId) {
         return accountRepository.findByBotId(botId);
     }
 

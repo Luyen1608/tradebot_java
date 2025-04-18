@@ -8,27 +8,28 @@ import luyen.tradebot.Trade.model.BotEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 
 
 public interface BotService {
 
     List<BotEntity> fillAll();
 
-    long saveBot(BotRequestDTO bot);
+    UUID saveBot(BotRequestDTO bot);
 
-    void deleteBot(long id);
+    void deleteBot(UUID id);
 
-    long updateBot(long id, BotRequestDTO bot);
+    UUID updateBot(UUID id, BotRequestDTO bot);
 
-    long saveAccount(long id, AccountRequestDTO account);
+    UUID saveAccount(UUID id, AccountRequestDTO account);
 
-    BotResponse getBotById(long id);
+    BotResponse getBotById(UUID id);
 
     PageResponse<BotEntity> getAllBots(int pageNo, int pageSize, String sortBy);
 
     BotEntity createBot(BotRequestDTO botDTO);
 
-    BotEntity getBot(Long id);
+    BotEntity getBot(UUID id);
 
     List<BotEntity> getAllBots();
 

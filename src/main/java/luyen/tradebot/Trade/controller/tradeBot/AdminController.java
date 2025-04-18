@@ -14,6 +14,7 @@ import luyen.tradebot.Trade.service.TracingService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 
@@ -32,7 +33,7 @@ public class AdminController {
     @PostMapping("/bot")
     public ResponseData<?> addBot(@Valid @RequestBody BotRequestDTO request) {
         try {
-            long botId = botService.saveBot(request);
+            UUID botId = botService.saveBot(request);
             return new ResponseData<>(HttpStatus.OK.value(), "Save Bot Successfully", botId);
         } catch (Exception e) {
             log.error("error message = {} ", e.getMessage(), e.getCause());
@@ -42,7 +43,7 @@ public class AdminController {
     }
 
     @PatchMapping("/bot/{id}")
-    public ResponseData<?> updateBot(@PathVariable("id") @Min(1) long id, @Valid @RequestBody BotRequestDTO request) {
+    public ResponseData<?> updateBot(@PathVariable("id") @Min(1) UUID id, @Valid @RequestBody BotRequestDTO request) {
         try {
             botService.updateBot(id, request);
             return new ResponseData<>(HttpStatus.OK.value(), "Update Bot Successfully");
@@ -53,7 +54,7 @@ public class AdminController {
     }
 
     @DeleteMapping("/bot/{id}")
-    public ResponseData<?> deleteBot(@PathVariable("id") @Min(1) long id) {
+    public ResponseData<?> deleteBot(@PathVariable("id") @Min(1) UUID id) {
         try {
             botService.deleteBot(id);
             return new ResponseData<>(HttpStatus.OK.value(), "Delete Bot Successfully");
@@ -64,7 +65,7 @@ public class AdminController {
     }
 
     @GetMapping("/bot/{id}")
-    public ResponseData<?> getBotById(@PathVariable("id") @Min(1) long id) {
+    public ResponseData<?> getBotById(@PathVariable("id") @Min(1) UUID id) {
         try {
             BotResponse botResponse = botService.getBotById(id);
             return new ResponseData<>(HttpStatus.OK.value(), "Delete Bot Successfully", botResponse);
@@ -75,9 +76,9 @@ public class AdminController {
     }
 
     @PostMapping("/bot/{id}/account")
-    public ResponseData<?> addAccountByBotId(@PathVariable("id") @Min(1) long id, @Valid @RequestBody AccountRequestDTO request) {
+    public ResponseData<?> addAccountByBotId(@PathVariable("id") @Min(1) UUID id, @Valid @RequestBody AccountRequestDTO request) {
         try {
-            long botId = botService.saveAccount(id, request);
+            UUID botId = botService.saveAccount(id, request);
             return new ResponseData<>(HttpStatus.OK.value(), "Save Bot Successfully", botId);
         } catch (Exception e) {
             log.error("error message = {} ", e.getMessage(), e.getCause());

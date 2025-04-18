@@ -9,12 +9,13 @@ import luyen.tradebot.Trade.util.enumTraderBot.BotStatus;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.UUID;
 
 @Getter
 @Builder
 @AllArgsConstructor
 public class BotResponse implements Serializable {
-    private long id;
+    private UUID id;
     private String botName;
     private String signalToken;
     private BotStatus status;

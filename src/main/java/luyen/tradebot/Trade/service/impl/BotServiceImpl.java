@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @Slf4j(topic = "BOT-SERVICE")
@@ -33,7 +34,7 @@ public class BotServiceImpl implements BotService {
     }
 
     @Override
-    public long saveBot(BotRequestDTO bot) {
+    public UUID saveBot(BotRequestDTO bot) {
         BotEntity botEntity = botRepository.save(BotEntity.builder()
                 .botName(bot.getBotName())
                 .botFrom(bot.getBotFrom())
@@ -48,13 +49,13 @@ public class BotServiceImpl implements BotService {
     }
 
     @Override
-    public void deleteBot(long idBot) {
+    public void deleteBot(UUID idBot) {
         botRepository.deleteById(idBot);
         log.info("Bot has deleted Successfully");
     }
 
     @Override
-    public long updateBot(long id, BotRequestDTO bot) {
+    public UUID updateBot(UUID id, BotRequestDTO bot) {
         BotEntity botEntity = botRepository.findById(id).orElseThrow(() -> new RuntimeException("Bot not found"));
         botEntity.setBotName(bot.getBotName());
         botEntity.setBotFrom(bot.getBotFrom());
@@ -69,7 +70,7 @@ public class BotServiceImpl implements BotService {
     }
 
     @Override
-    public long saveAccount(long id, AccountRequestDTO account) {
+    public UUID saveAccount(UUID id, AccountRequestDTO account) {
         BotEntity bot = botRepository.findById(id).orElseThrow(() -> new RuntimeException("Bot not found"));
         AccountEntity accountEntity = accountRepository.save(AccountEntity.builder()
                 .bot(bot)
@@ -86,7 +87,7 @@ public class BotServiceImpl implements BotService {
     }
 
     @Override
-    public BotResponse getBotById(long id) {
+    public BotResponse getBotById(UUID id) {
         BotEntity botEntity = botRepository.findById(id).orElseThrow(() -> new RuntimeException("Bot not found"));
         return BotResponse.builder()
                 .id(id)
@@ -122,23 +123,11 @@ public class BotServiceImpl implements BotService {
         return botRepository.save(bot);
     }
 
-    public BotEntity updateBot(Long id, BotRequestDTO botDTO) {
-        BotEntity bot = botRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Bot not found"));
 
-        bot.setBotName(botDTO.getBotName());
-        bot.setDescription(botDTO.getDescription());
-        bot.setActive(botDTO.isActive());
-//        bot.setUpdatedAt(LocalDateTime.now());
 
-        return botRepository.save(bot);
-    }
 
-    public void deleteBot(Long id) {
-        botRepository.deleteById(id);
-    }
 
-    public BotEntity getBot(Long id) {
+    public BotEntity getBot(UUID id) {
         return botRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Bot not found"));
     }

@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -35,7 +36,7 @@ public class OrderEntity extends AbstractEntity {
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private TradeSide tradeSide; // BUY, SELL
 
-    private Long botId;
+    private UUID botId;
     private BigDecimal volume;
     private String status; // PENDING, OPEN, CLOSED, CANCELED, ERROR
     private LocalDateTime openTime;
