@@ -24,7 +24,15 @@ import java.util.concurrent.CompletableFuture;
 public class AccountController {
     private final AccountService accountService;
 
-
+    @PostMapping("/add")
+    public ResponseEntity<String> addAccountToBot(@RequestParam UUID accountId, @RequestParam UUID botId) {
+        try {
+            accountService.addAccountToBot(accountId, botId);
+            return ResponseEntity.ok("Account added to Bot successfully.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to add account to Bot: " + e.getMessage());
+        }
+    }
     @PostMapping("/token")
     public ResponseEntity<Map<String, String>> getAccessToken(
             @RequestParam String clientId,

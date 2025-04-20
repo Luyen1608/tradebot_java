@@ -37,7 +37,19 @@ public class AccountService {
     private final CTraderApiService cTraderApiService;
     private final CTraderConnectionService connectionService;
 
+    public void addAccountToBot(UUID accountId, UUID botId) {
+        AccountEntity account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new RuntimeException("Account not found"));
+        BotEntity bot = botRepository.findById(botId)
+                .orElseThrow(() -> new RuntimeException("Bot not found"));
 
+        // Cập nhật thông tin Bot cho Account
+        account.setBot(bot);
+        accountRepository.save(account);
+
+        // Kết nối đến cTrader
+        connectionService.connectAccount(account);
+    }
     public String getAccessToken(String clientId, String clientSecret) {
         return cTraderApiService.getAccessToken(clientId, clientSecret);
     }
@@ -146,7 +158,7 @@ public class AccountService {
         // If account is active, establish connection
         if (savedAccount.isActive()) {
             // Đảm bảo thêm thông tin kết nối vào ConnectionService
-            connectionService.connectAccount(savedAccount);
+//            connectionService.connectAccount(savedAccount);
         }
         return savedAccount;
     }
@@ -172,10 +184,10 @@ public class AccountService {
         // Handle connection changes based on active status
         if (!wasActive && savedAccount.isActive()) {
             // Account was activated, connect it
-            connectionService.connectAccount(savedAccount);
+//            connectionService.connectAccount(savedAccount);
         } else if (wasActive && !savedAccount.isActive()) {
             // Account was deactivated, disconnect it
-            connectionService.disconnectAccount(savedAccount);
+//            connectionService.disconnectAccount(savedAccount);
         }
 
         return savedAccount;

@@ -43,6 +43,9 @@ public class AccountEntity extends AbstractEntity {
 
     private Integer traderLogin;
 
+    private Double volumeMultiplier;
+
+
     @Column(name = "type_account", length = 255)
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)

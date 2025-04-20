@@ -159,16 +159,16 @@ public class CTraderConnectionService {
     }
 
     // Scheduled task to check and reconnect accounts that are disconnected
-    @Scheduled(fixedRate = 60000) // Every minute
-    public void checkAndReconnectAccounts() {
-        log.debug("Checking for disconnected accounts...");
-        List<AccountEntity> disconnectedAccounts = accountRepository.findActiveDisconnectedAccounts();
-
-        for (AccountEntity account : disconnectedAccounts) {
-            log.info("Reconnecting account: {}", account.getAccountId());
-            connectAccount(account);
-        }
-    }
+//    @Scheduled(fixedRate = 60000) // Every minute
+//    public void checkAndReconnectAccounts() {
+//        log.debug("Checking for disconnected accounts...");
+//        List<AccountEntity> disconnectedAccounts = accountRepository.findActiveDisconnectedAccounts();
+//
+//        for (AccountEntity account : disconnectedAccounts) {
+//            log.info("Reconnecting account: {}", account.getAccountId());
+//            connectAccount(account);
+//        }
+//    }
 
     // Scheduled task to refresh access tokens
 //    @Scheduled(fixedRate = 3600000) // Every hour
@@ -186,7 +186,7 @@ public class CTraderConnectionService {
                 // Reconnect with new token if already connected
                 if (account.isConnected()) {
                     disconnectAccount(account);
-                    connectAccount(account);
+//                    connectAccount(account);
                 }
 
 //                log.info("Successfully refreshed token for account: {}", account.getAccountId());

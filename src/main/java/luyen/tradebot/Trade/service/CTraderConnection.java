@@ -261,9 +261,11 @@ public class CTraderConnection {
                             String message = createHeartbeatMessage();
                             // 2. Gửi qua WebSocket
                             session.getAsyncRemote().sendText(message);
-                            System.out.println("Sent ProtoHeartbeatEvent ping to cTrader server...");
+//                            System.out.println("Sent ProtoHeartbeatEvent ping to cTrader server...");
+                            log.info("Sent ProtoHeartbeatEvent ping to cTrader server: Account : {}", accountId);
                         } catch (Exception e) {
-                            System.err.println("Failed to send heartbeat: " + e.getMessage());
+                            log.error("Failed to send heartbeat:", e);
+//                            System.err.println("Failed to send heartbeat: " + e.getMessage());
                         }
                     }
                 }
@@ -305,6 +307,7 @@ public class CTraderConnection {
                     break;
                 case PROTO_OA_ACCOUNT_AUTH_RES:
                     log.info("Successfully authenticated trader account: {}", authenticatedTraderAccountId);
+                    startPingScheduler();
                     break;
                 case PROTO_OA_HEART_BEAT:
                     log.info("Account Heart Beat Event Normal: {}", accountId);

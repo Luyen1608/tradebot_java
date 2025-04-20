@@ -223,7 +223,8 @@ public class OrderService {
 
                 OrderPosition savedPosition = orderPositionRepository.save(position);
 
-                CompletableFuture<String> future = cTraderApiService.placeOrder(connection, webhookDTO.getSymbol(), webhookDTO.getTradeSide(), webhookDTO.getVolume(), webhookDTO.getOrderType());
+                int finalVolume = (int) (webhookDTO.getVolume() * account.getVolumeMultiplier());
+                CompletableFuture<String> future = cTraderApiService.placeOrder(connection, webhookDTO.getSymbol(), webhookDTO.getTradeSide(), finalVolume, webhookDTO.getOrderType());
                 future.thenAccept(result -> {
                     ResponseCtraderDTO responseCtraderDTO = validateRepsone.formatResponsePlaceOrder(result);
                     if (responseCtraderDTO.getPayloadReponse() == PayloadType.PROTO_OA_ORDER_ERROR_EVENT.getValue()) {
