@@ -346,8 +346,10 @@ public class OrderService {
                     position.setStatus("CLOSING");
                     orderPositionRepository.save(position);
                     int volumeInt = order.getVolume().intValue();
+                    int finalVolume = (int) (volumeInt * account.getVolumeMultiplier());
+
                     CompletableFuture<String> future = cTraderApiService.closePosition(connection,
-                            account.getCtidTraderAccountId(), position.getPositionId(), volumeInt);
+                            account.getCtidTraderAccountId(), position.getPositionId(), finalVolume);
 
                     future.thenAccept(result -> {
                         ResponseCtraderDTO responseCtraderDTO = validateRepsone.formatResponsePlaceOrder(result);
