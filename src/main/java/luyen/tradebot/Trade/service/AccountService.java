@@ -1,27 +1,35 @@
 package luyen.tradebot.Trade.service;
 
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import luyen.tradebot.Trade.dto.request.AccountRequestDTO;
+import luyen.tradebot.Trade.dto.request.AccountSupabaseDTO;
 import luyen.tradebot.Trade.dto.respone.ResponseCtraderDTO;
 import luyen.tradebot.Trade.model.AccountEntity;
 import luyen.tradebot.Trade.model.BotEntity;
+import luyen.tradebot.Trade.model.BotsEntity;
 import luyen.tradebot.Trade.model.ConnectedEntity;
 import luyen.tradebot.Trade.repository.AccountRepository;
 import luyen.tradebot.Trade.repository.BotRepository;
+import luyen.tradebot.Trade.repository.BotsRepository;
 import luyen.tradebot.Trade.repository.ConnectedRepository;
 import luyen.tradebot.Trade.util.DateUtil;
 import luyen.tradebot.Trade.util.ValidateRepsone;
 import luyen.tradebot.Trade.util.enumTraderBot.AccountStatus;
 import luyen.tradebot.Trade.util.enumTraderBot.AccountType;
 import luyen.tradebot.Trade.util.enumTraderBot.ConnectStatus;
-import luyen.tradebot.Trade.util.enumTraderBot.ConnectionStatus;
+import org.springframework.data.jpa.repository.support.JpaRepositoryImplementation;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 @Service
@@ -33,23 +41,11 @@ public class AccountService {
 
     private final ConnectedRepository connectedRepository;
 
-    private final BotRepository botRepository;
+    private final BotsRepository botsRepository;
     private final CTraderApiService cTraderApiService;
     private final CTraderConnectionService connectionService;
 
-    public void addAccountToBot(UUID accountId, UUID botId) {
-        AccountEntity account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new RuntimeException("Account not found"));
-        BotEntity bot = botRepository.findById(botId)
-                .orElseThrow(() -> new RuntimeException("Bot not found"));
 
-        // Cập nhật thông tin Bot cho Account
-        account.setBot(bot);
-        accountRepository.save(account);
-
-        // Kết nối đến cTrader
-        connectionService.connectAccount(account);
-    }
     public String getAccessToken(String clientId, String clientSecret) {
         return cTraderApiService.getAccessToken(clientId, clientSecret);
     }
@@ -72,7 +68,8 @@ public class AccountService {
         return cTraderApiService.getTraderAccounts(connection);
     }
 
-    public CompletableFuture<String> authenticateTraderAccount(UUID accountId, int ctidTraderAccountId, int traderLogin, String type, String traderAccountName) {
+    public CompletableFuture<String> authenticateTraderAccount(UUID accountId, int ctidTraderAccountId,
+                                                               int traderLogin, String type, String traderAccountName) {
         AccountEntity account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("Account not found"));
 
@@ -94,9 +91,9 @@ public class AccountService {
         //{"payloadType":2103,"clientMsgId":"cm_0c252588","payload":{"ctidTraderAccountId":42683965}}
         ConnectedEntity finalConnectedEntity = connectedEntity;
         future.thenAccept(success -> {
-            if (success !=null) {
+            if (success != null) {
                 ResponseCtraderDTO responseCtraderDTO = ValidateRepsone.formatResponse(success);
-                if (responseCtraderDTO.getPayloadReponse() ==2103){
+                if (responseCtraderDTO.getPayloadReponse() == 2103) {
                     account.setCtidTraderAccountId(ctidTraderAccountId);
                     account.setTraderLogin(traderLogin);
                     account.setTypeAccount(AccountType.valueOf(type));
@@ -117,7 +114,7 @@ public class AccountService {
                 } else {
                     finalConnectedEntity.setAccountName(account.getAccountName());
                     finalConnectedEntity.setConnectionStatus(ConnectStatus.CONNECTED);
-                    finalConnectedEntity.setBotName(account.getBot().getBotName());
+                    finalConnectedEntity.setBotName(account.getBot().getName());
                     finalConnectedEntity.setErrorCode(responseCtraderDTO.getErrorCode());
                     finalConnectedEntity.setErrorMessage(responseCtraderDTO.getDescription());
                     account.setAuthenticated(account.isAuthenticated());
@@ -131,7 +128,7 @@ public class AccountService {
 
     @Transactional
     public AccountEntity createAccount(AccountRequestDTO accountDTO) {
-        BotEntity bot = botRepository.findById(accountDTO.getBotId())
+        BotsEntity bot = botsRepository.findById(accountDTO.getBotId())
                 .orElseThrow(() -> new RuntimeException("Bot not found"));
         log.debug("Tạo tài khoản mới: {}", accountDTO.getClientId());
 
@@ -174,7 +171,7 @@ public class AccountService {
         account.setCtidTraderAccountId(accountDTO.getCtidTraderAccountId());
 
         if (accountDTO.getBotId() != null && !accountDTO.getBotId().equals(account.getBot().getId())) {
-            BotEntity newBot = botRepository.findById(accountDTO.getBotId())
+            BotsEntity newBot = botsRepository.findById(accountDTO.getBotId())
                     .orElseThrow(() -> new RuntimeException("Bot not found"));
             account.setBot(newBot);
         }
@@ -216,6 +213,62 @@ public class AccountService {
 
     public List<AccountEntity> getAccountsByBotId(UUID botId) {
         return accountRepository.findByBotId(botId);
+    }
+    
+    @Transactional
+    public AccountEntity createAccountFromSupabase(AccountSupabaseDTO accountDTO) {
+        if (accountDTO.getId() == null) {
+            throw new IllegalArgumentException("ID không được để trống");
+        }
+        BotsEntity bot = botsRepository.findById(accountDTO.getBotId())
+                .orElseThrow(() -> new RuntimeException("Bot not found"));
+        log.debug("Tạo tài khoản mới từ Supabase: {}", accountDTO.getClientId());
+
+        // Kiểm tra tài khoản đã tồn tại chưa
+        if (accountRepository.existsByClientId(accountDTO.getClientId())) {
+            throw new IllegalArgumentException("Tài khoản với Client ID này đã tồn tại");
+        }
+        
+        // Kiểm tra xem ID đã tồn tại chưa
+        if (accountRepository.existsById(accountDTO.getId())) {
+            throw new IllegalArgumentException("Tài khoản với ID này đã tồn tại");
+        }
+        
+        AccountEntity account = AccountEntity.builder()
+                .accountName(accountDTO.getAccountidTrading())
+                .ctidTraderAccountId(Integer.valueOf(accountDTO.getAccountidTrading()))
+                .clientId(accountDTO.getClientId())
+                .clientSecret(accountDTO.getSecretId())
+                .accessToken(accountDTO.getAccessToken())
+                .refreshToken("refresh_token") // This should come from token response
+                .tokenExpiry(DateUtil.plusDate(30))
+                .isActive(true)
+                .typeAccount(AccountType.DEMO) // Default value, can be updated later
+                .isConnected(false)
+                .authenticated(false)
+                .volumeMultiplier(accountDTO.getVolumeMultiplier())
+                .bot(bot)
+                .build();
+                
+        // Set the ID from the DTO
+        account.setId(accountDTO.getId());
+        
+        // Set creation and update timestamps if available in the DTO
+        if (accountDTO.getCreatedAt() != null) {
+            account.setCreateAt(accountDTO.getCreatedAt());
+        }
+        
+        if (accountDTO.getUpdatedAt() != null) {
+            account.setUpdateAt(accountDTO.getUpdatedAt());
+        }
+
+        AccountEntity savedAccount = accountRepository.save(account);
+
+        // Nếu account được tạo thành công và trạng thái của nó là true thì kết nối tài khoản đó
+        if (savedAccount.isActive()) {
+            connectionService.connectAccount(savedAccount);
+        }
+        return savedAccount;
     }
 
     /**

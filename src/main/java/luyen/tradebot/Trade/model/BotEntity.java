@@ -51,17 +51,17 @@ public class BotEntity  extends AbstractEntity {
     @Column(name = "description", length = 255)
     private String description;
 
-    @JsonIgnore
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, mappedBy = "bot")
-    private List<AccountEntity> accounts = new ArrayList<>();
+//    @JsonIgnore
+//    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, mappedBy = "bot")
+//    private List<AccountEntity> accounts = new ArrayList<>();
 
-    public void saveAccount(AccountEntity account) {
-        if (account != null) {
-            accounts = new ArrayList<>();
-        }
-        accounts.add(account);
-        account.setBot(this);
-
-    }
+//    public void saveAccount(AccountEntity account) {
+//        if (account != null) {
+//            accounts = new ArrayList<>();
+//        }
+//        accounts.add(account);
+//        account.setBot(this);
+//
+//    }
     private boolean isActive;
 }

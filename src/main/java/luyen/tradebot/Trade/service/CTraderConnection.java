@@ -56,8 +56,7 @@ public class CTraderConnection {
         try {
             WebSocketContainer container = ContainerProvider.getWebSocketContainer();
             session = container.connectToServer(this, URI.create(wsUrl));
-            sendAuthMessage();
-            log.info("WebSocket connection established at {}, waiting for authentication...", wsUrl);
+            log.info("WebSocket connection initiated at {}, waiting for onOpen event...", wsUrl);
         } catch (Exception e) {
             log.error("Failed to connect to cTrader WebSocket at {}", wsUrl, e);
             throw new RuntimeException("WebSocket connection failed", e);
@@ -247,6 +246,12 @@ public class CTraderConnection {
     public void onOpen(Session session) {
         this.session = session;
         log.info("Connected to cTrader for account: " + accountId);
+        try {
+            sendAuthMessage();
+            log.info("Authentication message sent for account: {}", accountId);
+        } catch (Exception e) {
+            log.error("Failed to send authentication message for account: {}", accountId, e);
+        }
 //        startPingScheduler();
     }
 

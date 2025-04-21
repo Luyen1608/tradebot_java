@@ -4,6 +4,7 @@ package luyen.tradebot.Trade.controller.tradeBot;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import luyen.tradebot.Trade.dto.request.AccountRequestDTO;
+import luyen.tradebot.Trade.dto.request.AccountSupabaseDTO;
 import luyen.tradebot.Trade.model.AccountEntity;
 import luyen.tradebot.Trade.service.AccountService;
 import org.springframework.http.HttpStatus;
@@ -24,15 +25,7 @@ import java.util.concurrent.CompletableFuture;
 public class AccountController {
     private final AccountService accountService;
 
-    @PostMapping("/add")
-    public ResponseEntity<String> addAccountToBot(@RequestParam UUID accountId, @RequestParam UUID botId) {
-        try {
-            accountService.addAccountToBot(accountId, botId);
-            return ResponseEntity.ok("Account added to Bot successfully.");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to add account to Bot: " + e.getMessage());
-        }
-    }
+
     @PostMapping("/token")
     public ResponseEntity<Map<String, String>> getAccessToken(
             @RequestParam String clientId,
@@ -51,6 +44,12 @@ public class AccountController {
     @PostMapping
     public ResponseEntity<AccountEntity> createAccount(@RequestBody AccountRequestDTO accountDTO) {
         AccountEntity newAccount = accountService.createAccount(accountDTO);
+        return new ResponseEntity<>(newAccount, HttpStatus.CREATED);
+    }
+    
+    @PostMapping("/supabase")
+    public ResponseEntity<AccountEntity> createAccountFromSupabase(@RequestBody AccountSupabaseDTO accountDTO) {
+        AccountEntity newAccount = accountService.createAccountFromSupabase(accountDTO);
         return new ResponseEntity<>(newAccount, HttpStatus.CREATED);
     }
     @GetMapping("/{accountId}/trader-accounts")

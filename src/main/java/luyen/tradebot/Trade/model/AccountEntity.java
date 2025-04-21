@@ -56,7 +56,7 @@ public class AccountEntity extends AbstractEntity {
 
     @ManyToOne(fetch = FetchType.LAZY,cascade = CascadeType.ALL)
     @JoinColumn(name = "bot_id")
-    private BotEntity bot;
+    private BotsEntity bot;
 
 
     @OneToOne(mappedBy = "account", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

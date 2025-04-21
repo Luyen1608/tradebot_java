@@ -71,19 +71,20 @@ public class BotServiceImpl implements BotService {
 
     @Override
     public UUID saveAccount(UUID id, AccountRequestDTO account) {
-        BotEntity bot = botRepository.findById(id).orElseThrow(() -> new RuntimeException("Bot not found"));
-        AccountEntity accountEntity = accountRepository.save(AccountEntity.builder()
-                .bot(bot)
-                .accountName(account.getName())
-                .accessToken(account.getAccessToken())
-                .clientId(account.getClientId())
-                .ctidTraderAccountId(account.getCtidTraderAccountId())
-                .tokenExpiry(account.getExpirationDate())
-                .typeAccount(account.getTypeAccount())
-                .clientSecret(account.getSecretId())
-                .connectionStatus(account.getStatus())
-                .build());
-        return accountEntity.getId();
+//        BotEntity bot = botRepository.findById(id).orElseThrow(() -> new RuntimeException("Bot not found"));
+//        AccountEntity accountEntity = accountRepository.save(AccountEntity.builder()
+//                .bot(bot)
+//                .accountName(account.getName())
+//                .accessToken(account.getAccessToken())
+//                .clientId(account.getClientId())
+//                .ctidTraderAccountId(account.getCtidTraderAccountId())
+//                .tokenExpiry(account.getExpirationDate())
+//                .typeAccount(account.getTypeAccount())
+//                .clientSecret(account.getSecretId())
+//                .connectionStatus(account.getStatus())
+//                .build());
+//        return accountEntity.getId();
+        return null;
     }
 
     @Override

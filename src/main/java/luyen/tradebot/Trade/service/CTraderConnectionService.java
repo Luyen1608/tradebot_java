@@ -12,6 +12,7 @@ import luyen.tradebot.Trade.util.enumTraderBot.AccountStatus;
 import luyen.tradebot.Trade.util.enumTraderBot.ConnectStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.List;
@@ -42,58 +43,77 @@ public class CTraderConnectionService {
         }
     }
 
-    public void connectAccount(AccountEntity account) {
+    @Transactional
+    public void connectAccount(UUID accountId) {
+        // Always get a fresh entity from the database
+        AccountEntity freshAccount = accountRepository.findById(accountId)
+                .orElseThrow(() -> new RuntimeException("Account not found with ID: " + accountId));
+        
         try {
             // Create a new connection to cTrader API
             CTraderConnection connection = cTraderApiService.connect(
-                    account.getId(),
-                    account.getClientId(),
-                    account.getClientSecret(),
-                    account.getAccessToken(),
-                    account.getTypeAccount(),
+                    freshAccount.getId(),
+                    freshAccount.getClientId(),
+                    freshAccount.getClientSecret(),
+                    freshAccount.getAccessToken(),
+                    freshAccount.getTypeAccount(),
                     this,
                     null
-
             );
 
             // Store the connection
-            connections.put(account.getId(), connection);
+            connections.put(freshAccount.getId(), connection);
 
             // Update account status
-            account.setConnected(true);
-            account.setConnectionStatus(AccountStatus.CONNECT);
-            account.setLastConnected(new Date());
-            accountRepository.save(account);
+            freshAccount.setConnected(true);
+            freshAccount.setConnectionStatus(AccountStatus.CONNECT);
+            freshAccount.setLastConnected(new Date());
+            accountRepository.save(freshAccount);
 
             log.info("Successfully connected account: {} ({})",
-                    account.getAccountId(), account.getTypeAccount());
+                    freshAccount.getAccountId(), freshAccount.getTypeAccount());
+                    
             // If the account has a trader account ID already, authenticate it
-            if (account.getCtidTraderAccountId() != 0) {
+            if (freshAccount.getCtidTraderAccountId() != 0) {
                 try {
-                    connection.authenticateTraderAccount(account.getCtidTraderAccountId())
+                    final UUID finalAccountId = freshAccount.getId();
+                    final int traderAccountId = freshAccount.getCtidTraderAccountId();
+                    
+                    connection.authenticateTraderAccount(traderAccountId)
                             .thenAccept(success -> {
                                 if (success != null) {
-                                    account.setAuthenticated(true);
-                                    account.setConnectionStatus(AccountStatus.AUTHENTICATED);
-                                    accountRepository.save(account);
-                                    log.info("Save authenticated trader account: {}",
-                                            account.getCtidTraderAccountId());
+                                    // Get a fresh entity in this async context
+                                    AccountEntity asyncAccount = accountRepository.findById(finalAccountId)
+                                            .orElse(null);
+                                    
+                                    if (asyncAccount != null) {
+                                        asyncAccount.setAuthenticated(true);
+                                        asyncAccount.setConnectionStatus(AccountStatus.AUTHENTICATED);
+                                        accountRepository.save(asyncAccount);
+                                        log.info("Save authenticated trader account: {}", traderAccountId);
+                                    }
                                 }
                             });
                 } catch (Exception e) {
-                    log.error("Failed to authenticate trader account: {}",
-                            account.getCtidTraderAccountId(), e);
+                    log.error("Failed to authenticate trader account: {}", 
+                            freshAccount.getCtidTraderAccountId(), e);
                 }
             }
         } catch (Exception e) {
             log.error("Failed to connect account: {} ({})",
-                    account.getAccountId(), account.getTypeAccount(), e);
+                    freshAccount.getAccountId(), freshAccount.getTypeAccount(), e);
 
-            account.setConnected(false);
-            account.setConnectionStatus(AccountStatus.ERROR);
-            account.setErrorMessage(e.getMessage());
-            accountRepository.save(account);
+            freshAccount.setConnected(false);
+            freshAccount.setConnectionStatus(AccountStatus.ERROR);
+            freshAccount.setErrorMessage(e.getMessage());
+            accountRepository.save(freshAccount);
         }
+    }
+    
+    // Keep the old method for backward compatibility
+    @Deprecated
+    public void connectAccount(AccountEntity account) {
+        connectAccount(account.getId());
     }
 
     public void disconnectAccount(AccountEntity account) {
