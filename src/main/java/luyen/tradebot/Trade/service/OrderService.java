@@ -37,6 +37,7 @@ public class OrderService {
     private final SaveInfo saveInfo;
     private final CTraderApiService cTraderApiService;
     private final ValidateRepsone validateRepsone;
+    private final AlertTradingService alertTradingService;
 
     public OrderEntity placeOrder(OrderDTO orderDTO) {
         BotEntity bot = (BotEntity) botRepository.findByBotName(orderDTO.getBotName())
@@ -182,6 +183,7 @@ public class OrderService {
                 .build();
 
         AlertTradingEntity saveAlertTradingEntity = alertTradingRepository.save(alertTradingEntity);
+        alertTradingService.saveAndSyncAlert(saveAlertTradingEntity);
 
         // Create a single order record
         OrderEntity order = OrderEntity.builder()

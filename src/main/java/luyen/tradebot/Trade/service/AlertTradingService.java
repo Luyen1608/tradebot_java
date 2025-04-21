@@ -7,4 +7,5 @@ import java.time.LocalDateTime;
 
 public interface AlertTradingService {
     Page<AlertTradingEntity> getAlertTradings(int pageNo, int pageSize, String search, String sorts, LocalDateTime createdAt);
+    void saveAndSyncAlert(AlertTradingEntity alertTradingEntity);
 }
