@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/bots")
+@RequestMapping("/api/bot_bk")
 @RequiredArgsConstructor
 public class BotController {
     private final BotService botService;
