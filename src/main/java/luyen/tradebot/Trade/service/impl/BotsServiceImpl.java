@@ -30,9 +30,9 @@ public class BotsServiceImpl implements BotsService {
             log.info("Creating new bot with name: {}", botSupabaseDTO.getName());
 
             // Check if a bot with the same name already exists
-            botsRepository.findByName(botSupabaseDTO.getName())
+            botsRepository.findById(botSupabaseDTO.getId())
                     .ifPresent(existingBot -> {
-                        throw new IllegalArgumentException("Bot with name " + botSupabaseDTO.getName() + " already exists");
+                        throw new IllegalArgumentException("Bot with id " + botSupabaseDTO.getId() + " already exists");
                     });
 
             // Convert DTO to entity

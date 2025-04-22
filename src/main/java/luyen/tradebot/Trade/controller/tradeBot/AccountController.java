@@ -67,7 +67,7 @@ public class AccountController {
                         .botId(UUID.fromString((String) record.get("bot_id")))
                         .accountidTrading((String) record.get("accountid_trading"))
                         .userId(UUID.fromString((String) record.get("user_id")))
-                        .addedDate((LocalDateTime) record.get("added_date"))
+//                        .addedDate((LocalDateTime) record.get("added_date"))
                         .status((String) record.get("status"))
                         .volumeMultiplier(Double.parseDouble(record.get("volume_multiplier").toString()))
                         .apiConnectId(UUID.fromString((String) record.get("api_connection_id")))
@@ -84,9 +84,14 @@ public class AccountController {
             }
             // 2) DELETE → xóa bot_accounts theo bot_ids
             else if ("DELETE".equals(payload.getType())) {
-                String botId = payload.getOldRecord().get("id").toString();
-                accountService.deleteAccount(UUID.fromString(botId));
-                return new ResponseEntity<>("Bots Deleted", HttpStatusCode.valueOf(HttpStatus.NO_CONTENT.value()));
+                log.info("Handling DELETE event for bot_accounts");
+                String accountId = payload.getOldRecord().get("id").toString();
+                accountService.deleteAccount(UUID.fromString(accountId));
+                ApiResponse<AccountEntity> response = ApiResponse.<AccountEntity>builder()
+                        .status(HttpStatus.NO_CONTENT.value())
+                        .message("Account deleted successfully")
+                        .build();
+                return new ResponseEntity<>(response, HttpStatus.NO_CONTENT);
             }
         }
         return ResponseEntity.badRequest().body("Invalid event");

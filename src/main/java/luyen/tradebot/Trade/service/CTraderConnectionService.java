@@ -123,9 +123,9 @@ public class CTraderConnectionService {
                 connection.disconnect();
                 connections.remove(account.getId());
 
-                account.setConnected(false);
-                account.setConnectionStatus(AccountStatus.DISCONNECT);
-                accountRepository.save(account);
+//                account.setConnected(false);
+//                account.setConnectionStatus(AccountStatus.DISCONNECT);
+//                accountRepository.save(account);
 
                 log.info("Successfully disconnected account: {}", account.getAccountId());
             } catch (Exception e) {

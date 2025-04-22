@@ -52,7 +52,7 @@ public class BotsController {
                        .signalToken((String) record.get("signal_token"))
                        .webhookUrl((String) record.get("webhook_url"))
                        .isDeleted((Boolean) record.get("is_deleted"))
-                       .ownerId((String) record.get("owner_id"))
+                       .ownerId(UUID.fromString((String) record.get("owner_id")))
                        .isBestSeller((Boolean) record.get("is_best_seller"))
                        .createdAt((LocalDateTime) record.get("created_at"))
                        .updatedAt((LocalDateTime) record.get("updated_at"))
@@ -70,7 +70,11 @@ public class BotsController {
             else if ("DELETE".equals(payload.getType())) {
                 String botId = payload.getOldRecord().get("id").toString();
                 botsService.deleteBot(UUID.fromString(botId));
-                return new ResponseEntity<>("Bots Deleted", HttpStatusCode.valueOf(HttpStatus.NO_CONTENT.value()));
+                ApiResponse<BotSupabaseDTO> response = ApiResponse.<BotSupabaseDTO>builder()
+                        .status(HttpStatus.CREATED.value())
+                        .message("Bot created successfully")
+                        .build();
+                return new ResponseEntity<>(response, HttpStatus.CREATED);
             }
 
         }

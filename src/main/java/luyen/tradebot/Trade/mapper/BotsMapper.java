@@ -24,7 +24,7 @@ public class BotsMapper {
                 .risk(dto.getRisk())
                 .signalToken(dto.getSignalToken())
                 .webhookUrl(dto.getWebhookUrl())
-                .botId(dto.getBotId() != null ? dto.getBotId().toString() : null)
+                .botId(dto.getBotId())
                 .isDeleted(dto.getIsDeleted())
                 .ownerId(dto.getOwnerId())
                 .isBestSeller(dto.getIsBestSeller())
@@ -49,7 +49,7 @@ public class BotsMapper {
         entity.setRisk(dto.getRisk());
         entity.setSignalToken(dto.getSignalToken());
         entity.setWebhookUrl(dto.getWebhookUrl());
-        entity.setBotId(dto.getBotId() != null ? dto.getBotId().toString() : null);
+        entity.setBotId(dto.getBotId());
         entity.setIsDeleted(dto.getIsDeleted());
         entity.setOwnerId(dto.getOwnerId());
         entity.setIsBestSeller(dto.getIsBestSeller());
@@ -72,7 +72,7 @@ public class BotsMapper {
                 .risk(entity.getRisk())
                 .signalToken(entity.getSignalToken())
                 .webhookUrl(entity.getWebhookUrl())
-                .botId(entity.getBotId() != null ? UUID.fromString(entity.getBotId()) : null)
+                .botId(entity.getBotId())
                 .isDeleted(entity.getIsDeleted())
                 .ownerId(entity.getOwnerId())
                 .isBestSeller(entity.getIsBestSeller())

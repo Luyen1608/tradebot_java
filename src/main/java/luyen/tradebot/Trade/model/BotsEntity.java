@@ -10,6 +10,7 @@ import org.hibernate.type.SqlTypes;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -27,10 +28,10 @@ public class BotsEntity extends AbstractEntity {
     private String risk;
     private String signalToken;
     private String webhookUrl;
-    private String botId;
+    private UUID botId;
     private Boolean isDeleted;
 
-    private String ownerId;
+    private UUID ownerId;
     private Boolean isBestSeller;
 
     @JsonIgnore
