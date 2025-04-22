@@ -27,6 +27,11 @@ public class BotsEntity extends AbstractEntity {
     private String risk;
     private String signalToken;
     private String webhookUrl;
+    private String botId;
+    private Boolean isDeleted;
+
+    private String ownerId;
+    private Boolean isBestSeller;
 
     @JsonIgnore
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, mappedBy = "bot")

@@ -4,6 +4,8 @@ import luyen.tradebot.Trade.dto.request.BotSupabaseDTO;
 import luyen.tradebot.Trade.model.BotsEntity;
 import org.springframework.stereotype.Component;
 
+import java.util.UUID;
+
 @Component
 public class BotsMapper {
     
@@ -22,6 +24,10 @@ public class BotsMapper {
                 .risk(dto.getRisk())
                 .signalToken(dto.getSignalToken())
                 .webhookUrl(dto.getWebhookUrl())
+                .botId(dto.getBotId() != null ? dto.getBotId().toString() : null)
+                .isDeleted(dto.getIsDeleted())
+                .ownerId(dto.getOwnerId())
+                .isBestSeller(dto.getIsBestSeller())
                 .build();
         entity.setId(dto.getId());
 
@@ -43,6 +49,10 @@ public class BotsMapper {
         entity.setRisk(dto.getRisk());
         entity.setSignalToken(dto.getSignalToken());
         entity.setWebhookUrl(dto.getWebhookUrl());
+        entity.setBotId(dto.getBotId() != null ? dto.getBotId().toString() : null);
+        entity.setIsDeleted(dto.getIsDeleted());
+        entity.setOwnerId(dto.getOwnerId());
+        entity.setIsBestSeller(dto.getIsBestSeller());
         return entity;
     }
     
@@ -62,6 +72,10 @@ public class BotsMapper {
                 .risk(entity.getRisk())
                 .signalToken(entity.getSignalToken())
                 .webhookUrl(entity.getWebhookUrl())
+                .botId(entity.getBotId() != null ? UUID.fromString(entity.getBotId()) : null)
+                .isDeleted(entity.getIsDeleted())
+                .ownerId(entity.getOwnerId())
+                .isBestSeller(entity.getIsBestSeller())
                 .createdAt(entity.getCreateAt())
                 .updatedAt(entity.getUpdateAt())
                 .build();

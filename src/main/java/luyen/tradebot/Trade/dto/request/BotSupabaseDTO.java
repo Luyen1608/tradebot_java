@@ -23,8 +23,19 @@ public class BotSupabaseDTO implements Serializable {
     private String risk;
     private String signalToken;
     private String webhookUrl;
+    private Boolean isDeleted;
+    private String ownerId;
+    private String signalFrom;
+    private String colorScheme;
+    private Boolean isBestSeller;
+
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+
+
+
+
 }
 

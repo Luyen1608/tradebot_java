@@ -3,15 +3,22 @@ package luyen.tradebot.Trade.controller.tradeBot;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import luyen.tradebot.Trade.dto.request.BotSupabaseDTO;
+import luyen.tradebot.Trade.dto.request.WebhookPayload;
 import luyen.tradebot.Trade.dto.respone.ApiResponse;
+import luyen.tradebot.Trade.dto.respone.ResponseData;
 import luyen.tradebot.Trade.mapper.BotsMapper;
 import luyen.tradebot.Trade.model.BotsEntity;
 import luyen.tradebot.Trade.service.BotsService;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.http.HttpHeaders;
+import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -24,25 +31,73 @@ public class BotsController {
     private final BotsService botsService;
     private final BotsMapper botsMapper;
 
+    @PostMapping
+    public ResponseEntity<?> createBot(@RequestBody WebhookPayload payload) {
+        log.info("Received Supabase Webhook: table={}, type={}", payload.getTable(), payload.getType());
+
+        // Chỉ xử lý INSERT vào bot_accounts
+        if ("bots".equals(payload.getTable())) {
+            // 1) INSERT → tạo bot_accounts
+            if ("INSERT".equals(payload.getType())) {
+                log.info("Handling INSERT event for bots");
+                Map<String, Object> record = payload.getRecord();
+               BotSupabaseDTO botSupabaseDTO = BotSupabaseDTO.builder()
+                       .id(UUID.fromString((String) record.get("id")))
+                       .botId(UUID.fromString((String) record.get("bot_id")))
+                       .name((String) record.get("name"))
+                       .description((String) record.get("description"))
+                       .status((String) record.get("status"))
+                       .type((String) record.get("type"))
+                       .risk((String) record.get("risk"))
+                       .signalToken((String) record.get("signal_token"))
+                       .webhookUrl((String) record.get("webhook_url"))
+                       .isDeleted((Boolean) record.get("is_deleted"))
+                       .ownerId((String) record.get("owner_id"))
+                       .isBestSeller((Boolean) record.get("is_best_seller"))
+                       .createdAt((LocalDateTime) record.get("created_at"))
+                       .updatedAt((LocalDateTime) record.get("updated_at"))
+                       .build();
+                BotsEntity createdBot = botsService.createBot(botSupabaseDTO);
+                BotSupabaseDTO responseDto = botsMapper.toDto(createdBot);
+                ApiResponse<BotSupabaseDTO> response = ApiResponse.<BotSupabaseDTO>builder()
+                        .status(HttpStatus.CREATED.value())
+                        .message("Bot created successfully")
+                        .data(responseDto)
+                        .build();
+                return new ResponseEntity<>(response, HttpStatus.CREATED);
+            }
+            // 2) DELETE → xóa bot_accounts theo bot_ids
+            else if ("DELETE".equals(payload.getType())) {
+                String botId = payload.getOldRecord().get("id").toString();
+                botsService.deleteBot(UUID.fromString(botId));
+                return new ResponseEntity<>("Bots Deleted", HttpStatusCode.valueOf(HttpStatus.NO_CONTENT.value()));
+            }
+
+        }
+        // Bỏ qua các event khác
+        return null;
+    }
+
+
     /**
      * Create a new bot
      * 
      * @param botSupabaseDTO the DTO containing bot information
      * @return ResponseEntity with the created bot and HTTP status
      */
-    @PostMapping
+    @PostMapping("/testAdd")
     public ResponseEntity<ApiResponse<BotSupabaseDTO>> createBot(@RequestBody BotSupabaseDTO botSupabaseDTO) {
         log.info("Received request to create bot: {}", botSupabaseDTO.getName());
-        
+
         BotsEntity createdBot = botsService.createBot(botSupabaseDTO);
         BotSupabaseDTO responseDto = botsMapper.toDto(createdBot);
-        
+
         ApiResponse<BotSupabaseDTO> response = ApiResponse.<BotSupabaseDTO>builder()
                 .status(HttpStatus.CREATED.value())
                 .message("Bot created successfully")
                 .data(responseDto)
                 .build();
-        
+
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
