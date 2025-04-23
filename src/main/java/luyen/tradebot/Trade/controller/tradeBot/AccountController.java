@@ -62,22 +62,46 @@ public class AccountController {
             if ("INSERT".equals(payload.getType())) {
                 log.info("Handling INSERT event for bot_accounts");
                 Map<String, Object> record = payload.getRecord();
+                
+                // Xử lý các trường UUID có thể null
+                String idStr = record.get("id") != null ? record.get("id").toString() : null;
+                UUID id = idStr != null ? UUID.fromString(idStr) : null;
+                
+                String botIdStr = (String) record.get("bot_id");
+                UUID botId = botIdStr != null ? UUID.fromString(botIdStr) : null;
+                
+                String userIdStr = (String) record.get("user_id");
+                UUID userId = userIdStr != null ? UUID.fromString(userIdStr) : null;
+                
+                String apiConnectIdStr = (String) record.get("api_connection_id");
+                UUID apiConnectId = apiConnectIdStr != null ? UUID.fromString(apiConnectIdStr) : null;
+                
+                // Xử lý trường Double có thể null
+                Double volumeMultiplier = null;
+                if (record.get("volume_multiplier") != null) {
+                    try {
+                        volumeMultiplier = Double.parseDouble(record.get("volume_multiplier").toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Invalid volume_multiplier format: {}", record.get("volume_multiplier"));
+                    }
+                }
+                
                 AccountSupabaseDTO accountDTO = AccountSupabaseDTO.builder()
-                        .id(UUID.fromString(record.get("id").toString()))
-                        .botId(UUID.fromString((String) record.get("bot_id")))
+                        .id(id)
+                        .botId(botId)
                         .accountidTrading((String) record.get("accountid_trading"))
-                        .userId(UUID.fromString((String) record.get("user_id")))
+                        .userId(userId)
 //                        .addedDate((LocalDateTime) record.get("added_date"))
                         .status((String) record.get("status"))
-                        .volumeMultiplier(Double.parseDouble(record.get("volume_multiplier").toString()))
-                        .apiConnectId(UUID.fromString((String) record.get("api_connection_id")))
+                        .volumeMultiplier(volumeMultiplier)
+                        .apiConnectId(apiConnectId)
                         .signalToken((String) record.get("signal_token"))
                         .clientId((String) record.get("client_id"))
                         .secretId((String) record.get("secret_id"))
                         .accessToken((String) record.get("access_token"))
-                        .live((Boolean) record.get("live"))
-                        .createdAt((LocalDateTime) record.get("created_at"))
-                        .updatedAt((LocalDateTime) record.get("updated_at"))
+                        .live(record.get("live") != null ? (Boolean) record.get("live") : false)
+                        .createdAt(record.get("created_at") != null ? (LocalDateTime) record.get("created_at") : null)
+                        .updatedAt(record.get("updated_at") != null ? (LocalDateTime) record.get("updated_at") : null)
                         .build();
                 AccountEntity newAccount = accountService.createAccountFromSupabase(accountDTO);
                 ApiResponse<AccountEntity> response = ApiResponse.<AccountEntity>builder()
@@ -90,14 +114,24 @@ public class AccountController {
             // 2) DELETE → xóa bot_accounts theo bot_ids
             else if ("DELETE".equals(payload.getType())) {
                 log.info("Handling DELETE event for bot_accounts");
-                String accountId = payload.getOldRecord().get("id").toString();
-                accountService.deleteAccount(UUID.fromString(accountId));
-                ApiResponse<AccountEntity> response = ApiResponse.<AccountEntity>builder()
-                        .status(HttpStatus.NO_CONTENT.value())
-                        .message("Account deleted successfully")
-                        .data(null)
-                        .build();
-                return new ResponseEntity<>(response, HttpStatus.NO_CONTENT);
+                Map<String, Object> oldRecord = payload.getOldRecord();
+                if (oldRecord != null && oldRecord.get("id") != null) {
+                    String accountIdStr = oldRecord.get("id").toString();
+                    accountService.deleteAccount(UUID.fromString(accountIdStr));
+                    ApiResponse<AccountEntity> response = ApiResponse.<AccountEntity>builder()
+                            .status(HttpStatus.NO_CONTENT.value())
+                            .message("Account deleted successfully")
+                            .data(null)
+                            .build();
+                    return new ResponseEntity<>(response, HttpStatus.NO_CONTENT);
+                } else {
+                    ApiResponse<AccountEntity> response = ApiResponse.<AccountEntity>builder()
+                            .status(HttpStatus.BAD_REQUEST.value())
+                            .message("Invalid delete request: missing account ID")
+                            .data(null)
+                            .build();
+                    return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+                }
             }
         }
         return ResponseEntity.badRequest().body("Invalid event");

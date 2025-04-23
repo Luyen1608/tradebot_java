@@ -41,9 +41,20 @@ public class BotsController {
             if ("INSERT".equals(payload.getType())) {
                 log.info("Handling INSERT event for bots");
                 Map<String, Object> record = payload.getRecord();
-               BotSupabaseDTO botSupabaseDTO = BotSupabaseDTO.builder()
-                       .id(UUID.fromString((String) record.get("id")))
-                       .botId(UUID.fromString((String) record.get("bot_id")))
+               // Xử lý owner_id có thể null
+                String ownerIdStr = (String) record.get("owner_id");
+                UUID ownerId = ownerIdStr != null ? UUID.fromString(ownerIdStr) : null;
+                
+                // Xử lý các trường UUID có thể null
+                String idStr = (String) record.get("id");
+                UUID id = idStr != null ? UUID.fromString(idStr) : null;
+                
+                String botIdStr = (String) record.get("bot_id");
+                UUID botId = botIdStr != null ? UUID.fromString(botIdStr) : null;
+                
+                BotSupabaseDTO botSupabaseDTO = BotSupabaseDTO.builder()
+                       .id(id)
+                       .botId(botId)
                        .name((String) record.get("name"))
                        .description((String) record.get("description"))
                        .status((String) record.get("status"))
@@ -51,11 +62,11 @@ public class BotsController {
                        .risk((String) record.get("risk"))
                        .signalToken((String) record.get("signal_token"))
                        .webhookUrl((String) record.get("webhook_url"))
-                       .isDeleted((Boolean) record.get("is_deleted"))
-                       .ownerId(UUID.fromString((String) record.get("owner_id")))
-                       .isBestSeller((Boolean) record.get("is_best_seller"))
-                       .createdAt((LocalDateTime) record.get("created_at"))
-                       .updatedAt((LocalDateTime) record.get("updated_at"))
+                       .isDeleted(record.get("is_deleted") != null ? (Boolean) record.get("is_deleted") : false)
+                       .ownerId(ownerId)
+                       .isBestSeller(record.get("is_best_seller") != null ? (Boolean) record.get("is_best_seller") : false)
+                       .createdAt(record.get("created_at") != null ? (LocalDateTime) record.get("created_at") : null)
+                       .updatedAt(record.get("updated_at") != null ? (LocalDateTime) record.get("updated_at") : null)
                        .build();
                 BotsEntity createdBot = botsService.createBot(botSupabaseDTO);
                 BotSupabaseDTO responseDto = botsMapper.toDto(createdBot);
@@ -68,14 +79,24 @@ public class BotsController {
             }
             // 2) DELETE → xóa bot_accounts theo bot_ids
             else if ("DELETE".equals(payload.getType())) {
-                String botId = payload.getOldRecord().get("id").toString();
-                botsService.deleteBot(UUID.fromString(botId));
-                ApiResponse<BotSupabaseDTO> response = ApiResponse.<BotSupabaseDTO>builder()
-                        .status(HttpStatus.CREATED.value())
-                        .message("Bot Deleted successfully")
-                        .data(null)
-                        .build();
-                return new ResponseEntity<>(response, HttpStatus.CREATED);
+                Map<String, Object> oldRecord = payload.getOldRecord();
+                if (oldRecord != null && oldRecord.get("id") != null) {
+                    String botIdStr = oldRecord.get("id").toString();
+                    botsService.deleteBot(UUID.fromString(botIdStr));
+                    ApiResponse<BotSupabaseDTO> response = ApiResponse.<BotSupabaseDTO>builder()
+                            .status(HttpStatus.OK.value())
+                            .message("Bot deleted successfully")
+                            .data(null)
+                            .build();
+                    return new ResponseEntity<>(response, HttpStatus.OK);
+                } else {
+                    ApiResponse<BotSupabaseDTO> response = ApiResponse.<BotSupabaseDTO>builder()
+                            .status(HttpStatus.BAD_REQUEST.value())
+                            .message("Invalid delete request: missing bot ID")
+                            .data(null)
+                            .build();
+                    return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+                }
             }
 
         }

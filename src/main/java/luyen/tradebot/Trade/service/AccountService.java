@@ -242,7 +242,7 @@ public class AccountService {
                 .accessToken(accountDTO.getAccessToken())
                 .refreshToken("refresh_token") // This should come from token response
                 .tokenExpiry(DateUtil.plusDate(30))
-                .isActive(true)
+                .isActive(false)
                 .typeAccount(AccountType.DEMO) // Default value, can be updated later
                 .isConnected(false)
                 .authenticated(false)
