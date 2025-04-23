@@ -72,7 +72,8 @@ public class BotsController {
                 botsService.deleteBot(UUID.fromString(botId));
                 ApiResponse<BotSupabaseDTO> response = ApiResponse.<BotSupabaseDTO>builder()
                         .status(HttpStatus.CREATED.value())
-                        .message("Bot created successfully")
+                        .message("Bot Deleted successfully")
+                        .data(null)
                         .build();
                 return new ResponseEntity<>(response, HttpStatus.CREATED);
             }

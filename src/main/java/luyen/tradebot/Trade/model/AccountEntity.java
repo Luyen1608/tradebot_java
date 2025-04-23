@@ -54,12 +54,12 @@ public class AccountEntity extends AbstractEntity {
     @Column(name = "token_expiry")
     private Date tokenExpiry;
 
-    @ManyToOne(fetch = FetchType.LAZY,cascade = CascadeType.ALL)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bot_id")
     private BotsEntity bot;
 
 
-    @OneToOne(mappedBy = "account", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "account", fetch = FetchType.LAZY)
     private ConnectedEntity connecting;
 
 

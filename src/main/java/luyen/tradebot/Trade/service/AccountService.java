@@ -199,7 +199,7 @@ public class AccountService {
             connectionService.disconnectAccount(account);
         }
 
-        accountRepository.delete(account);
+        accountRepository.deleteById(id);
     }
 
     public AccountEntity getAccount(UUID id) {

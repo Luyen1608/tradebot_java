@@ -80,7 +80,12 @@ public class AccountController {
                         .updatedAt((LocalDateTime) record.get("updated_at"))
                         .build();
                 AccountEntity newAccount = accountService.createAccountFromSupabase(accountDTO);
-                return new ResponseEntity<>(newAccount, HttpStatus.CREATED);
+                ApiResponse<AccountEntity> response = ApiResponse.<AccountEntity>builder()
+                        .status(HttpStatus.CREATED.value())
+                        .message("Account created successfully")
+                        .data(newAccount)
+                        .build();
+                return new ResponseEntity<>(response, HttpStatus.CREATED);
             }
             // 2) DELETE → xóa bot_accounts theo bot_ids
             else if ("DELETE".equals(payload.getType())) {
@@ -90,6 +95,7 @@ public class AccountController {
                 ApiResponse<AccountEntity> response = ApiResponse.<AccountEntity>builder()
                         .status(HttpStatus.NO_CONTENT.value())
                         .message("Account deleted successfully")
+                        .data(null)
                         .build();
                 return new ResponseEntity<>(response, HttpStatus.NO_CONTENT);
             }

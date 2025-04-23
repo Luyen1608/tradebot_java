@@ -35,7 +35,7 @@ public class BotsEntity extends AbstractEntity {
     private Boolean isBestSeller;
 
     @JsonIgnore
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, mappedBy = "bot")
+    @OneToMany(cascade = CascadeType.PERSIST, fetch = FetchType.EAGER, mappedBy = "bot")
     private List<AccountEntity> accounts = new ArrayList<>();
 
     public void saveAccount(AccountEntity account) {
