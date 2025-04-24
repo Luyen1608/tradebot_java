@@ -98,6 +98,70 @@ public class BotsController {
                     return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
                 }
             }
+            // 3) UPDATE → cập nhật bot theo id
+            else if ("UPDATE".equals(payload.getType())) {
+                log.info("Handling UPDATE event for bots");
+                Map<String, Object> record = payload.getRecord();
+                
+                if (record != null && record.get("id") != null) {
+                    // Xử lý các trường UUID có thể null
+                    String idStr = record.get("id").toString();
+                    UUID id = UUID.fromString(idStr);
+                    
+                    String botIdStr = (String) record.get("bot_id");
+                    UUID botId = botIdStr != null ? UUID.fromString(botIdStr) : null;
+                    
+                    String ownerIdStr = (String) record.get("owner_id");
+                    UUID ownerId = ownerIdStr != null ? UUID.fromString(ownerIdStr) : null;
+                    
+                    BotSupabaseDTO botSupabaseDTO = BotSupabaseDTO.builder()
+                           .id(id)
+                           .botId(botId)
+                           .name((String) record.get("name"))
+                           .description((String) record.get("description"))
+                           .status((String) record.get("status"))
+                           .type((String) record.get("type"))
+                           .risk((String) record.get("risk"))
+                           .signalToken((String) record.get("signal_token"))
+                           .webhookUrl((String) record.get("webhook_url"))
+                           .isDeleted(record.get("is_deleted") != null ? (Boolean) record.get("is_deleted") : false)
+                           .ownerId(ownerId)
+                           .isBestSeller(record.get("is_best_seller") != null ? (Boolean) record.get("is_best_seller") : false)
+                           .createdAt(record.get("created_at") != null ? (LocalDateTime) record.get("created_at") : null)
+                           .updatedAt(record.get("updated_at") != null ? (LocalDateTime) record.get("updated_at") : null)
+                           .build();
+                    
+                    try {
+                        BotsEntity updatedBot = botsService.updateBot(id, botSupabaseDTO);
+                        BotSupabaseDTO responseDto = botsMapper.toDto(updatedBot);
+                        
+                        ApiResponse<BotSupabaseDTO> response = ApiResponse.<BotSupabaseDTO>builder()
+                                .status(HttpStatus.OK.value())
+                                .message("Bot updated successfully")
+                                .data(responseDto)
+                                .build();
+                        
+                        return new ResponseEntity<>(response, HttpStatus.OK);
+                    } catch (Exception e) {
+                        log.error("Error updating bot: ", e);
+                        ApiResponse<BotSupabaseDTO> response = ApiResponse.<BotSupabaseDTO>builder()
+                                .status(HttpStatus.NOT_FOUND.value())
+                                .message(e.getMessage())
+                                .data(null)
+                                .build();
+                        
+                        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+                    }
+                } else {
+                    ApiResponse<BotSupabaseDTO> response = ApiResponse.<BotSupabaseDTO>builder()
+                            .status(HttpStatus.BAD_REQUEST.value())
+                            .message("Invalid update request: missing bot ID")
+                            .data(null)
+                            .build();
+                    
+                    return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+                }
+            }
 
         }
         // Bỏ qua các event khác

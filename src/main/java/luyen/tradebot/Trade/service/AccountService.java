@@ -272,6 +272,66 @@ public class AccountService {
     }
 
     /**
+     * Cập nhật tài khoản từ Supabase
+     * 
+     * @param id ID của tài khoản cần cập nhật
+     * @param accountDTO DTO chứa thông tin cập nhật
+     * @return Tài khoản đã được cập nhật
+     */
+    @Transactional
+    public AccountEntity updateAccountFromSupabase(UUID id, AccountSupabaseDTO accountDTO) {
+        AccountEntity account = accountRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Account not found with ID: " + id));
+        
+        log.info("Updating account from Supabase with ID: {}", id);
+        
+        // Cập nhật thông tin bot nếu có thay đổi
+        if (accountDTO.getBotId() != null && !accountDTO.getBotId().equals(account.getBot().getId())) {
+            BotsEntity newBot = botsRepository.findById(accountDTO.getBotId())
+                    .orElseThrow(() -> new RuntimeException("Bot not found with ID: " + accountDTO.getBotId()));
+            account.setBot(newBot);
+        }
+        
+        // Cập nhật các thông tin khác
+        if (accountDTO.getAccountidTrading() != null) {
+            account.setAccountName(accountDTO.getAccountidTrading());
+            try {
+                account.setCtidTraderAccountId(Integer.valueOf(accountDTO.getAccountidTrading()));
+            } catch (NumberFormatException e) {
+                log.warn("Invalid accountid_trading format: {}", accountDTO.getAccountidTrading());
+            }
+        }
+        
+        if (accountDTO.getClientId() != null) {
+            account.setClientId(accountDTO.getClientId());
+        }
+        
+        if (accountDTO.getSecretId() != null) {
+            account.setClientSecret(accountDTO.getSecretId());
+        }
+        
+        if (accountDTO.getAccessToken() != null) {
+            account.setAccessToken(accountDTO.getAccessToken());
+        }
+        
+        if (accountDTO.getVolumeMultiplier() != null) {
+            account.setVolumeMultiplier(accountDTO.getVolumeMultiplier());
+        }
+        
+
+        // Cập nhật thời gian
+        if (accountDTO.getUpdatedAt() != null) {
+            account.setUpdateAt(accountDTO.getUpdatedAt());
+        }
+        
+        // Lưu tài khoản đã cập nhật
+        AccountEntity savedAccount = accountRepository.save(account);
+        log.info("Account updated successfully with ID: {}", savedAccount.getId());
+        
+        return savedAccount;
+    }
+
+    /**
      * Chuyển đổi Entity Account sang DTO
      */
     private AccountRequestDTO convertToDTO(AccountEntity account) {

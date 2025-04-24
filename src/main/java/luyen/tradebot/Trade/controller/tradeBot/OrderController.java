@@ -21,8 +21,9 @@ public class OrderController {
 
     @PostMapping
     public ResponseEntity<OrderEntity> placeOrder(@RequestBody OrderDTO orderDTO) {
-        OrderEntity order = orderService.placeOrder(orderDTO);
-        return new ResponseEntity<>(order, HttpStatus.CREATED);
+//        OrderEntity order = orderService.placeOrder(orderDTO);
+//        return new ResponseEntity<>(order, HttpStatus.CREATED);
+        return null;
     }
 
     @PostMapping("/{orderId}/account/{accountId}/close")

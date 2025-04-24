@@ -9,6 +9,6 @@ import java.util.UUID;
 
 @Repository
 public interface BotsRepository extends JpaRepository<BotsEntity, UUID> {
-    Optional<BotsEntity> findByName(String name);
     Optional<BotsEntity> findBySignalToken(String signalToken);
+
 }

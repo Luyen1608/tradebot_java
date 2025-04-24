@@ -46,6 +46,23 @@ public class AlertTradingEntity extends AbstractEntity {
 
     @Column(name = "status", length = 255)
     private String status;
+    
+    @Override
+    public String toString() {
+        return "AlertTradingEntity{" +
+                "id=" + getId() +
+                ", action=" + action +
+                ", instrument='" + instrument + '\'' +
+                ", timestamp=" + timestamp +
+                ", signalToken='" + signalToken + '\'' +
+                ", maxLag='" + maxLag + '\'' +
+                ", investmentType='" + investmentType + '\'' +
+                ", amount=" + amount +
+                ", status='" + status + '\'' +
+                ", createAt=" + getCreateAt() +
+                ", updateAt=" + getUpdateAt() +
+                '}';
+    }
 
 
 //    id smallint NOT NULL DEFAULT nextval('tbl_alert_trading_id_seq'::regclass),

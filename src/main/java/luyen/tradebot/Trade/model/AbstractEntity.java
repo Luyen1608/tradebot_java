@@ -17,8 +17,19 @@ import java.util.UUID;
 public abstract class AbstractEntity {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "id", columnDefinition = "uuid")
     private UUID id;
+    
+    /**
+     * Pre-persist hook to ensure ID is set before saving
+     */
+    @PrePersist
+    public void ensureId() {
+        if (this.id == null) {
+            this.id = UUID.randomUUID();
+        }
+    }
 
     @Column(name = "created_at", length = 255)
 //    @Temporal(TemporalType.DATE)

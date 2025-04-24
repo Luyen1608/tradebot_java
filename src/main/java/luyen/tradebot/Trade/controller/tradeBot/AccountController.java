@@ -133,6 +133,81 @@ public class AccountController {
                     return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
                 }
             }
+            // 3) UPDATE → cập nhật account theo id
+            else if ("UPDATE".equals(payload.getType())) {
+                log.info("Handling UPDATE event for bot_accounts");
+                Map<String, Object> record = payload.getRecord();
+                
+                if (record != null && record.get("id") != null) {
+                    // Xử lý các trường UUID có thể null
+                    String idStr = record.get("id").toString();
+                    UUID id = UUID.fromString(idStr);
+                    
+                    String botIdStr = (String) record.get("bot_id");
+                    UUID botId = botIdStr != null ? UUID.fromString(botIdStr) : null;
+                    
+                    String userIdStr = (String) record.get("user_id");
+                    UUID userId = userIdStr != null ? UUID.fromString(userIdStr) : null;
+                    
+                    String apiConnectIdStr = (String) record.get("api_connection_id");
+                    UUID apiConnectId = apiConnectIdStr != null ? UUID.fromString(apiConnectIdStr) : null;
+                    
+                    // Xử lý trường Double có thể null
+                    Double volumeMultiplier = null;
+                    if (record.get("volume_multiplier") != null) {
+                        try {
+                            volumeMultiplier = Double.parseDouble(record.get("volume_multiplier").toString());
+                        } catch (NumberFormatException e) {
+                            log.warn("Invalid volume_multiplier format: {}", record.get("volume_multiplier"));
+                        }
+                    }
+                    
+                    AccountSupabaseDTO accountDTO = AccountSupabaseDTO.builder()
+                            .id(id)
+                            .botId(botId)
+                            .accountidTrading((String) record.get("accountid_trading"))
+                            .userId(userId)
+                            .status((String) record.get("status"))
+                            .volumeMultiplier(volumeMultiplier)
+                            .apiConnectId(apiConnectId)
+                            .signalToken((String) record.get("signal_token"))
+                            .clientId((String) record.get("client_id"))
+                            .secretId((String) record.get("secret_id"))
+                            .accessToken((String) record.get("access_token"))
+                            .live(record.get("live") != null ? (Boolean) record.get("live") : false)
+                            .createdAt(record.get("created_at") != null ? (LocalDateTime) record.get("created_at") : null)
+                            .updatedAt(record.get("updated_at") != null ? (LocalDateTime) record.get("updated_at") : null)
+                            .build();
+                    
+                    try {
+                        AccountEntity updatedAccount = accountService.updateAccountFromSupabase(id, accountDTO);
+                        ApiResponse<AccountSupabaseDTO> response = ApiResponse.<AccountSupabaseDTO>builder()
+                                .status(HttpStatus.OK.value())
+                                .message("Account updated successfully")
+                                .data(accountDTO)
+                                .build();
+                        
+                        return new ResponseEntity<>(response, HttpStatus.OK);
+                    } catch (Exception e) {
+                        log.error("Error updating account: ", e);
+                        ApiResponse<AccountEntity> response = ApiResponse.<AccountEntity>builder()
+                                .status(HttpStatus.NOT_FOUND.value())
+                                .message(e.getMessage())
+                                .data(null)
+                                .build();
+                        
+                        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+                    }
+                } else {
+                    ApiResponse<AccountEntity> response = ApiResponse.<AccountEntity>builder()
+                            .status(HttpStatus.BAD_REQUEST.value())
+                            .message("Invalid update request: missing account ID")
+                            .data(null)
+                            .build();
+                    
+                    return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+                }
+            }
         }
         return ResponseEntity.badRequest().body("Invalid event");
     }
