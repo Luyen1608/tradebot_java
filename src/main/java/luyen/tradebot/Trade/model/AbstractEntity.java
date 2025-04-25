@@ -43,4 +43,8 @@ public abstract class AbstractEntity {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updateAt;
 
+    @Version
+    @Column(name = "version")
+    private Long version;
+
 }

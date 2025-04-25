@@ -258,7 +258,8 @@ public class AccountController {
             @RequestParam int traderLogin,
             @RequestParam String type,
             @RequestParam(required = false) String traderAccountName) {
-        return accountService.authenticateTraderAccount(accountId, ctidTraderAccountId, traderLogin, type, traderAccountName)
-                .thenApply(ResponseEntity::ok);
+//        return accountService.authenticateTraderAccount(accountId, ctidTraderAccountId, traderLogin, type, traderAccountName)
+//                .thenApply(ResponseEntity::ok);
+        return null;
     }
 }
