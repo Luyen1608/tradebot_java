@@ -53,7 +53,7 @@ public class OrderService {
             throw new RuntimeException("Position is not open");
         }
 
-        if (!account.isConnected()) {
+        if (!account.getConnecting().isConnected()) {
             throw new RuntimeException("Account is not connected");
         }
 
@@ -274,7 +274,7 @@ public class OrderService {
 
                 AccountEntity account = position.getAccount();
 
-                if (!account.isActive() || !account.isConnected()) {
+                if (!account.isActive() || !account.getConnecting().isConnected()) {
                     log.warn("Account {} is not active or connected, skipping close", account.getId());
                     continue;
                 }

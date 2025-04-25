@@ -2,6 +2,7 @@ package luyen.tradebot.Trade.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import luyen.tradebot.Trade.util.enumTraderBot.AccountStatus;
 import luyen.tradebot.Trade.util.enumTraderBot.ConnectStatus;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -31,13 +32,17 @@ public class ConnectedEntity extends AbstractEntity{
     private String accountName;
 
     @OneToOne
-    @JoinColumn(name = "account_id", unique = true, nullable = false)
+    @JoinColumn(name = "account_id", nullable = false, unique = true)
     private AccountEntity account;
 
     @Column(name = "connection_status", length = 255)
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private ConnectStatus connectionStatus;
+
+    private boolean isConnected;
+
+    private boolean authenticated;
 
     @Column(name = "last_connection_time", length = 255)
     private Date lastConnectionTime;

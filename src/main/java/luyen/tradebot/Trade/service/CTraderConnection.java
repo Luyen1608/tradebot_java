@@ -297,7 +297,6 @@ public class CTraderConnection {
                 case PROTO_OA_EXECUTION_EVENT:
                     processOrderExecutionResponse(rootNode);
                     break;
-
                 case PROTO_OA_ORDER_ERROR_EVENT:
                 case PROTO_OA_ERROR_RES:
                     processOrderErrorEvent(rootNode);
@@ -309,9 +308,11 @@ public class CTraderConnection {
                         log.info("Auto authenticating trader account: {}", authenticatedTraderAccountId);
                         authenticateTraderAccount(authenticatedTraderAccountId);
                     }
+                    connectionService.saveConnectionDetails(this);
                     break;
                 case PROTO_OA_ACCOUNT_AUTH_RES:
                     log.info("Successfully authenticated trader account: {}", authenticatedTraderAccountId);
+                    connectionService.saveConnectionAuthenticated(this);
                     startPingScheduler();
                     break;
                 case PROTO_OA_HEART_BEAT:

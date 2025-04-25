@@ -58,7 +58,7 @@ public class AccountService {
         AccountEntity account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("Account not found"));
 
-        if (!account.isConnected()) {
+        if (!account.getConnecting().isConnected()) {
             throw new RuntimeException("Account is not connected");
         }
         CTraderConnection connection = connectionService.getConnection(accountId);
@@ -66,65 +66,6 @@ public class AccountService {
             throw new RuntimeException("No active connection for this account");
         }
         return cTraderApiService.getTraderAccounts(connection);
-    }
-
-    public CompletableFuture<String> authenticateTraderAccount(UUID accountId, int ctidTraderAccountId,
-                                                               int traderLogin, String type, String traderAccountName) {
-//        AccountEntity account = accountRepository.findById(accountId)
-//                .orElseThrow(() -> new RuntimeException("Account not found"));
-//
-//        if (!account.isConnected()) {
-//            throw new RuntimeException("Account is not connected");
-//        }
-//
-//        CTraderConnection connection = connectionService.getConnection(accountId);
-//        if (connection == null) {
-//            throw new RuntimeException("No active connection for this account");
-//        }
-//
-//        CompletableFuture<String> future = cTraderApiService.authenticateTraderAccount(
-//                connection, ctidTraderAccountId);
-//        ConnectedEntity connectedEntity = connectedRepository.findByAccountId(accountId);
-//        if (connectedEntity == null) {
-//            connectedEntity = new ConnectedEntity();
-//        }
-//        //{"payloadType":2103,"clientMsgId":"cm_0c252588","payload":{"ctidTraderAccountId":42683965}}
-//        ConnectedEntity finalConnectedEntity = connectedEntity;
-//        future.thenAccept(success -> {
-//            if (success != null) {
-//                ResponseCtraderDTO responseCtraderDTO = ValidateRepsone.formatResponse(success);
-//                if (responseCtraderDTO.getPayloadReponse() == 2103) {
-//                    account.setCtidTraderAccountId(ctidTraderAccountId);
-//                    account.setTraderLogin(traderLogin);
-//                    account.setTypeAccount(AccountType.valueOf(type));
-//                    account.setAuthenticated(true);
-//                    account.setConnectionStatus(AccountStatus.AUTHENTICATED);
-//
-//                    finalConnectedEntity.setAccountName(account.getAccountName());
-//                    finalConnectedEntity.setAccount(account);
-//                    finalConnectedEntity.setConnectionStatus(ConnectStatus.CONNECTED);
-//
-//                    finalConnectedEntity.setLastConnectionTime(DateUtil.plusDate(0));
-////                    connectedEntity.setBotName(account.getBot().getBotName());
-//
-//                    account.setConnecting(finalConnectedEntity);
-//
-//
-//                    log.info("Trader account authenticated for account: {}", accountId);
-//                } else {
-//                    finalConnectedEntity.setAccountName(account.getAccountName());
-//                    finalConnectedEntity.setConnectionStatus(ConnectStatus.CONNECTED);
-//                    finalConnectedEntity.setBotName(account.getBot().getName());
-//                    finalConnectedEntity.setErrorCode(responseCtraderDTO.getErrorCode());
-//                    finalConnectedEntity.setErrorMessage(responseCtraderDTO.getDescription());
-//                    account.setAuthenticated(account.isAuthenticated());
-//                }
-//                accountRepository.save(account);
-//            }
-//        });
-//
-//        return future;
-        return null;
     }
 
     @Transactional
@@ -146,8 +87,6 @@ public class AccountService {
                 .tokenExpiry(DateUtil.plusDate(30))
                 .isActive(accountDTO.isActive())
                 .typeAccount(accountDTO.getTypeAccount())
-                .isConnected(false)
-                .authenticated(false)
                 .bot(bot)
                 .build();
 
@@ -196,7 +135,7 @@ public class AccountService {
                 .orElseThrow(() -> new RuntimeException("Account not found"));
 
         // Disconnect if connected
-        if (account.isConnected()) {
+        if (account.getConnecting().isConnected()) {
             connectionService.disconnectAccount(account);
         }
 
@@ -251,8 +190,6 @@ public class AccountService {
         account.setTokenExpiry(DateUtil.plusDate(30));
         account.setActive(true);
         account.setTypeAccount(AccountType.DEMO); // Default value, can be updated later
-        account.setConnected(false);
-        account.setAuthenticated(false);
         account.setVolumeMultiplier(accountDTO.getVolumeMultiplier());
         account.setBot(bot);
 
@@ -264,7 +201,7 @@ public class AccountService {
             account.setUpdateAt(accountDTO.getUpdatedAt());
         }
         // Sử dụng saveAndFlush để đảm bảo entity được lưu ngay lập tức
-        AccountEntity savedAccount = accountRepository.saveAndFlush(account);
+        AccountEntity savedAccount = accountRepository.save(account);
         // Nếu account được tạo thành công và trạng thái của nó là true thì kết nối tài khoản đó
         if (savedAccount.isActive()) {
             connectionService.connectAccount(savedAccount.getId());
@@ -341,13 +278,10 @@ public class AccountService {
                 .id(account.getId())
                 .name(account.getAccountName())
                 .clientId(account.getClientId())
-                .status(account.getConnectionStatus())
                 .accountId(account.getAccountId())
                 .botId(account.getBot().getId())
-                .isAuthenticated(account.isAuthenticated())
                 .accessToken(account.getAccessToken())
                 .typeAccount(account.getTypeAccount())
-                .isConnected(account.isConnected())
                 .secretId(account.getClientSecret())
                 .expirationDate(account.getTokenExpiry())
                 .build();
