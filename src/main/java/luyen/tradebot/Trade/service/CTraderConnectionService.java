@@ -1,6 +1,7 @@
 package luyen.tradebot.Trade.service;
 
 
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -8,7 +9,10 @@ import luyen.tradebot.Trade.model.AccountEntity;
 import luyen.tradebot.Trade.model.ConnectedEntity;
 import luyen.tradebot.Trade.repository.AccountRepository;
 import luyen.tradebot.Trade.repository.ConnectedRepository;
+import luyen.tradebot.Trade.repository.OrderPositionRepository;
 import luyen.tradebot.Trade.util.enumTraderBot.ConnectStatus;
+import luyen.tradebot.Trade.util.enumTraderBot.ErrorCode;
+import luyen.tradebot.Trade.util.enumTraderBot.ProtoOAExecutionType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +32,9 @@ public class CTraderConnectionService {
     private final CTraderApiService cTraderApiService;
 
     private final ConnectedRepository connectedRepository;
+
+    private final OrderPositionRepository orderPositionRepository;
+
 
 
     // Lưu trữ thông tin kết nối với khóa là accountId (không phải clientId)
@@ -78,7 +85,48 @@ public class CTraderConnectionService {
             throw new RuntimeException(e);
         }
     }
+    public void processOrderErrorEvent(JsonNode rootNode) {
+        /*{
+           "payloadType":2132,
+           "clientMsgId":"trade365_40ce75b8",
+           "payload":{
+              "errorCode":"TRADING_BAD_VOLUME",
+              "ctidTraderAccountId":42684029,
+              "description":"Order volume = 0.00 is smaller than minimum allowed volume = 0.01."
+           }
+        }*/
+        String clientMsgId = rootNode.path("clientMsgId").asText();
+        String orderStatus = ProtoOAExecutionType.ORDER_REJECTED.getStatus();
+        String errorCode = rootNode.path("payload").has("errorCode") ?
+                rootNode.path("payload").get("errorCode").asText(null) : null;
+        String descriptionError = rootNode.path("payload").has("description") ?
+                rootNode.path("payload").get("description").asText(null) : null;
 
+
+        orderPositionRepository.updateErrorCodeAndErrorMessageByClientMsgId(
+                errorCode,
+                descriptionError != null ? descriptionError : errorCode != null ? ErrorCode.fromName(errorCode).getDescription() : null,
+                orderStatus,
+                clientMsgId);
+//        OrderRepository orderRepository = SpringContextHolder.getBean(OrderRepository.class);
+//        orderRepository.updateStatusById(
+//                ProtoOAExecutionType.ORDER_REJECTED.getStatus(), );
+
+
+    }
+    public void processOrderExecutionResponse(JsonNode rootNode) {
+        int executionType = rootNode.path("payload").path("executionType").asInt();
+        String clientMsgId = rootNode.path("clientMsgId").asText();
+        int positionId = rootNode.path("payload").path("position").path("positionId").asInt();
+        String orderStatus = ProtoOAExecutionType.fromCode(executionType).getStatus();
+        String errorCode = rootNode.path("payload").has("errorCode") ?
+                rootNode.path("payload").get("errorCode").asText(null) : null;
+        //update order_postion theo orderId và positionId
+        orderPositionRepository.updateByOrderCtraderIdAndPositionId(
+                ProtoOAExecutionType.fromCode(executionType).getDescription(),
+                errorCode != null ? ErrorCode.fromName(errorCode).getDescription() : null,
+                errorCode, orderStatus, clientMsgId);
+    }
     @Transactional()
     public void connectAccount(UUID accountId) {
         AccountEntity freshAccount = accountRepository.findById(accountId)

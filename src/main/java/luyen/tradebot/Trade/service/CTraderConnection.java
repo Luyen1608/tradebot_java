@@ -295,11 +295,11 @@ public class CTraderConnection {
             PayloadType payloadTypeEnum = PayloadType.fromValue(payloadType);
             switch (Objects.requireNonNull(payloadTypeEnum)) {
                 case PROTO_OA_EXECUTION_EVENT:
-                    processOrderExecutionResponse(rootNode);
+                    connectionService.processOrderExecutionResponse(rootNode);
                     break;
                 case PROTO_OA_ORDER_ERROR_EVENT:
                 case PROTO_OA_ERROR_RES:
-                    processOrderErrorEvent(rootNode);
+                    connectionService.processOrderErrorEvent(rootNode);
                     break;
                 case PROTO_OA_APPLICATION_AUTH_RES:
                     connected = true;
@@ -372,48 +372,8 @@ public class CTraderConnection {
         }
     }
 
-    private void processOrderExecutionResponse(JsonNode rootNode) {
-        int executionType = rootNode.path("payload").path("executionType").asInt();
-        String clientMsgId = rootNode.path("clientMsgId").asText();
-        int positionId = rootNode.path("payload").path("position").path("positionId").asInt();
-        String orderStatus = ProtoOAExecutionType.fromCode(executionType).getStatus();
-        String errorCode = rootNode.path("payload").has("errorCode") ?
-                rootNode.path("payload").get("errorCode").asText(null) : null;
-        //update order_postion theo orderId và positionId
-        OrderPositionRepository orderPositionRepository = SpringContextHolder.getBean(OrderPositionRepository.class);
-        orderPositionRepository.updateByOrderCtraderIdAndPositionId(
-                ProtoOAExecutionType.fromCode(executionType).getDescription(),
-                errorCode != null ? ErrorCode.fromName(errorCode).getDescription() : null,
-                errorCode, orderStatus, clientMsgId);
-    }
-
-    private void processOrderErrorEvent(JsonNode rootNode) {
-        /*{
-           "payloadType":2132,
-           "clientMsgId":"trade365_40ce75b8",
-           "payload":{
-              "errorCode":"TRADING_BAD_VOLUME",
-              "ctidTraderAccountId":42684029,
-              "description":"Order volume = 0.00 is smaller than minimum allowed volume = 0.01."
-           }
-        }*/
-        String clientMsgId = rootNode.path("clientMsgId").asText();
-        String orderStatus = ProtoOAExecutionType.ORDER_REJECTED.getStatus();
-        String errorCode = rootNode.path("payload").has("errorCode") ?
-                rootNode.path("payload").get("errorCode").asText(null) : null;
-        String descriptionError = rootNode.path("payload").has("description") ?
-                rootNode.path("payload").get("description").asText(null) : null;
-        OrderPositionRepository orderPositionRepository = SpringContextHolder.getBean(OrderPositionRepository.class);
-        orderPositionRepository.updateErrorCodeAndErrorMessageByClientMsgId(
-                errorCode,
-                descriptionError != null ? descriptionError : errorCode != null ? ErrorCode.fromName(errorCode).getDescription() : null,
-                orderStatus,
-                clientMsgId);
-//        OrderRepository orderRepository = SpringContextHolder.getBean(OrderRepository.class);
-//        orderRepository.updateStatusById(
-//                ProtoOAExecutionType.ORDER_REJECTED.getStatus(), );
 
 
-    }
+
 
 }
