@@ -25,11 +25,10 @@ public class ValidateRepsone {
     private final String systemType;
 
 
-
     @Autowired
     public ValidateRepsone(@Value("${tradebot.prefix}") String prefix, @Value("${tradebot.systemType}") String systemType) {
         this.prefix = prefix;
-        this.systemType= systemType;
+        this.systemType = systemType;
     }
 
 
@@ -60,6 +59,7 @@ public class ValidateRepsone {
         }
         return responseCtraderDTO;
     }
+
     public ResponseCtraderDTO formatResponsePlaceOrder(String message) {
         ResponseCtraderDTO responseCtraderDTO = new ResponseCtraderDTO();
         try {
@@ -70,10 +70,15 @@ public class ValidateRepsone {
             int payloadType = rootNode.get("payloadType").asInt();
             // Lấy payload
             JsonNode payloadNode = rootNode.get("payload");
-            if (payloadType == PayloadType.PROTO_OA_EXECUTION_EVENT.getValue()){
+            if (payloadType == PayloadType.PROTO_OA_EXECUTION_EVENT.getValue()) {
                 // lấy position là dạng jsonnode, cần kiểm tra xem có position trước không mới lấy node
                 if (payloadNode.has("position")) {
                     JsonNode positionNode = payloadNode.get("position");
+                    if (positionNode.has("tradeData")) {
+                        JsonNode tradeData = positionNode.get("tradeData");
+                        int volume = tradeData.get("volume").asInt();
+                        responseCtraderDTO.setVolume(volume);
+                    }
                     //lấy positionId
                     int positionId = positionNode.get("positionId").asInt();
                     responseCtraderDTO.setPositionId(positionId);

@@ -43,6 +43,10 @@ public class OrderPosition extends AbstractEntity{
     private String status; // PENDING, OPEN, CLOSED, ERROR
     private String errorMessage;
 
+    private int originalVolume;
+    private int volumeSent;
+    private double volumeMultiplier;
+
 
 
 

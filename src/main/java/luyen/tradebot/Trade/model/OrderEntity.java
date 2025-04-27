@@ -53,7 +53,6 @@ public class OrderEntity extends AbstractEntity {
     @JoinColumn(name = "account_id")
     private AccountEntity account;
 
-    @PrePersist
     @PreUpdate
     private void prePersist() {
         if (symbol != null) {

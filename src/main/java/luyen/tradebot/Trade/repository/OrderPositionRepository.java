@@ -14,6 +14,8 @@ import java.util.UUID;
 
 @Repository
 public interface OrderPositionRepository extends JpaRepository<OrderPosition, Long> {
+    Optional<OrderPosition> findByClientMsgId(String clientMsgId);
+
     List<OrderPosition> findByOrderId(UUID orderId);
 
     List<OrderPosition> findByAccountId(UUID accountId);
@@ -52,7 +54,7 @@ public interface OrderPositionRepository extends JpaRepository<OrderPosition, Lo
     @Transactional
     @Query("UPDATE OrderPosition op SET op.status = :orderStatus, op.errorCode = :errorCode, op.errorMessage = :errorMessage " +
             "WHERE op.clientMsgId = :clientMsgId")
-    int updateErrorCodeAndErrorMessageByClientMsgId(@Param("errorCode") String errorCode,
+    void updateErrorCodeAndErrorMessageByClientMsgId(@Param("errorCode") String errorCode,
                                                     @Param("errorMessage") String errorMessage,
                                                     @Param("orderStatus") String orderStatus,
                                                     @Param("clientMsgId") String clientMsgId);

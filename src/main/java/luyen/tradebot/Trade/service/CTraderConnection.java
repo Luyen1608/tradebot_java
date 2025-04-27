@@ -1,24 +1,26 @@
 package luyen.tradebot.Trade.service;
 
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.websocket.*;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import luyen.tradebot.Trade.repository.OrderPositionRepository;
-import luyen.tradebot.Trade.repository.OrderRepository;
-import luyen.tradebot.Trade.util.enumTraderBot.ErrorCode;
+import luyen.tradebot.Trade.model.AccountEntity;
+import luyen.tradebot.Trade.model.OrderEntity;
 import luyen.tradebot.Trade.util.enumTraderBot.PayloadType;
-import luyen.tradebot.Trade.util.enumTraderBot.ProtoOAExecutionType;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
 
 import java.math.BigDecimal;
 import java.net.URI;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.*;
+
 
 @Slf4j
 @Data
@@ -26,6 +28,9 @@ import java.util.concurrent.*;
 public class CTraderConnection {
     private UUID accountId;
     private String accessToken;
+
+    private KafkaProducerService kafkaProducerService;
+    private KafkaTemplate<String, String> kafkaTemplate;
 
     @Value("${tradebot.prefix}")
     private String prefix = "trade365_";
@@ -43,13 +48,20 @@ public class CTraderConnection {
     private final Map<String, CompletableFuture<String>> pendingRequests = new ConcurrentHashMap<>();
 
 
-    public CTraderConnection(UUID accountId, String clientId, String secretId, String accessToken, CTraderConnectionService connectionService, String wsUrl) {
+    public CTraderConnection(UUID accountId, String clientId, String secretId, String accessToken,
+                             CTraderConnectionService connectionService, String wsUrl,
+                             KafkaTemplate<String, String> kafkaTemplate, KafkaProducerService kafkaProducerService, String prefix) {
         this.accountId = accountId;
+        this.kafkaTemplate = kafkaTemplate;
         this.accessToken = accessToken;
         this.connectionService = connectionService;
         this.wsUrl = wsUrl;
         this.clientId = clientId;
         this.secretId = secretId;
+        this.kafkaProducerService = kafkaProducerService;
+        if (prefix != null) {
+            this.prefix = prefix;
+        }
     }
 
     public void connect() {
@@ -98,9 +110,9 @@ public class CTraderConnection {
     }
 
     public CompletableFuture<String> placeOrder(int symbol, int tradeSide,
-                                                int volume, int orderType) {
+                                                int volume, int orderType, AccountEntity account, OrderEntity savedOrder) {
         String clientMsgId = generateClientMsgId();
-        String orderMessage = createOrderMessage(symbol, tradeSide, volume, orderType, clientMsgId);
+        String orderMessage = createOrderMessage(symbol, tradeSide, volume, orderType, clientMsgId, account, savedOrder);
 
         CompletableFuture<String> future = new CompletableFuture<>();
         pendingRequests.put(clientMsgId, future);
@@ -159,7 +171,7 @@ public class CTraderConnection {
     }
 
     private String createOrderMessage(int symbol, int tradeSide,
-                                      int volume, int orderType, String clientMsgId) {
+                                      int volume, int orderType, String clientMsgId, AccountEntity account, OrderEntity savedOrder) {
         // This is a simplified version - in real implementation, use protobuf
         // JSON format for order placement
         StringBuilder jsonBuilder = new StringBuilder();
@@ -171,8 +183,10 @@ public class CTraderConnection {
         jsonBuilder.append("\"symbolId\": ").append(symbol).append(",");
         jsonBuilder.append("\"tradeSide\": ").append(tradeSide).append(",");
         jsonBuilder.append("\"orderType\": ").append(orderType).append(",");
-        jsonBuilder.append("\"volume\": ").append(volume);
-
+        Double volumeMultiplier = account.getVolumeMultiplier();
+        // Tính toán giá trị của volume bằng cách nhân với volumeMultiplier return int
+        int volumeSend = (int) Math.round(volumeMultiplier * volume);
+        jsonBuilder.append("\"volume\": ").append(volumeSend);
         jsonBuilder.append("}}");
 
         return jsonBuilder.toString();
@@ -218,7 +232,8 @@ public class CTraderConnection {
 
     private String generateClientMsgId() {
         // Generate a unique client message ID for tracking responses
-        return prefix + UUID.randomUUID().toString().substring(0, 8);
+        // Ví dụ: "myPrefix_" + UUID.randomUUID().toString().substring(0, 8) + "_" + System.nanoTime();
+        return prefix + UUID.randomUUID().toString().substring(0, 6) + "_" + System.nanoTime();
     }
 
     public boolean isConnected() {
@@ -227,6 +242,27 @@ public class CTraderConnection {
 
     public CompletableFuture<String> sendRequest(String message) {
         if (session != null && session.isOpen()) {
+            log.info("Sending message in local: {}", message);
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode rootNode = null;
+            try {
+                rootNode = objectMapper.readTree(message);
+                int payloadType = rootNode.get("payloadType").asInt();
+                String clientMsgId = rootNode.path("clientMsgId").asText();
+                Map<String, Object> kafkaData = new HashMap<>();
+                kafkaData.put("accountId", accountId.toString());
+                kafkaData.put("timestamp", System.currentTimeMillis());
+                kafkaData.put("rawMessage", message);
+                kafkaData.put("clientMsgId", clientMsgId);
+                String jsonMessage = objectMapper.writeValueAsString(kafkaData);
+
+                if (payloadType == PayloadType.PROTO_OA_NEW_ORDER_REQ.getValue()) {
+                    //neu la lenh order => save order new vào DB
+                    kafkaTemplate.send("order-placed-topic", jsonMessage);
+                }
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
             // Kiểm tra xem đây có phải là yêu cầu xác thực ứng dụng không
             boolean isAuthRequest = message.contains("\"payloadType\": 2100");
             if (!isAuthRequest && !connected) {
@@ -235,7 +271,7 @@ public class CTraderConnection {
             }
             responseFuture = new CompletableFuture<>();
             session.getAsyncRemote().sendText(message);
-            log.info("Sending message in local: {}", message);
+
             return responseFuture;
         } else {
             return CompletableFuture.completedFuture("Connection not available for account: " + accountId);
@@ -284,6 +320,13 @@ public class CTraderConnection {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode rootNode = objectMapper.readTree(message);
+            //check header beat
+            int payloadType = rootNode.get("payloadType").asInt();
+            PayloadType payloadTypeEnum = PayloadType.fromValue(payloadType);
+            if (payloadTypeEnum == PayloadType.PROTO_OA_HEART_BEAT) {
+                log.info("ProtoHeartbeatEvent received for account: {}", accountId);
+                return;
+            }
             String clientMsgId = rootNode.path("clientMsgId").asText();
             if (pendingRequests.containsKey(clientMsgId)) {
                 pendingRequests.get(clientMsgId).complete(message);
@@ -291,15 +334,22 @@ public class CTraderConnection {
             } else {
                 log.warn("Received response with unknown clientMsgId: {}", clientMsgId);
             }
-            int payloadType = rootNode.get("payloadType").asInt();
-            PayloadType payloadTypeEnum = PayloadType.fromValue(payloadType);
+            // Convert dto sang JSON
+            // Gửi vào Kafka
+            Map<String, Object> kafkaData = new HashMap<>();
+            kafkaData.put("accountId", accountId.toString());
+            kafkaData.put("messageType", payloadTypeEnum);
+            kafkaData.put("timestamp", System.currentTimeMillis());
+            kafkaData.put("rawMessage", message);
+            kafkaData.put("clientMsgId", clientMsgId);
+            // Xử lý các loại thông báo khác dựa trên payloadType (nếu cần)
             switch (Objects.requireNonNull(payloadTypeEnum)) {
-                case PROTO_OA_EXECUTION_EVENT:
-                    connectionService.processOrderExecutionResponse(rootNode);
-                    break;
                 case PROTO_OA_ORDER_ERROR_EVENT:
                 case PROTO_OA_ERROR_RES:
-                    connectionService.processOrderErrorEvent(rootNode);
+                    String jsonMessage = objectMapper.writeValueAsString(kafkaData);
+                    log.info("Sending message to topic {}: key={}, value={}", "order-status-topic", clientMsgId, jsonMessage);
+                    kafkaTemplate.send("order-status-topic", jsonMessage);
+//                  kafkaProducerService.sendMessage("order-status-topic", clientMsgId, kafkaData);
                     break;
                 case PROTO_OA_APPLICATION_AUTH_RES:
                     connected = true;
@@ -315,12 +365,9 @@ public class CTraderConnection {
                     connectionService.saveConnectionAuthenticated(this);
                     startPingScheduler();
                     break;
-                case PROTO_OA_HEART_BEAT:
-                    log.info("Account Heart Beat Event Normal: {}", accountId);
-                    break;
                 default:
-//                    log.info("Unknown payload type: {}", payloadType);
             }
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -371,9 +418,6 @@ public class CTraderConnection {
             }
         }
     }
-
-
-
 
 
 }

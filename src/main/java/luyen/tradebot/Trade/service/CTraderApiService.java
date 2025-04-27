@@ -4,9 +4,12 @@ package luyen.tradebot.Trade.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import luyen.tradebot.Trade.model.AccountEntity;
+import luyen.tradebot.Trade.model.OrderEntity;
 import luyen.tradebot.Trade.util.enumTraderBot.AccountType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -22,6 +25,8 @@ import java.util.concurrent.CompletableFuture;
 public class CTraderApiService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final KafkaProducerService kafkaProducerService;
+    private final KafkaTemplate<String, String> kafkaTemplate;
 
     @Value("${ctrader.ws.demo.url}")
     private String CTRADER_API_BASE_URL;
@@ -32,29 +37,32 @@ public class CTraderApiService {
     @Value("${ctrader.ws.live.url}")
     private String CTRADER_LIVE_WS_URL;
 
+    @Value("${tradebot.prefix:trade365_}")
+    private String prefix;
     private final Map<String, String> accountTokens = new HashMap<>(); // Lưu trữ token giả định
 
-    /**
-     * Khởi tạo service
-     */
-    public CTraderApiService() {
-        this.restTemplate = new RestTemplate();
-        this.objectMapper = new ObjectMapper();
-        // Giả định: Token được lấy trước hoặc hardcode cho ví dụ
-        accountTokens.put("account1", "token1");
-        accountTokens.put("account2", "token2");
-    }
 
+//    /**
+//     * Khởi tạo service
+//     */
+//    public CTraderApiService() {
+//        this.restTemplate = new RestTemplate();
+//        this.objectMapper = new ObjectMapper();
+//        // Giả định: Token được lấy trước hoặc hardcode cho ví dụ
+//        accountTokens.put("account1", "token1");
+//        accountTokens.put("account2", "token2");
+//    }
 
     public CTraderConnection connect(UUID accountId, String clientId, String clientSecret,
                                      String accessToken, AccountType accountType, CTraderConnectionService ctraderConnectionService, String wsUrl) {
         // Implement WebSocket connection to cTrader API
-
         if (wsUrl ==null){
             wsUrl = "DEMO".equalsIgnoreCase(accountType.toString()) ?
                     CTRADER_DEMO_WS_URL : CTRADER_LIVE_WS_URL;
         }
-        CTraderConnection connection = new CTraderConnection(accountId, clientId, clientSecret, accessToken, ctraderConnectionService, wsUrl);
+//        CTraderConnection connection = new CTraderConnection(accountId, clientId, clientSecret, accessToken, ctraderConnectionService, wsUrl);
+        CTraderConnection connection = new CTraderConnection(accountId, clientId, clientSecret, accessToken,
+                                                                          ctraderConnectionService, wsUrl, kafkaTemplate, kafkaProducerService, prefix);
         connection.connect();
         return connection;
     }
@@ -64,9 +72,9 @@ public class CTraderApiService {
         return connection.getAccountListByAccessToken();
     }
 
-    public CompletableFuture<String> placeOrder(CTraderConnection connection, int symbol, int tradeSide, int volume, int orderType) {
+    public CompletableFuture<String> placeOrder(CTraderConnection connection, int symbol, int tradeSide, int volume, int orderType, AccountEntity account, OrderEntity savedOrder) {
         // Authenticate specific trader account
-        return connection.placeOrder(symbol, tradeSide, volume, orderType);
+        return connection.placeOrder(symbol, tradeSide, volume, orderType, account, savedOrder);
     }
 
     public CompletableFuture<String> closePosition(CTraderConnection connection, int ctidTraderAccountId, int positionId, int volume) {

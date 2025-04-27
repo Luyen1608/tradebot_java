@@ -128,6 +128,4 @@ public enum PayloadType {
         }
         return null;
     }
-
-
 }

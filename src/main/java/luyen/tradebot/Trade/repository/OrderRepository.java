@@ -14,6 +14,7 @@ import java.util.UUID;
 
 @Repository
 public interface OrderRepository extends JpaRepository<OrderEntity, UUID> {
+
     List<OrderEntity> findByAccountId(UUID accountId);
 
     List<OrderEntity> findByStatus(String status);
@@ -29,27 +30,17 @@ public interface OrderRepository extends JpaRepository<OrderEntity, UUID> {
     @Query("UPDATE Order o SET o.status = :status " +
             " WHERE o.id = :id")
     int updateStatusById(@Param("status") String status,
-                                                         @Param("id") UUID id);
+                         @Param("id") UUID id);
+
     //lấy row đàu tiên by bot id and status and symbolId
     @Query("SELECT o FROM Order o WHERE o.botId = ?1 AND o.status = ?2 AND o.symbolId = ?3")
     OrderEntity findFirstByBotIdAndStatusAndSymbolId(UUID botId, String status, Integer symbolId);
 
 
-
-
-
-
-
-    //
-    //
-    // => chỉ lấy orderEntity đầu tiên
     @Query("SELECT o FROM Order o WHERE o.account.id = ?1 AND o.status = ?2")
     OrderEntity findFirstByAccountIdAndStatus(UUID accountId, String status);
 
     List<OrderEntity> findByBotIdAndStatusAndSymbolId(UUID botId, String status, Integer symbolId);
-
-
-
 
 
 }

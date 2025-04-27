@@ -24,7 +24,7 @@ public class RedisConfig {
 
     //@Bean
     public RedisConnectionFactory redisConnectionFactory() {
-        //log.info("Redis connection factory created");
+        log.info("Redis connection factory created");
         RedisStandaloneConfiguration redisStandaloneConfiguration = new RedisStandaloneConfiguration();
         redisStandaloneConfiguration.setHostName(redisHost);
         redisStandaloneConfiguration.setPort(redisPort);
@@ -34,7 +34,7 @@ public class RedisConfig {
     public RedisTemplate<String, Object> redisTemplate() {
         RedisTemplate<String, Object> redisTemplate = new RedisTemplate<>();
         redisTemplate.setConnectionFactory(redisConnectionFactory());
-        //log.info("Redis template created");
+        log.info("Redis template created");
         return redisTemplate;
     }
 }

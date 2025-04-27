@@ -1,5 +1,5 @@
 server:
-  port: 8068
+  port: 8086
 spring:
   config:
     activate:
@@ -7,10 +7,10 @@ spring:
   devtools:
     add-properties: true
   datasource:
-    url: ${POSTGRESQL_URL:jdbc:postgresql://localhost:5432/trade_bot}
+    url: ${POSTGRESQL_URL:jdbc:postgresql://103.75.184.167:5432/trade_bot}
     username: ${POSTGRESQL_USER:postgres}
-    password: ${POSTGRESQL_PASSWORD:123}
-#  password: ${POSTGRESQL_PASSWORD:luyendv@123}
+    password: ${POSTGRESQL_PASSWORD:tradebot@1608}
+  #    username: ${POSTGRESQL_USER:tradebot_user}
   jpa:
     properties:
       hibernate:
@@ -23,10 +23,7 @@ spring:
       port: 6379
       host: redis
   kafka:
-    bootstrap-servers: ""
-#    bootstrap-servers: localhost:29092
-
-
+    bootstrap-servers: localhost:29092
 springdoc:
   api-docs:
     enabled: true
