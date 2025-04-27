@@ -24,7 +24,7 @@ spring:
       host: redis
   kafka:
 #    bootstrap-servers: ""
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: kafka:9092
 springdoc:
   api-docs:
     enabled: true
