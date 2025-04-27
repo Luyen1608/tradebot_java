@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.websocket.*;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import luyen.tradebot.Trade.dto.request.PlaceOrderRequest;
 import luyen.tradebot.Trade.model.AccountEntity;
 import luyen.tradebot.Trade.model.OrderEntity;
 import luyen.tradebot.Trade.util.enumTraderBot.PayloadType;
@@ -109,13 +110,12 @@ public class CTraderConnection {
         sendRequest(authMessage);
     }
 
-    public CompletableFuture<String> placeOrder(int symbol, int tradeSide,
-                                                int volume, int orderType, AccountEntity account, OrderEntity savedOrder) {
-        String clientMsgId = generateClientMsgId();
-        String orderMessage = createOrderMessage(symbol, tradeSide, volume, orderType, clientMsgId, account, savedOrder);
+    public CompletableFuture<String> placeOrder(PlaceOrderRequest request) {
+
+        String orderMessage = createOrderMessage(request);
 
         CompletableFuture<String> future = new CompletableFuture<>();
-        pendingRequests.put(clientMsgId, future);
+        pendingRequests.put(request.getClientMsgId(), future);
         sendRequest(orderMessage);
         return future;
         // Create ProtoOANewOrderReq message
@@ -170,22 +170,21 @@ public class CTraderConnection {
         return jsonBuilder.toString();
     }
 
-    private String createOrderMessage(int symbol, int tradeSide,
-                                      int volume, int orderType, String clientMsgId, AccountEntity account, OrderEntity savedOrder) {
+    private String createOrderMessage(PlaceOrderRequest request) {
         // This is a simplified version - in real implementation, use protobuf
         // JSON format for order placement
         StringBuilder jsonBuilder = new StringBuilder();
         jsonBuilder.append("{");
-        jsonBuilder.append("\"clientMsgId\": \"").append(clientMsgId).append("\",");
+        jsonBuilder.append("\"clientMsgId\": \"").append(request.getClientMsgId()).append("\",");
         jsonBuilder.append("\"payloadType\": 2106,");
         jsonBuilder.append("\"payload\": {");
         jsonBuilder.append("\"ctidTraderAccountId\": ").append(authenticatedTraderAccountId).append(",");
-        jsonBuilder.append("\"symbolId\": ").append(symbol).append(",");
-        jsonBuilder.append("\"tradeSide\": ").append(tradeSide).append(",");
-        jsonBuilder.append("\"orderType\": ").append(orderType).append(",");
-        Double volumeMultiplier = account.getVolumeMultiplier();
+        jsonBuilder.append("\"symbolId\": ").append(request.getSymbol()).append(",");
+        jsonBuilder.append("\"tradeSide\": ").append(request.getTradeSide()).append(",");
+        jsonBuilder.append("\"orderType\": ").append(request.getOrderType()).append(",");
+        Double volumeMultiplier = request.getAccount().getVolumeMultiplier();
         // Tính toán giá trị của volume bằng cách nhân với volumeMultiplier return int
-        int volumeSend = (int) Math.round(volumeMultiplier * volume);
+        int volumeSend = (int) Math.round(volumeMultiplier * request.getVolume());
         jsonBuilder.append("\"volume\": ").append(volumeSend);
         jsonBuilder.append("}}");
 
@@ -248,18 +247,17 @@ public class CTraderConnection {
             try {
                 rootNode = objectMapper.readTree(message);
                 int payloadType = rootNode.get("payloadType").asInt();
-                String clientMsgId = rootNode.path("clientMsgId").asText();
-                Map<String, Object> kafkaData = new HashMap<>();
-                kafkaData.put("accountId", accountId.toString());
-                kafkaData.put("timestamp", System.currentTimeMillis());
-                kafkaData.put("rawMessage", message);
-                kafkaData.put("clientMsgId", clientMsgId);
-                String jsonMessage = objectMapper.writeValueAsString(kafkaData);
-
-                if (payloadType == PayloadType.PROTO_OA_NEW_ORDER_REQ.getValue()) {
-                    //neu la lenh order => save order new vào DB
-                    kafkaTemplate.send("order-placed-topic", jsonMessage);
-                }
+//                if (payloadType == PayloadType.PROTO_OA_NEW_ORDER_REQ.getValue()) {
+//                    String clientMsgId = rootNode.path("clientMsgId").asText();
+//                    Map<String, Object> kafkaData = new HashMap<>();
+//                    kafkaData.put("accountId", accountId.toString());
+//                    kafkaData.put("timestamp", System.currentTimeMillis());
+//                    kafkaData.put("rawMessage", message);
+//                    kafkaData.put("clientMsgId", clientMsgId);
+//                    String jsonMessage = objectMapper.writeValueAsString(kafkaData);
+//                    //neu la lenh order => save order new vào DB
+//                    kafkaTemplate.send("order-placed-topic", jsonMessage);
+//                }
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
@@ -344,6 +342,7 @@ public class CTraderConnection {
             kafkaData.put("clientMsgId", clientMsgId);
             // Xử lý các loại thông báo khác dựa trên payloadType (nếu cần)
             switch (Objects.requireNonNull(payloadTypeEnum)) {
+                case PROTO_OA_EXECUTION_EVENT:
                 case PROTO_OA_ORDER_ERROR_EVENT:
                 case PROTO_OA_ERROR_RES:
                     String jsonMessage = objectMapper.writeValueAsString(kafkaData);

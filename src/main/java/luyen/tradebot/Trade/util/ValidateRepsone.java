@@ -74,11 +74,7 @@ public class ValidateRepsone {
                 // lấy position là dạng jsonnode, cần kiểm tra xem có position trước không mới lấy node
                 if (payloadNode.has("position")) {
                     JsonNode positionNode = payloadNode.get("position");
-                    if (positionNode.has("tradeData")) {
-                        JsonNode tradeData = positionNode.get("tradeData");
-                        int volume = tradeData.get("volume").asInt();
-                        responseCtraderDTO.setVolume(volume);
-                    }
+
                     //lấy positionId
                     int positionId = positionNode.get("positionId").asInt();
                     responseCtraderDTO.setPositionId(positionId);
@@ -89,6 +85,12 @@ public class ValidateRepsone {
                     //lấy orderId
                     int orderId = orderNode.get("orderId").asInt();
                     responseCtraderDTO.setOrderCtraderId(orderId);
+
+                    if (orderNode.has("tradeData")) {
+                        JsonNode tradeData = orderNode.get("tradeData");
+                        int volume = tradeData.get("volume").asInt();
+                        responseCtraderDTO.setVolume(volume);
+                    }
                 }
                 //lấy executionType
                 int executionType = payloadNode.get("executionType").asInt();

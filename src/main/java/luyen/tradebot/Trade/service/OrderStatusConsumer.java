@@ -67,7 +67,7 @@ public class OrderStatusConsumer {
 
     @KafkaListener(topics = "order-placed-topic", groupId = "tradebot-group")
     @Transactional
-    public void updateNewOrder(String message) {
+    public void createNewOrder(String message) {
         log.info("Received message from order-placed-topic: {}", message);
         try {
             JsonNode jsonNode = objectMapper.readTree(message);
@@ -84,38 +84,24 @@ public class OrderStatusConsumer {
             // Parse raw message để lấy thông tin chi tiết
             JsonNode rawMessageNode = objectMapper.readTree(rawMessage);
             // Xử lý save OrderPosition
-            processNewOrderReq(rawMessageNode, UUID.fromString(accountId), clientMsgId);
+            AccountEntity account = accountRepository.findById(UUID.fromString(accountId))
+                    .orElseThrow(() -> new RuntimeException("Account not found with accountId Order Position "));
+//        BotsEntity bot = botsRepository.findBySignalToken(webhookDTO.getSignalToken())
+//                .orElseThrow(() -> new RuntimeException("Bot not found with signal token: " + webhookDTO.getSignalToken()));
+            //get orderposition by clientMsgId
+            OrderPosition orderPosition = orderPositionRepository.findByClientMsgId(clientMsgId)
+                    .orElseThrow(() -> new RuntimeException("OrderPosition not found with clientMsgId: " + clientMsgId));
+
+            orderPosition.setVolumeMultiplier(account.getVolumeMultiplier());
+            orderPosition.setVolumeSent(jsonNode.path("payload").path("volume").asInt());
+//            orderPosition.setPositionId(jsonNode.path("payload").path("position").path("positionId").asInt());
+            orderPosition.setStatus(ProtoOAExecutionType.ORDER_ACCEPTED.getStatus());
+            orderPositionRepository.saveAndFlush(orderPosition);
         } catch (JsonProcessingException e) {
             log.error("Error parsing message: {}", e.getMessage());
         } catch (Exception e) {
             log.error("Error processing message: {}", e.getMessage(), e);
         }
-    }
-    @KafkaListener(topics = "save-new-order", groupId = "tradebot-group")
-    @Transactional
-    public void createNewOrder(String message) {
-//        log.info("Received message from save-new-order: {}", message);
-//        try {
-//            JsonNode jsonNode = objectMapper.readTree(message);
-//            //       {
-//            //   "accountId":"01f2c7a6-7701-43e4-84b1-0dc86c5a14d9",
-//            //   "clientMsgId":"trade365_e74ee564",
-//            //   "rawMessage":"{\"clientMsgId\": \"trade365_e74ee564\",\"payloadType\": 2106,\"payload\": {\"ctidTraderAccountId\": 43196577,\"symbolId\": 101,\"tradeSide\": 1,\"orderType\": 1,\"volume\": 8}}",
-//            //   "timestamp":1745756326068
-//            //}
-//            // Lấy thông tin từ message
-//            String rawMessage = jsonNode.path("rawMessage").asText();
-//            String accountId = jsonNode.path("accountId").asText();
-//            String clientMsgId = jsonNode.path("clientMsgId").asText();
-//            // Parse raw message để lấy thông tin chi tiết
-//            JsonNode rawMessageNode = objectMapper.readTree(rawMessage);
-//            // Xử lý save OrderPosition
-//            processNewOrderReq(rawMessageNode, UUID.fromString(accountId), clientMsgId);
-//        } catch (JsonProcessingException e) {
-//            log.error("Error parsing message: {}", e.getMessage());
-//        } catch (Exception e) {
-//            log.error("Error processing message: {}", e.getMessage(), e);
-//        }
     }
 
     /**
@@ -131,11 +117,8 @@ public class OrderStatusConsumer {
             PayloadType payloadType = PayloadType.valueOf(messageType);
 
             switch (payloadType) {
-//                case PROTO_OA_NEW_ORDER_REQ:
-//                    processNewOrderReq(jsonNode, accountId, clientMsgId);
-//                    break;
                 case PROTO_OA_EXECUTION_EVENT:
-                    processExecutionEvent(jsonNode, accountId, clientMsgId);
+                    processNewOrderReq(jsonNode, accountId, clientMsgId);
                     break;
                 case PROTO_OA_ORDER_ERROR_EVENT:
                 case PROTO_OA_ERROR_RES:
@@ -150,20 +133,23 @@ public class OrderStatusConsumer {
     }
 
     private void processNewOrderReq(JsonNode jsonNode, UUID accountId, String clientMsgId) {
-
+        ResponseCtraderDTO responseCtraderDTO = validateRepsone.formatResponsePlaceOrder(jsonNode.toString());
         //get account by accountId
-        AccountEntity account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new RuntimeException("Account not found with accountId Order Position "));
-//        BotsEntity bot = botsRepository.findBySignalToken(webhookDTO.getSignalToken())
-//                .orElseThrow(() -> new RuntimeException("Bot not found with signal token: " + webhookDTO.getSignalToken()));
-
-        OrderPosition orderPosition = OrderPosition.builder().build();
-        orderPosition.setClientMsgId(clientMsgId);
-        orderPosition.setAccount(account);
-        orderPosition.setVolumeMultiplier(account.getVolumeMultiplier());
-        orderPosition.setPositionId(jsonNode.path("payload").path("position").path("positionId").asInt());
-        orderPosition.setErrorCode("");
-        orderPosition.setStatus(ProtoOAExecutionType.ORDER_ACCEPTED.getStatus());
+        OrderPosition orderPosition = orderPositionRepository.findByClientMsgId(clientMsgId)
+                .orElseThrow(() -> new RuntimeException("OrderPosition not found with clientMsgId: " + clientMsgId));
+        switch (ProtoOAExecutionType.fromCode(responseCtraderDTO.getExecutionType())) {
+            case ORDER_ACCEPTED:
+                orderPosition.setOrderCtraderId(responseCtraderDTO.getOrderCtraderId());
+                orderPosition.setVolumeSent(responseCtraderDTO.getVolume());
+                orderPosition.setPositionId(responseCtraderDTO.getPositionId());
+                orderPosition.setStatus(ProtoOAExecutionType.ORDER_ACCEPTED.getStatus());
+                break;
+            case ORDER_FILLED:
+                orderPosition.setStatus(ProtoOAExecutionType.ORDER_FILLED.getStatus());
+                break;
+            default:
+                log.info("Execution type {} not handled for database persistence", jsonNode.path("payload").path("executionType"));
+        }
         orderPositionRepository.saveAndFlush(orderPosition);
     }
 

@@ -4,6 +4,7 @@ package luyen.tradebot.Trade.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import luyen.tradebot.Trade.dto.request.PlaceOrderRequest;
 import luyen.tradebot.Trade.model.AccountEntity;
 import luyen.tradebot.Trade.model.OrderEntity;
 import luyen.tradebot.Trade.util.enumTraderBot.AccountType;
@@ -72,9 +73,9 @@ public class CTraderApiService {
         return connection.getAccountListByAccessToken();
     }
 
-    public CompletableFuture<String> placeOrder(CTraderConnection connection, int symbol, int tradeSide, int volume, int orderType, AccountEntity account, OrderEntity savedOrder) {
+    public CompletableFuture<String> placeOrder(PlaceOrderRequest request) {
         // Authenticate specific trader account
-        return connection.placeOrder(symbol, tradeSide, volume, orderType, account, savedOrder);
+        return request.getConnection().placeOrder(request);
     }
 
     public CompletableFuture<String> closePosition(CTraderConnection connection, int ctidTraderAccountId, int positionId, int volume) {
