@@ -117,6 +117,9 @@ public class OrderStatusConsumer {
             PayloadType payloadType = PayloadType.valueOf(messageType);
 
             switch (payloadType) {
+                case PROTO_OA_CLOSE_POSITION_REQ:
+                    processCloseOrderReq(jsonNode, accountId, clientMsgId);
+                    break;
                 case PROTO_OA_EXECUTION_EVENT:
                     processNewOrderReq(jsonNode, accountId, clientMsgId);
                     break;
@@ -131,7 +134,26 @@ public class OrderStatusConsumer {
             log.warn("Unknown message type: {}", messageType);
         }
     }
-
+    private void processCloseOrderReq(JsonNode jsonNode, UUID accountId, String clientMsgId) {
+        ResponseCtraderDTO responseCtraderDTO = validateRepsone.formatResponsePlaceOrder(jsonNode.toString());
+        //get account by accountId
+        OrderPosition orderPosition = orderPositionRepository.findByClientMsgId(clientMsgId)
+                .orElseThrow(() -> new RuntimeException("OrderPosition not found with clientMsgId: " + clientMsgId));
+        switch (ProtoOAExecutionType.fromCode(responseCtraderDTO.getExecutionType())) {
+            case ORDER_ACCEPTED:
+                orderPosition.setOrderCtraderId(responseCtraderDTO.getOrderCtraderId());
+                orderPosition.setVolumeSent(responseCtraderDTO.getVolume());
+                orderPosition.setPositionId(responseCtraderDTO.getPositionId());
+                orderPosition.setStatus(ProtoOAExecutionType.ORDER_ACCEPTED.getStatus());
+                break;
+            case ORDER_FILLED:
+                orderPosition.setStatus(ProtoOAExecutionType.ORDER_FILLED.getStatus());
+                break;
+            default:
+                log.info("Execution type {} not handled for database persistence", jsonNode.path("payload").path("executionType"));
+        }
+        orderPositionRepository.saveAndFlush(orderPosition);
+    }
     private void processNewOrderReq(JsonNode jsonNode, UUID accountId, String clientMsgId) {
         ResponseCtraderDTO responseCtraderDTO = validateRepsone.formatResponsePlaceOrder(jsonNode.toString());
         //get account by accountId

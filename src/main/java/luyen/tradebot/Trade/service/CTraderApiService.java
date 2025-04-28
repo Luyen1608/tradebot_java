@@ -78,9 +78,9 @@ public class CTraderApiService {
         return request.getConnection().placeOrder(request);
     }
 
-    public CompletableFuture<String> closePosition(CTraderConnection connection, int ctidTraderAccountId, int positionId, int volume) {
+    public CompletableFuture<String> closePosition(CTraderConnection connection, String clientMsgId, int ctidTraderAccountId, int positionId, int volume) {
         // Authenticate specific trader account
-        return connection.closePosition(ctidTraderAccountId, positionId, volume);
+        return connection.closePosition(clientMsgId, ctidTraderAccountId, positionId, volume);
     }
 
     public CompletableFuture<String> authenticateTraderAccount(

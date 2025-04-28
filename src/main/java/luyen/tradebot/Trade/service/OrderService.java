@@ -118,25 +118,6 @@ public class OrderService {
             log.warn("No active authenticated accounts found for bot: {}", bot.getId());
             return;
         }
-        //convert  string to LocalDateTime
-
-        //create a single AlertTradingEntity record with messageTradingViewDTO
-        AlertTradingEntity alertTradingEntity = AlertTradingEntity.builder()
-                .action(AcctionTrading.fromString(messageTradingViewDTO.getAction()))
-                .instrument(messageTradingViewDTO.getInstrument())
-                .timestamp(Convert.convertStringToDateTime(messageTradingViewDTO.getTimestamp()))
-                .signalToken(messageTradingViewDTO.getSignalToken())
-                .maxLag(messageTradingViewDTO.getMaxLag())
-                .investmentType(messageTradingViewDTO.getInvestmentType())
-                .amount(Double.valueOf(messageTradingViewDTO.getAmount()))
-                .status("pending")
-                .build();
-
-        AlertTradingEntity saveAlertTradingEntity = alertTradingRepository.save(alertTradingEntity);
-
-        // Sync the alert with the external API
-
-
         // Create a single order record
         OrderEntity order = OrderEntity.builder()
                 .symbol(Symbol.fromId(webhookDTO.getSymbol()))
@@ -150,12 +131,9 @@ public class OrderService {
                 .account(accounts.get(0)) // Use the first account as the reference account
                 .botId(bot.getId()) // Use the first account as the reference account
                 .build();
-
         OrderEntity savedOrder = orderRepository.saveAndFlush(order);
-
         // Process order for each account in parallel
         List<CompletableFuture<Void>> futures = new ArrayList<>();
-
         for (AccountEntity account : accounts) {
             CompletableFuture<Void> accountFuture = CompletableFuture.runAsync(() -> {
                 try {
@@ -171,23 +149,8 @@ public class OrderService {
                         orderPositionRepository.save(position);
                         return;
                     }
+                    // order placer
                     String clientMsgId = generateClientMsgId();
-                    OrderPosition position = OrderPosition.builder()
-                            .clientMsgId(clientMsgId)
-                            .order(savedOrder)
-                            .account(account)
-                            .status("PENDING")
-                            .build();
-                    OrderPosition savedPosition = orderPositionRepository.saveAndFlush(position);
-
-                    //kafka save orderposition
-                    //                ObjectMapper objectMapper = new ObjectMapper();
-                    //                    Map<String, Object> kafkaData = new HashMap<>();
-                    //                    kafkaData.put("accountId", account.getId().toString());
-                    //                    kafkaData.put("orderId", savedOrder.getId().toString());
-                    //                    String jsonMessage = objectMapper.writeValueAsString(kafkaData);
-                    //                    kafkaTemplate.send("save-new-order", jsonMessage);
-
                     int finalVolume = (int) (webhookDTO.getVolume() * account.getVolumeMultiplier());
                     PlaceOrderRequest request = PlaceOrderRequest.builder()
                             .connection(connection)
@@ -200,6 +163,15 @@ public class OrderService {
                             .savedOrder(savedOrder)
                             .build();
                     CompletableFuture<String> future = cTraderApiService.placeOrder(request);
+
+                    //save order
+                    OrderPosition position = OrderPosition.builder()
+                            .clientMsgId(clientMsgId)
+                            .order(savedOrder)
+                            .account(account)
+                            .status("PENDING")
+                            .build();
+                    OrderPosition savedPosition = orderPositionRepository.saveAndFlush(position);
                 } catch (Exception e) {
                     log.error("Error processing order for account: {}", account.getId(), e);
                     OrderPosition position = OrderPosition.builder()
@@ -208,9 +180,20 @@ public class OrderService {
                             .status("ERROR")
                             .errorMessage("Error: " + e.getMessage())
                             .build();
-
                     orderPositionRepository.save(position);
                 }
+                //create a single AlertTradingEntity record with messageTradingViewDTO
+                AlertTradingEntity alertTradingEntity = AlertTradingEntity.builder()
+                        .action(AcctionTrading.fromString(messageTradingViewDTO.getAction()))
+                        .instrument(messageTradingViewDTO.getInstrument())
+                        .timestamp(Convert.convertStringToDateTime(messageTradingViewDTO.getTimestamp()))
+                        .signalToken(messageTradingViewDTO.getSignalToken())
+                        .maxLag(messageTradingViewDTO.getMaxLag())
+                        .investmentType(messageTradingViewDTO.getInvestmentType())
+                        .amount(Double.valueOf(messageTradingViewDTO.getAmount()))
+                        .status("pending")
+                        .build();
+                AlertTradingEntity saveAlertTradingEntity = alertTradingRepository.save(alertTradingEntity);
                 //sync to supabase
                 //alertTradingService.saveAndSyncAlert(saveAlertTradingEntity);
             });
@@ -240,69 +223,85 @@ public class OrderService {
                     webhookDTO.getSignalToken(), symbol.getId());
             return;
         }
+        
+        // Danh sách để lưu trữ tất cả các CompletableFuture
+        List<CompletableFuture<Void>> allFutures = new ArrayList<>();
+        
         for (OrderEntity order : openOrders) {
             List<OrderPosition> positions = orderPositionRepository.findByOrderId(order.getId());
-
+            
+            // Xử lý song song các vị thế
             for (OrderPosition position : positions) {
                 if (!"OPEN".equals(position.getStatus())) {
                     continue;
                 }
+                
                 AccountEntity account = position.getAccount();
-                try {
-                    CTraderConnection connection = connectionService.getConnection(account.getId());
-                    if (connection == null) {
-                        log.error("No active connection for account: {}", account.getId());
-                        continue;
-                    }
-                    position.setStatus("CLOSING");
-                    orderPositionRepository.saveAndFlush(position);
-
-                    CompletableFuture<String> future = cTraderApiService.closePosition(connection,
-                            account.getCtidTraderAccountId(), position.getPositionId(), position.getVolumeSent());
-
-                    future.thenAccept(result -> {
-                        ResponseCtraderDTO responseCtraderDTO = validateRepsone.formatResponsePlaceOrder(result);
-                        if (responseCtraderDTO.getPayloadReponse() == PayloadType.PROTO_OA_ORDER_ERROR_EVENT.getValue()) {
-                            //save position
-                            position.setErrorCode(responseCtraderDTO.getErrorCode());
-                            position.setErrorMessage(responseCtraderDTO.getDescription());
-                            position.setStatus(ProtoOAExecutionType.ORDER_REJECTED.getStatus());
-                            position.setPayloadType(PayloadType.PROTO_OA_ORDER_ERROR_EVENT.name());
-                            position.setClientMsgId(responseCtraderDTO.getClientMsgId());
-                            orderPositionRepository.save(position);
+                
+                // Tạo một CompletableFuture cho mỗi vị thế
+                CompletableFuture<Void> positionFuture = CompletableFuture.runAsync(() -> {
+                    try {
+                        CTraderConnection connection = connectionService.getConnection(account.getId());
+                        if (connection == null) {
+                            log.error("No active connection for account: {}", account.getId());
                             return;
                         }
-                        position.setStatus("CLOSED");
-                        orderPositionRepository.save(position);
+                        // Cập nhật trạng thái vị thế
+                        position.setStatus("CLOSING");
+                        orderPositionRepository.saveAndFlush(position);
+                        // Đóng vị thế
+                        CompletableFuture<String> future = cTraderApiService.closePosition(connection, position.getClientMsgId(),
+                                account.getCtidTraderAccountId(), position.getPositionId(), position.getVolumeSent());
+                        future.thenAccept(result -> {
+                            ResponseCtraderDTO responseCtraderDTO = validateRepsone.formatResponsePlaceOrder(result);
+                            if (responseCtraderDTO.getPayloadReponse() == PayloadType.PROTO_OA_ORDER_ERROR_EVENT.getValue()) {
+                                //save position
+                                position.setErrorCode(responseCtraderDTO.getErrorCode());
+                                position.setErrorMessage(responseCtraderDTO.getDescription());
+                                position.setStatus(ProtoOAExecutionType.ORDER_REJECTED.getStatus());
+                                position.setPayloadType(PayloadType.PROTO_OA_ORDER_ERROR_EVENT.name());
+                                position.setClientMsgId(responseCtraderDTO.getClientMsgId());
+                                orderPositionRepository.save(position);
+                                return;
+                            }
+                            position.setStatus("CLOSED");
+                            orderPositionRepository.save(position);
 
-                        // Check if all positions for this order are closed
-                        List<OrderPosition> openPositions = orderPositionRepository.findByOrderId(order.getId()).stream()
-                                .filter(p -> "OPEN".equals(p.getStatus()))
-                                .toList();
+                            // Check if all positions for this order are closed
+                            List<OrderPosition> openPositions = orderPositionRepository.findByOrderId(order.getId()).stream()
+                                    .filter(p -> "OPEN".equals(p.getStatus()))
+                                    .toList();
 
-                        if (openPositions.isEmpty()) {
-                            order.setStatus("CLOSED");
-                            order.setCloseTime(LocalDateTime.now());
-                            orderRepository.save(order);
-                        }
+                            if (openPositions.isEmpty()) {
+                                order.setStatus("CLOSED");
+                                order.setCloseTime(LocalDateTime.now());
+                                orderRepository.save(order);
+                            }
 
-                        log.info("Position closed successfully for account: {}, positionId: {}",
-                                account.getId(), position.getPositionId());
-                    }).exceptionally(ex -> {
+                            log.info("Position closed successfully for account: {}, positionId: {}",
+                                    account.getId(), position.getPositionId());
+                        }).exceptionally(ex -> {
+                            position.setStatus("ERROR_CLOSING");
+                            position.setErrorMessage("Error closing: " + ex.getMessage());
+                            orderPositionRepository.save(position);
+                            log.error("Failed to close position for account: {}", account.getId(), ex);
+                            return null;
+                        });
+                    } catch (Exception e) {
+                        log.error("Error closing position for account: {}", account.getId(), e);
                         position.setStatus("ERROR_CLOSING");
-                        position.setErrorMessage("Error closing: " + ex.getMessage());
+                        position.setErrorMessage("Error closing: " + e.getMessage());
                         orderPositionRepository.save(position);
-                        log.error("Failed to close position for account: {}", account.getId(), ex);
-                        return null;
-                    });
-                } catch (Exception e) {
-                    log.error("Error closing position for account: {}", account.getId(), e);
-                    position.setStatus("ERROR_CLOSING");
-                    position.setErrorMessage("Error closing: " + e.getMessage());
-                    orderPositionRepository.save(position);
-                }
+                    }
+                });
+                
+                // Thêm vào danh sách các CompletableFuture
+                allFutures.add(positionFuture);
             }
         }
+        
+        // Tùy chọn: đợi tất cả các vị thế được xử lý xong
+        // CompletableFuture.allOf(allFutures.toArray(new CompletableFuture[0])).join();
     }
 
     public List<OrderEntity> getOrdersByAccountId(UUID accountId) {

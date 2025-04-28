@@ -127,9 +127,9 @@ public class CTraderConnection {
 //        return future;
     }
 
-    public CompletableFuture<String> closePosition(int ctidTraderAccountId, int positionId, int volume) {
+    public CompletableFuture<String> closePosition(String clientMsgId, int ctidTraderAccountId, int positionId, int volume) {
         // Create ProtoOAClosePositionReq message
-        String closeMessage = createClosePositionMessage(ctidTraderAccountId, positionId, volume);
+        String closeMessage = createClosePositionMessage(clientMsgId, ctidTraderAccountId, positionId, volume);
 
         return sendRequest(closeMessage);
     }
@@ -214,11 +214,11 @@ public class CTraderConnection {
         // This is simplified for the example
     }
 
-    private String createClosePositionMessage(int ctidTraderAccountId, int positionId, int volume) {
+    private String createClosePositionMessage(String clientMsgId, int ctidTraderAccountId, int positionId, int volume) {
         // This is a simplified version - in real implementation, use protobuf
         StringBuilder jsonBuilder = new StringBuilder();
         jsonBuilder.append("{");
-        jsonBuilder.append("\"clientMsgId\": \"").append(generateClientMsgId()).append("\",");
+        jsonBuilder.append("\"clientMsgId\": \"").append(clientMsgId).append("\",");
         jsonBuilder.append("\"payloadType\": 2111,");
         jsonBuilder.append("\"payload\": {");
         jsonBuilder.append("\"ctidTraderAccountId\": ").append(authenticatedTraderAccountId).append(",");
@@ -342,6 +342,7 @@ public class CTraderConnection {
             kafkaData.put("clientMsgId", clientMsgId);
             // Xử lý các loại thông báo khác dựa trên payloadType (nếu cần)
             switch (Objects.requireNonNull(payloadTypeEnum)) {
+                case PROTO_OA_CLOSE_POSITION_REQ:
                 case PROTO_OA_EXECUTION_EVENT:
                 case PROTO_OA_ORDER_ERROR_EVENT:
                 case PROTO_OA_ERROR_RES:
