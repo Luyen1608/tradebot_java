@@ -46,6 +46,7 @@ public class OrderPosition extends AbstractEntity{
     private int originalVolume;
     private int volumeSent;
     private double volumeMultiplier;
+    private String orderType; //close open
 
 
 
