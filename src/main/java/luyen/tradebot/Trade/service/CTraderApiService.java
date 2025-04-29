@@ -42,20 +42,10 @@ public class CTraderApiService {
     private String prefix;
     private final Map<String, String> accountTokens = new HashMap<>(); // Lưu trữ token giả định
 
-
-//    /**
-//     * Khởi tạo service
-//     */
-//    public CTraderApiService() {
-//        this.restTemplate = new RestTemplate();
-//        this.objectMapper = new ObjectMapper();
-//        // Giả định: Token được lấy trước hoặc hardcode cho ví dụ
-//        accountTokens.put("account1", "token1");
-//        accountTokens.put("account2", "token2");
-//    }
-
     public CTraderConnection connect(UUID accountId, String clientId, String clientSecret,
-                                     String accessToken, AccountType accountType, CTraderConnectionService ctraderConnectionService, String wsUrl) {
+                                     String accessToken, AccountType accountType,
+                                     CTraderConnectionService ctraderConnectionService, String wsUrl,Double volumeMultiplier,
+                                     int ctidTraderAccountId) {
         // Implement WebSocket connection to cTrader API
         if (wsUrl ==null){
             wsUrl = "DEMO".equalsIgnoreCase(accountType.toString()) ?
@@ -63,7 +53,7 @@ public class CTraderApiService {
         }
 //        CTraderConnection connection = new CTraderConnection(accountId, clientId, clientSecret, accessToken, ctraderConnectionService, wsUrl);
         CTraderConnection connection = new CTraderConnection(accountId, clientId, clientSecret, accessToken,
-                                                                          ctraderConnectionService, wsUrl, kafkaTemplate, kafkaProducerService, prefix);
+                  ctraderConnectionService, wsUrl, kafkaTemplate, kafkaProducerService, prefix, volumeMultiplier, ctidTraderAccountId);
         connection.connect();
         return connection;
     }
@@ -78,9 +68,9 @@ public class CTraderApiService {
         return request.getConnection().placeOrder(request);
     }
 
-    public CompletableFuture<String> closePosition(CTraderConnection connection, String clientMsgId, int ctidTraderAccountId, int positionId, int volume) {
+    public CompletableFuture<String> closePosition(CTraderConnection connection, String clientMsgId, int positionId, int volume) {
         // Authenticate specific trader account
-        return connection.closePosition(clientMsgId, ctidTraderAccountId, positionId, volume);
+        return connection.closePosition(clientMsgId, positionId, volume);
     }
 
     public CompletableFuture<String> authenticateTraderAccount(

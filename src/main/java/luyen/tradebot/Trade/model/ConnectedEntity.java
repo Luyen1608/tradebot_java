@@ -21,7 +21,7 @@ public class ConnectedEntity extends AbstractEntity{
 
 
     public ConnectedEntity(UUID accountId, ConnectStatus connectionStatus) {
-        this.account.setId(accountId);
+//        this.account.setId(accountId);
         this.connectionStatus = connectionStatus;
     }
 
@@ -31,9 +31,9 @@ public class ConnectedEntity extends AbstractEntity{
     @Column(name = "account_name", length = 255)
     private String accountName;
 
-    @OneToOne
-    @JoinColumn(name = "account_id", nullable = false, unique = true)
-    private AccountEntity account;
+//    @OneToOne
+//    @JoinColumn(name = "account_id", nullable = false, unique = true)
+//    private AccountEntity account;
 
     @Column(name = "connection_status", length = 255)
     @Enumerated(EnumType.STRING)

@@ -16,15 +16,15 @@ public interface AccountRepository extends JpaRepository<AccountEntity, UUID> {
 
     List<AccountEntity> findByIsActive(boolean isActive);
     //get list account active
-    @Query("SELECT a FROM Account a WHERE a.isActive = ?1 AND a.connecting.authenticated = ?2")
+    @Query("SELECT a FROM Account a WHERE a.isActive = ?1 AND a.isAuthenticated = ?2")
     List<AccountEntity> findByIsActiveAndAuthenticated(boolean isActive, boolean isAuthenticated);
 
     List<AccountEntity> findByBotId(UUID botId);
 
-    @Query("SELECT a FROM Account a WHERE a.isActive = true AND a.connecting.isConnected = false")
+    @Query("SELECT a FROM Account a WHERE a.isActive = true AND a.isConnected = false")
     List<AccountEntity> findActiveDisconnectedAccounts();
 
-    @Query("SELECT a FROM Account a WHERE a.bot.id = ?1 AND a.isActive = true AND a.connecting.authenticated = true")
+    @Query("SELECT a FROM Account a WHERE a.bot.id = ?1 AND a.isActive = true AND a.isAuthenticated = true")
     List<AccountEntity> findByBotIdAndIsActiveAndIsAuthenticated(UUID botId, boolean isActive, boolean isAuthenticated);
 
 

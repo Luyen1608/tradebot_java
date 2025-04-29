@@ -29,6 +29,7 @@ import java.util.concurrent.*;
 public class CTraderConnection {
     private UUID accountId;
     private String accessToken;
+    private Double volumeMultiplier;
 
     private KafkaProducerService kafkaProducerService;
     private KafkaTemplate<String, String> kafkaTemplate;
@@ -51,7 +52,8 @@ public class CTraderConnection {
 
     public CTraderConnection(UUID accountId, String clientId, String secretId, String accessToken,
                              CTraderConnectionService connectionService, String wsUrl,
-                             KafkaTemplate<String, String> kafkaTemplate, KafkaProducerService kafkaProducerService, String prefix) {
+                             KafkaTemplate<String, String> kafkaTemplate, KafkaProducerService kafkaProducerService,
+                             String prefix, Double volumeMultiplier, int ctidTraderAccountId) {
         this.accountId = accountId;
         this.kafkaTemplate = kafkaTemplate;
         this.accessToken = accessToken;
@@ -59,6 +61,8 @@ public class CTraderConnection {
         this.wsUrl = wsUrl;
         this.clientId = clientId;
         this.secretId = secretId;
+        this.volumeMultiplier = volumeMultiplier;
+        this.authenticatedTraderAccountId = ctidTraderAccountId;
         this.kafkaProducerService = kafkaProducerService;
         if (prefix != null) {
             this.prefix = prefix;
@@ -127,9 +131,9 @@ public class CTraderConnection {
 //        return future;
     }
 
-    public CompletableFuture<String> closePosition(String clientMsgId, int ctidTraderAccountId, int positionId, int volume) {
+    public CompletableFuture<String> closePosition(String clientMsgId, int positionId, int volume) {
         // Create ProtoOAClosePositionReq message
-        String closeMessage = createClosePositionMessage(clientMsgId, ctidTraderAccountId, positionId, volume);
+        String closeMessage = createClosePositionMessage(clientMsgId, positionId, volume);
 
         return sendRequest(closeMessage);
     }
@@ -214,7 +218,7 @@ public class CTraderConnection {
         // This is simplified for the example
     }
 
-    private String createClosePositionMessage(String clientMsgId, int ctidTraderAccountId, int positionId, int volume) {
+    private String createClosePositionMessage(String clientMsgId, int positionId, int volume) {
         // This is a simplified version - in real implementation, use protobuf
         StringBuilder jsonBuilder = new StringBuilder();
         jsonBuilder.append("{");
@@ -393,7 +397,6 @@ public class CTraderConnection {
         // log clientSessionId
         log.info("Session close by Client Session Id: {}", session.getId());
         connectionService.reconnect(this); // Tự động reconnect khi đóng
-
     }
 
     @OnError

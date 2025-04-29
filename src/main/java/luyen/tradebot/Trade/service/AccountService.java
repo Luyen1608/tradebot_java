@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import luyen.tradebot.Trade.dto.request.AccountRequestDTO;
 import luyen.tradebot.Trade.dto.request.AccountSupabaseDTO;
 import luyen.tradebot.Trade.dto.respone.ResponseCtraderDTO;
+import luyen.tradebot.Trade.event.AccountCreatedEvent;
 import luyen.tradebot.Trade.model.AccountEntity;
 import luyen.tradebot.Trade.model.BotEntity;
 import luyen.tradebot.Trade.model.BotsEntity;
@@ -22,6 +23,7 @@ import luyen.tradebot.Trade.util.ValidateRepsone;
 import luyen.tradebot.Trade.util.enumTraderBot.AccountStatus;
 import luyen.tradebot.Trade.util.enumTraderBot.AccountType;
 import luyen.tradebot.Trade.util.enumTraderBot.ConnectStatus;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.jpa.repository.support.JpaRepositoryImplementation;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -44,7 +46,7 @@ public class AccountService {
     private final BotsRepository botsRepository;
     private final CTraderApiService cTraderApiService;
     private final CTraderConnectionService connectionService;
-
+    private final ApplicationEventPublisher eventPublisher;
 
     public String getAccessToken(String clientId, String clientSecret) {
         return cTraderApiService.getAccessToken(clientId, clientSecret);
@@ -58,7 +60,7 @@ public class AccountService {
         AccountEntity account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("Account not found"));
 
-        if (!account.getConnecting().isConnected()) {
+        if (!account.getIsConnected()) {
             throw new RuntimeException("Account is not connected");
         }
         CTraderConnection connection = connectionService.getConnection(accountId);
@@ -135,8 +137,8 @@ public class AccountService {
                 .orElseThrow(() -> new RuntimeException("Account not found"));
 
         // Disconnect if connected
-        if (account.getConnecting().isConnected()) {
-            connectionService.disconnectAccount(account);
+        if (account.getIsConnected()) {
+            connectionService.disconnectAccount(account.getId());
         }
 
         accountRepository.deleteById(id);
@@ -202,9 +204,12 @@ public class AccountService {
         }
         // Sử dụng saveAndFlush để đảm bảo entity được lưu ngay lập tức
         AccountEntity savedAccount = accountRepository.save(account);
+        //xử lý save xong mới chạy tiếp step dưới
+        log.info("Account created successfully with ID: {}", savedAccount.getId());
         // Nếu account được tạo thành công và trạng thái của nó là true thì kết nối tài khoản đó
         if (savedAccount.isActive()) {
-            connectionService.connectAccount(savedAccount.getId());
+            eventPublisher.publishEvent(new AccountCreatedEvent(savedAccount.getId()));
+//            connectionService.connectAccount(savedAccount.getId());
         }
         return savedAccount;
     }

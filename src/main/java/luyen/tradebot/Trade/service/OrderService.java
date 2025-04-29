@@ -160,7 +160,6 @@ public class OrderService {
                     OrderPosition savedPosition = orderPositionRepository.saveAndFlush(position);
 
                     // order placer
-                    int finalVolume = (int) (webhookDTO.getVolume() * account.getVolumeMultiplier());
                     PlaceOrderRequest request = PlaceOrderRequest.builder()
                             .connection(connection)
                             .clientMsgId(clientMsgId)
@@ -253,7 +252,7 @@ public class OrderService {
                         }
                         // Đóng vị thế
                         CompletableFuture<String> future = cTraderApiService.closePosition(connection, clientMsgId,
-                                account.getCtidTraderAccountId(), position.getPositionId(), position.getVolumeSent());
+                                 position.getPositionId(), position.getVolumeSent());
 //                        future.thenAccept(result -> {
 //                            ResponseCtraderDTO responseCtraderDTO = validateRepsone.formatResponsePlaceOrder(result);
 //                            if (responseCtraderDTO.getPayloadReponse() == PayloadType.PROTO_OA_ORDER_ERROR_EVENT.getValue()) {

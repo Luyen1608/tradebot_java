@@ -10,6 +10,6 @@ import java.util.UUID;
 
 @Repository
 public interface ConnectedRepository extends JpaRepository<ConnectedEntity, UUID> {
-    Optional<ConnectedEntity> findByAccountId(UUID accountId);
+//    Optional<ConnectedEntity> findByAccountId(UUID accountId);
 
 }

@@ -42,8 +42,6 @@ public class AccountEntity {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updateAt;
 
-
-
     @Column(name = "account_name", length = 255)
     private String accountName;
 
@@ -82,8 +80,8 @@ public class AccountEntity {
     private BotsEntity bot;
 
 
-    @OneToOne(mappedBy = "account", optional = true)
-    private ConnectedEntity connecting;
+//    @OneToOne(mappedBy = "account", optional = true)
+//    private ConnectedEntity connecting;
 
 
     private boolean isActive;
@@ -92,4 +90,6 @@ public class AccountEntity {
     private String errorMessage;
     private String accountId;
 
+    private Boolean isConnected;
+    private Boolean isAuthenticated;
 }
