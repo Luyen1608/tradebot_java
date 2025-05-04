@@ -85,11 +85,14 @@ public class ValidateRepsone {
                     //lấy orderId
                     int orderId = orderNode.get("orderId").asInt();
                     responseCtraderDTO.setOrderCtraderId(orderId);
-
                     if (orderNode.has("tradeData")) {
                         JsonNode tradeData = orderNode.get("tradeData");
                         int volume = tradeData.get("volume").asInt();
                         responseCtraderDTO.setVolume(volume);
+                    }
+                    if (orderNode.has("closingOrder")) {
+                        boolean closingOrder = orderNode.get("closingOrder").asBoolean();
+                        responseCtraderDTO.setClosingOrder(closingOrder);
                     }
                 }
                 //lấy executionType

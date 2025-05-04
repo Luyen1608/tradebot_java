@@ -20,4 +20,7 @@ public class ResponseCtraderDTO {
     private int volume;
     private int orderCtraderId;
     private String systemType;
+
+    private boolean closingOrder;
+
 }

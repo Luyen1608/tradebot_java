@@ -7,11 +7,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import luyen.tradebot.Trade.dto.respone.ResponseCtraderDTO;
 import luyen.tradebot.Trade.model.AccountEntity;
+import luyen.tradebot.Trade.model.OrderEntity;
 import luyen.tradebot.Trade.model.OrderPosition;
 import luyen.tradebot.Trade.repository.AccountRepository;
 import luyen.tradebot.Trade.repository.OrderPositionRepository;
 import luyen.tradebot.Trade.repository.OrderRepository;
 import luyen.tradebot.Trade.util.ValidateRepsone;
+import luyen.tradebot.Trade.util.enumTraderBot.ActionSystem;
 import luyen.tradebot.Trade.util.enumTraderBot.PayloadType;
 import luyen.tradebot.Trade.util.enumTraderBot.ProtoOAExecutionType;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Service for consuming order status messages from Kafka and saving to database
@@ -34,13 +37,14 @@ public class OrderStatusConsumer {
     private final OrderPositionRepository orderPositionRepository;
     private final ValidateRepsone validateRepsone;
 
+    private final SignalAccountStatusService signalAccountStatusService;
+
     /**
      * Listener for the order-status-topic
      *
      * @param message The message received from Kafka
      */
     @KafkaListener(topics = "order-status-topic", groupId = "tradebot-group")
-    @Transactional
     public void listenOrderStatus(String message) {
         log.info("Received message from order-status-topic: {}", message);
         try {
@@ -51,7 +55,6 @@ public class OrderStatusConsumer {
             String accountId = jsonNode.path("accountId").asText();
             String messageType = jsonNode.path("messageType").asText();
             String clientMsgId = jsonNode.path("clientMsgId").asText();
-
             // Parse raw message để lấy thông tin chi tiết
             JsonNode rawMessageNode = objectMapper.readTree(rawMessage);
 
@@ -114,6 +117,8 @@ public class OrderStatusConsumer {
      */
     private void processOrderStatusMessage(JsonNode jsonNode, UUID accountId, String messageType, String clientMsgId) {
         try {
+            log.info("Process Order Status Message kafka");
+            // Convert MessageType to PayloadType enum using its value
             PayloadType payloadType = PayloadType.valueOf(messageType);
 
             switch (payloadType) {
@@ -134,10 +139,12 @@ public class OrderStatusConsumer {
             log.warn("Unknown message type: {}", messageType);
         }
     }
-    private void processCloseOrderReq(JsonNode jsonNode, UUID accountId, String clientMsgId) {
+
+    @Transactional
+    public void processCloseOrderReq(JsonNode jsonNode, UUID accountId, String clientMsgId) {
         ResponseCtraderDTO responseCtraderDTO = validateRepsone.formatResponsePlaceOrder(jsonNode.toString());
         //get account by accountId
-        OrderPosition orderPosition = orderPositionRepository.findByClientMsgId(clientMsgId)
+        OrderPosition orderPosition = orderPositionRepository.findByClientMsgIdLimitOne(clientMsgId)
                 .orElseThrow(() -> new RuntimeException("OrderPosition not found with clientMsgId: " + clientMsgId));
         switch (ProtoOAExecutionType.fromCode(responseCtraderDTO.getExecutionType())) {
             case ORDER_ACCEPTED:
@@ -145,76 +152,76 @@ public class OrderStatusConsumer {
                 orderPosition.setVolumeSent(responseCtraderDTO.getVolume());
                 orderPosition.setPositionId(responseCtraderDTO.getPositionId());
                 orderPosition.setStatus(ProtoOAExecutionType.ORDER_ACCEPTED.getStatus());
+                orderPosition.setExecutionType(ProtoOAExecutionType.ORDER_ACCEPTED.toString());
                 break;
             case ORDER_FILLED:
                 orderPosition.setStatus(ProtoOAExecutionType.ORDER_FILLED.getStatus());
+                orderPosition.setExecutionType(ProtoOAExecutionType.ORDER_FILLED.toString());
+                //if success close order then update order entity
+                OrderEntity orderEntity = orderRepository.findById(orderPosition.getOrder().getId()).orElseThrow(
+                        () -> new RuntimeException("Order not found with orderId: " + orderPosition.getOrder().getId()));
+                orderEntity.setStatus(ProtoOAExecutionType.ORDER_CLOSE.getStatus());
+                orderRepository.saveAndFlush(orderEntity);
                 break;
             default:
                 log.info("Execution type {} not handled for database persistence", jsonNode.path("payload").path("executionType"));
         }
         orderPositionRepository.saveAndFlush(orderPosition);
-    }
-    private void processNewOrderReq(JsonNode jsonNode, UUID accountId, String clientMsgId) {
-        ResponseCtraderDTO responseCtraderDTO = validateRepsone.formatResponsePlaceOrder(jsonNode.toString());
-        //get account by accountId
-        OrderPosition orderPosition = orderPositionRepository.findByClientMsgId(clientMsgId)
-                .orElseThrow(() -> new RuntimeException("OrderPosition not found with clientMsgId: " + clientMsgId));
-        switch (ProtoOAExecutionType.fromCode(responseCtraderDTO.getExecutionType())) {
-            case ORDER_ACCEPTED:
-                orderPosition.setOrderCtraderId(responseCtraderDTO.getOrderCtraderId());
-                orderPosition.setVolumeSent(responseCtraderDTO.getVolume());
-                orderPosition.setPositionId(responseCtraderDTO.getPositionId());
-                orderPosition.setStatus(ProtoOAExecutionType.ORDER_ACCEPTED.getStatus());
-                break;
-            case ORDER_FILLED:
-                orderPosition.setStatus(ProtoOAExecutionType.ORDER_FILLED.getStatus());
-                break;
-            default:
-                log.info("Execution type {} not handled for database persistence", jsonNode.path("payload").path("executionType"));
-        }
-        orderPositionRepository.saveAndFlush(orderPosition);
+        final UUID orderPositionId = orderPosition.getId();
+        //update orderentiry with order_id orderposition
+
+
     }
 
-    /**
-     * Process execution event and save to database
-     *
-     * @param jsonNode    The JSON message
-     * @param accountId   The account ID
-     * @param clientMsgId The client message ID
-     */
-    private void processExecutionEvent(JsonNode jsonNode, UUID accountId, String clientMsgId) {
+    @Transactional
+    public void processNewOrderReq(JsonNode jsonNode, UUID accountId, String clientMsgId) {
         try {
-            int executionType = jsonNode.path("payload").path("executionType").asInt();
-            int positionId = jsonNode.path("payload").path("position").path("positionId").asInt();
-            String orderStatus = ProtoOAExecutionType.fromCode(executionType).getStatus();
-
+            log.info("Process New Order Req kafka");
+            ResponseCtraderDTO responseCtraderDTO = validateRepsone.formatResponsePlaceOrder(jsonNode.toString());
+            //get account by accountId
             OrderPosition orderPosition = orderPositionRepository.findByClientMsgId(clientMsgId)
                     .orElseThrow(() -> new RuntimeException("OrderPosition not found with clientMsgId: " + clientMsgId));
-            //convert jsonNode to string
-            String jsonString = jsonNode.toString();
-            ResponseCtraderDTO responseCtraderDTO = validateRepsone.formatResponsePlaceOrder(jsonString);
-            if (responseCtraderDTO.getExecutionType() == ProtoOAExecutionType.ORDER_ACCEPTED.getCode()) {
-               //setting toàn bộ value in orderPosition
-                log.info("ExecutionEvent ORDER_ACCEPTED(2)");
-                ProtoOAExecutionType executionTypeEnum = ProtoOAExecutionType.fromCode(responseCtraderDTO.getExecutionType());
-                PayloadType payloadType = PayloadType.fromValue(responseCtraderDTO.getPayloadReponse());
-
-                orderPosition.setPayloadType(payloadType.toString());
-                orderPosition.setExecutionType(executionTypeEnum.getDescription());
-                orderPosition.setOrderCtraderId(responseCtraderDTO.getOrderCtraderId());
-                orderPosition.setPositionId(responseCtraderDTO.getPositionId());
-                orderPosition.setVolumeSent(responseCtraderDTO.getVolume());
-                orderPosition.setOrderCtraderId(responseCtraderDTO.getOrderCtraderId());
-                orderPosition.setClientMsgId(responseCtraderDTO.getClientMsgId());
+            switch (ProtoOAExecutionType.fromCode(responseCtraderDTO.getExecutionType())) {
+                case ORDER_ACCEPTED:
+                    orderPosition.setOrderCtraderId(responseCtraderDTO.getOrderCtraderId());
+                    orderPosition.setVolumeSent(responseCtraderDTO.getVolume());
+                    orderPosition.setPositionId(responseCtraderDTO.getPositionId());
+                    orderPosition.setStatus(ProtoOAExecutionType.ORDER_ACCEPTED.getStatus());
+                    orderPosition.setExecutionType(ProtoOAExecutionType.ORDER_ACCEPTED.toString());
+                    break;
+                case ORDER_FILLED:
+                    orderPosition.setStatus(ProtoOAExecutionType.ORDER_FILLED.getStatus());
+                    orderPosition.setExecutionType(ProtoOAExecutionType.ORDER_FILLED.toString());
+                    if (responseCtraderDTO.isClosingOrder()) {
+                        //if success close order then update order entity
+                        OrderEntity orderEntity = orderRepository.findById(orderPosition.getOrder().getId()).orElseThrow(
+                                () -> new RuntimeException("Order not found with orderId: " + orderPosition.getOrder().getId()));
+                        orderEntity.setStatus(ProtoOAExecutionType.ORDER_CLOSE.getStatus());
+                        orderRepository.saveAndFlush(orderEntity);
+                    }
+                    break;
+                default:
+                    log.info("Execution type {} not handled for database persistence", jsonNode.path("payload").path("executionType"));
             }
-
-            orderPosition.setStatus(orderStatus);
+            // Save the order position within the same transaction
             orderPositionRepository.saveAndFlush(orderPosition);
+            // Capture the ID to use in the async thread
+            final UUID orderPositionId = orderPosition.getId();
+            CompletableFuture.runAsync(() -> {
+                try {
+                    OrderPosition detachedOrderPosition = orderPositionRepository.findById(orderPositionId)
+                            .orElseThrow(() -> new RuntimeException("OrderPosition not found with ID: " + orderPositionId));
+                    signalAccountStatusService.sendSignalAccountStatus(detachedOrderPosition,
+                            detachedOrderPosition.getTradeSide(), detachedOrderPosition.getSymbol(),
+                            detachedOrderPosition.getCtidTraderAccountId());
+                } catch (Exception e) {
+                    log.error("Error sending signal account status: {}", e.getMessage(), e);
+                }
+            });
+            // send request to SignalAccountStatusService
 
-            log.info("Saved execution event to database: clientMsgId={}, positionId={}, status={}",
-                    clientMsgId, positionId, orderStatus);
         } catch (Exception e) {
-            log.error("Error saving execution event to database: {}", e.getMessage(), e);
+            log.error("Error processing new order request: {}", e.getMessage(), e);
         }
     }
     /**
@@ -224,7 +231,8 @@ public class OrderStatusConsumer {
      * @param accountId   The account ID
      * @param clientMsgId The client message ID
      */
-    private void processErrorEvent(JsonNode jsonNode, UUID accountId, String clientMsgId) {
+    @Transactional
+    public void processErrorEvent(JsonNode jsonNode, UUID accountId, String clientMsgId) {
         try {
             String errorCode = jsonNode.path("payload").has("errorCode") ?
                     jsonNode.path("payload").get("errorCode").asText(null) : null;
@@ -233,14 +241,11 @@ public class OrderStatusConsumer {
             OrderPosition orderPosition = orderPositionRepository.findByClientMsgId(clientMsgId)
                     .orElseThrow(() -> new RuntimeException("OrderPosition not found with clientMsgId: " + clientMsgId));
             orderPosition.setStatus(ProtoOAExecutionType.ORDER_REJECTED.getStatus());
+            orderPosition.setExecutionType(ProtoOAExecutionType.ORDER_REJECTED.toString());
             orderPosition.setErrorCode(errorCode);
             orderPosition.setErrorMessage(errorDescription);
             orderPositionRepository.saveAndFlush(orderPosition);
-//            orderPositionRepository.updateErrorCodeAndErrorMessageByClientMsgId(
-//                    errorCode,
-//                    errorDescription,
-//                    ProtoOAExecutionType.ORDER_REJECTED.getStatus(),
-//                    clientMsgId);
+            final UUID orderPositionId = orderPosition.getId();
             log.info("Updated error event in database: clientMsgId={}, errorCode={}",
                     clientMsgId, errorCode);
 

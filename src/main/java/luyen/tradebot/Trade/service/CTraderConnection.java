@@ -1,15 +1,13 @@
 package luyen.tradebot.Trade.service;
 
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.websocket.*;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import luyen.tradebot.Trade.dto.request.PlaceOrderRequest;
-import luyen.tradebot.Trade.model.AccountEntity;
-import luyen.tradebot.Trade.model.OrderEntity;
+import luyen.tradebot.Trade.util.enumTraderBot.ActionSystem;
 import luyen.tradebot.Trade.util.enumTraderBot.PayloadType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -42,13 +40,13 @@ public class CTraderConnection {
     private String wsUrl;
     private Session session;
     private CTraderConnectionService connectionService;
-    private Session webSocketSession;
     private boolean connected = false;
     private CompletableFuture<String> responseFuture; // Lưu trữ phản hồi từ WebSocket
     private int authenticatedTraderAccountId;
     private String accountType;
-    private final Map<String, CompletableFuture<String>> pendingRequests = new ConcurrentHashMap<>();
-
+    //    private final Map<String, CompletableFuture<String>> pendingRequests = new ConcurrentHashMap<>();
+    private boolean manualDisconnect = false;
+    private ActionSystem actionSystem = null;
 
     public CTraderConnection(UUID accountId, String clientId, String secretId, String accessToken,
                              CTraderConnectionService connectionService, String wsUrl,
@@ -94,14 +92,17 @@ public class CTraderConnection {
     }
 
     public void disconnect() {
-        if (webSocketSession != null && webSocketSession.isOpen()) {
+        //create function disconnect
+        if (session != null && session.isOpen()) {
             try {
-                webSocketSession.close();
+                this.manualDisconnect = true;
+                session.close();
                 connected = false;
-                log.info("Disconnected from cTrader WebSocket");
+                log.info("Disconnected from cTrader WebSocket with Account Id: {}", accountId);
             } catch (Exception e) {
                 log.error("Error disconnecting from cTrader WebSocket", e);
             }
+            stopPingScheduler();
         }
     }
 
@@ -118,23 +119,17 @@ public class CTraderConnection {
 
         String orderMessage = createOrderMessage(request);
 
-        CompletableFuture<String> future = new CompletableFuture<>();
-        pendingRequests.put(request.getClientMsgId(), future);
-        sendRequest(orderMessage);
-        return future;
-        // Create ProtoOANewOrderReq message
-//        String orderMessage = createOrderMessage(symbol, tradeSide, volume, orderType);
-
-        // In real implementation, track message ID and resolve future when response is received
-
+//        CompletableFuture<String> future = new CompletableFuture<>();
+//        pendingRequests.put(request.getClientMsgId(), future);
+        actionSystem = ActionSystem.ORDER;
 //        sendRequest(orderMessage);
-//        return future;
+        return sendRequest(orderMessage);
     }
 
-    public CompletableFuture<String> closePosition(String clientMsgId, int positionId, int volume) {
+    public CompletableFuture<String> closePosition(String clientMsgId, int positionId, int volume, PayloadType payloadType) {
         // Create ProtoOAClosePositionReq message
-        String closeMessage = createClosePositionMessage(clientMsgId, positionId, volume);
-
+        String closeMessage = createClosePositionMessage(clientMsgId, positionId, volume, payloadType);
+        actionSystem = ActionSystem.ORDER;
         return sendRequest(closeMessage);
     }
 
@@ -180,7 +175,8 @@ public class CTraderConnection {
         StringBuilder jsonBuilder = new StringBuilder();
         jsonBuilder.append("{");
         jsonBuilder.append("\"clientMsgId\": \"").append(request.getClientMsgId()).append("\",");
-        jsonBuilder.append("\"payloadType\": 2106,");
+//        jsonBuilder.append("\"payloadType\": 2106,");
+        jsonBuilder.append("\"payloadType\": ").append(request.getPayloadType().getValue()).append(",");
         jsonBuilder.append("\"payload\": {");
         jsonBuilder.append("\"ctidTraderAccountId\": ").append(authenticatedTraderAccountId).append(",");
         jsonBuilder.append("\"symbolId\": ").append(request.getSymbol()).append(",");
@@ -218,12 +214,13 @@ public class CTraderConnection {
         // This is simplified for the example
     }
 
-    private String createClosePositionMessage(String clientMsgId, int positionId, int volume) {
+    private String createClosePositionMessage(String clientMsgId, int positionId, int volume, PayloadType payloadType) {
         // This is a simplified version - in real implementation, use protobuf
         StringBuilder jsonBuilder = new StringBuilder();
         jsonBuilder.append("{");
         jsonBuilder.append("\"clientMsgId\": \"").append(clientMsgId).append("\",");
-        jsonBuilder.append("\"payloadType\": 2111,");
+        jsonBuilder.append("\"payloadType\": ").append(payloadType.getValue()).append(",");
+//        jsonBuilder.append("\"payloadType\": 2111,");
         jsonBuilder.append("\"payload\": {");
         jsonBuilder.append("\"ctidTraderAccountId\": ").append(authenticatedTraderAccountId).append(",");
         jsonBuilder.append("\"positionId\": ").append(positionId).append(",");
@@ -246,25 +243,6 @@ public class CTraderConnection {
     public CompletableFuture<String> sendRequest(String message) {
         if (session != null && session.isOpen()) {
             log.info("Sending message in local: {}", message);
-            ObjectMapper objectMapper = new ObjectMapper();
-            JsonNode rootNode = null;
-            try {
-                rootNode = objectMapper.readTree(message);
-                int payloadType = rootNode.get("payloadType").asInt();
-//                if (payloadType == PayloadType.PROTO_OA_NEW_ORDER_REQ.getValue()) {
-//                    String clientMsgId = rootNode.path("clientMsgId").asText();
-//                    Map<String, Object> kafkaData = new HashMap<>();
-//                    kafkaData.put("accountId", accountId.toString());
-//                    kafkaData.put("timestamp", System.currentTimeMillis());
-//                    kafkaData.put("rawMessage", message);
-//                    kafkaData.put("clientMsgId", clientMsgId);
-//                    String jsonMessage = objectMapper.writeValueAsString(kafkaData);
-//                    //neu la lenh order => save order new vào DB
-//                    kafkaTemplate.send("order-placed-topic", jsonMessage);
-//                }
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
             // Kiểm tra xem đây có phải là yêu cầu xác thực ứng dụng không
             boolean isAuthRequest = message.contains("\"payloadType\": 2100");
             if (!isAuthRequest && !connected) {
@@ -316,6 +294,14 @@ public class CTraderConnection {
         }
     }
 
+    //create function stop scheduler
+    private void stopPingScheduler() {
+        if (pingScheduler != null && !pingScheduler.isShutdown()) {
+            pingScheduler.shutdownNow();
+            log.info("Stopped ping scheduler for account: {}", accountId);
+        }
+    }
+
     @OnMessage
     public void onMessage(String message) {
         log.info("Received message for account " + accountId + ": " + message);
@@ -330,48 +316,54 @@ public class CTraderConnection {
                 return;
             }
             String clientMsgId = rootNode.path("clientMsgId").asText();
-            if (pendingRequests.containsKey(clientMsgId)) {
-                pendingRequests.get(clientMsgId).complete(message);
-                pendingRequests.remove(clientMsgId);
-            } else {
-                log.warn("Received response with unknown clientMsgId: {}", clientMsgId);
-            }
+//            if (pendingRequests.containsKey(clientMsgId)) {
+//                pendingRequests.get(clientMsgId).complete(message);
+//                pendingRequests.remove(clientMsgId);
+//            } else {
+//                log.warn("Received response with unknown clientMsgId: {}", clientMsgId);
+//            }
             // Convert dto sang JSON
             // Gửi vào Kafka
-            Map<String, Object> kafkaData = new HashMap<>();
-            kafkaData.put("accountId", accountId.toString());
-            kafkaData.put("messageType", payloadTypeEnum);
-            kafkaData.put("timestamp", System.currentTimeMillis());
-            kafkaData.put("rawMessage", message);
-            kafkaData.put("clientMsgId", clientMsgId);
-            // Xử lý các loại thông báo khác dựa trên payloadType (nếu cần)
-            switch (Objects.requireNonNull(payloadTypeEnum)) {
-                case PROTO_OA_CLOSE_POSITION_REQ:
-                case PROTO_OA_EXECUTION_EVENT:
-                case PROTO_OA_ORDER_ERROR_EVENT:
-                case PROTO_OA_ERROR_RES:
-                    String jsonMessage = objectMapper.writeValueAsString(kafkaData);
-                    log.info("Sending message to topic {}: key={}, value={}", "order-status-topic", clientMsgId, jsonMessage);
-                    kafkaTemplate.send("order-status-topic", jsonMessage);
+            // check prefix clientMsgId la tradebot365 thì gửi vào kafka
+            if (clientMsgId.startsWith(prefix)) {
+                Map<String, Object> kafkaData = new HashMap<>();
+                kafkaData.put("accountId", accountId.toString());
+                kafkaData.put("messageType", payloadTypeEnum);
+                kafkaData.put("timestamp", System.currentTimeMillis());
+                kafkaData.put("rawMessage", message);
+                kafkaData.put("clientMsgId", clientMsgId);
+                // Xử lý các loại thông báo khác dựa trên payloadType (nếu cần)
+                switch (Objects.requireNonNull(payloadTypeEnum)) {
+                    case PROTO_OA_CLOSE_POSITION_REQ:
+                    case PROTO_OA_EXECUTION_EVENT:
+                    case PROTO_OA_ORDER_ERROR_EVENT:
+                    case PROTO_OA_ERROR_RES:
+                        //check actionsystem is order
+                        if (actionSystem.equals(ActionSystem.ORDER)) {
+                            // xử lý logic khi nhận được message từ websocket
+                            String jsonMessage = objectMapper.writeValueAsString(kafkaData);
+                            log.info("Sending message to topic {}: key={}, value={}", "order-status-topic", clientMsgId, jsonMessage);
+                            kafkaTemplate.send("order-status-topic", jsonMessage);
 //                  kafkaProducerService.sendMessage("order-status-topic", clientMsgId, kafkaData);
-                    break;
-                case PROTO_OA_APPLICATION_AUTH_RES:
-                    connected = true;
-                    log.info("Successfully Application authenticated");
-                    if (authenticatedTraderAccountId != 0) {
-                        log.info("Auto authenticating trader account: {}", authenticatedTraderAccountId);
-                        authenticateTraderAccount(authenticatedTraderAccountId);
-                    }
-                    connectionService.saveConnectionDetails(this);
-                    break;
-                case PROTO_OA_ACCOUNT_AUTH_RES:
-                    log.info("Successfully authenticated trader account: {}", authenticatedTraderAccountId);
-                    connectionService.saveConnectionAuthenticated(this);
-                    startPingScheduler();
-                    break;
-                default:
+                        }
+                        break;
+                    case PROTO_OA_APPLICATION_AUTH_RES:
+                        connected = true;
+                        log.info("Successfully Application authenticated");
+                        if (authenticatedTraderAccountId != 0) {
+                            log.info("Auto authenticating trader account: {}", authenticatedTraderAccountId);
+                            authenticateTraderAccount(authenticatedTraderAccountId);
+                        }
+                        connectionService.saveConnectionDetails(this);
+                        break;
+                    case PROTO_OA_ACCOUNT_AUTH_RES:
+                        log.info("Successfully authenticated trader account: {}", authenticatedTraderAccountId);
+                        connectionService.saveConnectionAuthenticated(this);
+                        startPingScheduler();
+                        break;
+                    default:
+                }
             }
-
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -381,7 +373,6 @@ public class CTraderConnection {
             log.info("Message Ctrader response: {}", message);
             responseFuture = null; // Reset để dùng cho request tiếp theo
         }
-        // lấy ra executionType trong đoạn này để kiểm tra : {"payloadType":2126,"clientMsgId":"trade365_e64af3df","payload":{"ctidTraderAccountId":42683965,"executionType":3,"position":{"positionId":9880523,"tradeData":{"symbolId":433,"volume":10,"tradeSide":1,"openTimestamp":1743305982603,"guaranteedStopLoss":false,"measurementUnits":"ADA"},"positionStatus":1,"swap":0,"price":0.68123,"utcLastUpdateTimestamp":1743305982603,"commission":0,"marginRate":0.67967,"mirroringCommission":0,"guaranteedStopLoss":false,"usedMargin":1,"moneyDigits":2},"order":{"orderId":16481737,"tradeData":{"symbolId":433,"volume":10,"tradeSide":1,"openTimestamp":1743305982325,"guaranteedStopLoss":false,"measurementUnits":"ADA","closeTimestamp":1743305982603},"orderType":1,"orderStatus":2,"executionPrice":0.68123,"executedVolume":10,"utcLastUpdateTimestamp":1743305982603,"closingOrder":false,"clientOrderId":"trade365_e64af3df","timeInForce":3,"positionId":9880523},"deal":{"dealId":15516749,"orderId":16481737,"positionId":9880523,"volume":10,"filledVolume":10,"symbolId":433,"createTimestamp":1743305982325,"executionTimestamp":1743305982603,"utcLastUpdateTimestamp":1743305982603,"executionPrice":0.68123,"tradeSide":1,"dealStatus":2,"marginRate":0.67967,"commission":0,"baseToUsdConversionRate":0.67967,"moneyDigits":2},"isServerEvent":false}}
     }
 
     @OnClose
@@ -396,7 +387,13 @@ public class CTraderConnection {
         }
         // log clientSessionId
         log.info("Session close by Client Session Id: {}", session.getId());
-        connectionService.reconnect(this); // Tự động reconnect khi đóng
+        // Only reconnect if this wasn't a manual disconnect
+
+        if (!manualDisconnect) {
+            connectionService.reconnect(this); // Tự động reconnect khi đóng
+        } else {
+            log.info("Manual disconnect detected for account: {}, not reconnecting", accountId);
+        }
     }
 
     @OnError
@@ -409,7 +406,11 @@ public class CTraderConnection {
         } catch (Exception e) {
             log.error("Error closing session for account " + accountId, e);
         }
-        connectionService.reconnect(this); // Reconnect khi có lỗi
+        if (!manualDisconnect) {
+            connectionService.reconnect(this); // Tự động reconnect khi đóng
+        } else {
+            log.info("Manual disconnect detected for account: {}, not reconnecting", accountId);
+        }
     }
 
     public void close() {

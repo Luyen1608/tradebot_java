@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -22,8 +23,9 @@ public interface OrderRepository extends JpaRepository<OrderEntity, UUID> {
     @Query("SELECT o FROM Order o JOIN o.account a WHERE a.bot.id = ?1 AND o.symbolId = ?2 AND o.status = 'OPEN'")
     List<OrderEntity> findOpenOrdersByBotIdAndSymbolId(UUID botId, Integer symbolId);
 
-    @Query("SELECT DISTINCT o FROM Order o JOIN o.positions p WHERE o.symbolId = ?1 AND o.tradeSide = ?2 AND p.status = 'OPEN' AND o.account.bot.signalToken = ?3")
-    List<OrderEntity> findOpenOrdersBySymbolIdAndBotSignalTokenAndTradeSide(Integer symbolId, TradeSide tradeSide, String signalToken);
+    @Query("SELECT DISTINCT o FROM Order o JOIN o.positions p WHERE o.symbolId = ?1 AND o.tradeSide = ?2 " +
+            "AND o.status = 'OPEN' AND o.account.bot.signalToken = ?3 ORDER BY o.createAt ASC limit 1")
+    Optional<OrderEntity>  findOpenOrdersBySymbolIdAndBotSignalTokenAndTradeSide(Integer symbolId, TradeSide tradeSide, String signalToken);
 
     @Modifying
     @Transactional

@@ -140,7 +140,6 @@ public class AccountService {
         if (account.getIsConnected()) {
             connectionService.disconnectAccount(account.getId());
         }
-
         accountRepository.deleteById(id);
     }
 
@@ -235,7 +234,25 @@ public class AccountService {
             account.setBot(newBot);
         }
 
-        // Cập nhật các thông tin khác
+        // update value in accountDTO to account
+        if (accountDTO.getId() != null) {
+            account.setId(accountDTO.getId());
+        }
+        if (accountDTO.getLive() != null) {
+            account.setTypeAccount(accountDTO.getLive() ? AccountType.LIVE : AccountType.DEMO);
+        }
+        if (accountDTO.getClientId() != null) {
+            account.setClientId(accountDTO.getClientId());
+        }
+        if (accountDTO.getSecretId() != null) {
+            account.setClientSecret(accountDTO.getSecretId());
+        }
+        if (accountDTO.getAccessToken() != null) {
+            account.setAccessToken(accountDTO.getAccessToken());
+        }
+        if (accountDTO.getSignalToken() != null) {
+            account.setSignalToken(accountDTO.getSignalToken());
+        }
         if (accountDTO.getAccountidTrading() != null) {
             account.setAccountName(accountDTO.getAccountidTrading());
             try {
@@ -244,31 +261,20 @@ public class AccountService {
                 log.warn("Invalid accountid_trading format: {}", accountDTO.getAccountidTrading());
             }
         }
-
-        if (accountDTO.getClientId() != null) {
-            account.setClientId(accountDTO.getClientId());
-        }
-
-        if (accountDTO.getSecretId() != null) {
-            account.setClientSecret(accountDTO.getSecretId());
-        }
-
-        if (accountDTO.getAccessToken() != null) {
-            account.setAccessToken(accountDTO.getAccessToken());
-        }
-
         if (accountDTO.getVolumeMultiplier() != null) {
             account.setVolumeMultiplier(accountDTO.getVolumeMultiplier());
         }
-
-
-        // Cập nhật thời gian
-        if (accountDTO.getUpdatedAt() != null) {
-            account.setUpdateAt(accountDTO.getUpdatedAt());
-        }
-
         // Lưu tài khoản đã cập nhật
         AccountEntity savedAccount = accountRepository.save(account);
+        // Nếu account được cập nhật thành công và trạng thái của nó là true thì kết nối tài khoản đó
+        if (savedAccount.isActive()) {
+            // disconnect account current trước khi connect lại
+            if (savedAccount.getIsConnected()) {
+                connectionService.disconnectAccount(savedAccount.getId());
+            }
+            eventPublisher.publishEvent(new AccountCreatedEvent(savedAccount.getId()));
+//            connectionService.connectAccount(savedAccount.getId());
+        }
         log.info("Account updated successfully with ID: {}", savedAccount.getId());
 
         return savedAccount;

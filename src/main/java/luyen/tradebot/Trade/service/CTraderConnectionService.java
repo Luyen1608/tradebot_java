@@ -12,7 +12,6 @@ import luyen.tradebot.Trade.util.enumTraderBot.ConnectStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -101,11 +100,11 @@ public class CTraderConnectionService {
                     freshAccount.getVolumeMultiplier(),
                     freshAccount.getCtidTraderAccountId()
             );
-            if (!connection.isConnectionSuccessful()) {
-                log.warn("Connection not successful for account: {} ({})",
-                        freshAccount.getId(), freshAccount.getTypeAccount());
-                return;
-            }
+//            if (!connection.isConnectionSuccessful()) {
+//                log.warn("Connection not successful for account: {} ({})",
+//                        freshAccount.getId(), freshAccount.getTypeAccount());
+//                return;
+//            }
             // Store the connection
             connections.put(freshAccount.getId(), connection);
             // Update account status
@@ -148,16 +147,15 @@ public class CTraderConnectionService {
     }
 
     public void disconnectAccount(UUID accountID) {
-        CTraderConnection connection = connections.get(accountID);
-        if (connection != null) {
-            try {
+        try {
+            CTraderConnection connection = connections.get(accountID);
+            if (connection != null) {
                 connection.disconnect();
                 connections.remove(accountID);
-
                 log.info("Successfully disconnected account: {}", accountID);
-            } catch (Exception e) {
-                log.error("Failed to disconnect account: {}", accountID, e);
             }
+        } catch (Exception e) {
+            log.error("Failed to disconnect account: {}", accountID, e);
         }
     }
 

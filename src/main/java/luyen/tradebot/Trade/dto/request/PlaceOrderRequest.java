@@ -6,6 +6,7 @@ import lombok.Setter;
 import luyen.tradebot.Trade.model.AccountEntity;
 import luyen.tradebot.Trade.model.OrderEntity;
 import luyen.tradebot.Trade.service.CTraderConnection;
+import luyen.tradebot.Trade.util.enumTraderBot.PayloadType;
 
 @Getter
 @Setter
@@ -19,6 +20,8 @@ public class PlaceOrderRequest {
     private int orderType;
     private AccountEntity account;
     private OrderEntity savedOrder;
+
+    private PayloadType payloadType;
 
 
 }

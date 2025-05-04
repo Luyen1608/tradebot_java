@@ -47,6 +47,10 @@ public class OrderPosition extends AbstractEntity{
     private int volumeSent;
     private double volumeMultiplier;
     private String orderType; //close open
+    private String tradeSide;
+    private String symbol;
+    private String ctidTraderAccountId;
+
 
 
 

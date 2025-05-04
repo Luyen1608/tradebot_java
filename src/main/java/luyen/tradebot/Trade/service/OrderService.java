@@ -24,11 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 @Service
@@ -142,6 +138,7 @@ public class OrderService {
                         OrderPosition position = OrderPosition.builder()
                                 .order(savedOrder)
                                 .account(account)
+                                .volumeMultiplier(account.getVolumeMultiplier())
                                 .status("ERROR")
                                 .errorMessage("No active connection for account")
                                 .build();
@@ -154,8 +151,13 @@ public class OrderService {
                             .clientMsgId(clientMsgId)
                             .order(savedOrder)
                             .account(account)
-                            .orderType("New_Order")
+                            .volumeMultiplier(account.getVolumeMultiplier())
+                            .originalVolume(webhookDTO.getVolume())
+                            .orderType("NEW_ORDER")
                             .status("PENDING")
+                            .tradeSide(String.valueOf(webhookDTO.getTradeSide()))
+                            .symbol(String.valueOf(webhookDTO.getSymbol()))
+                            .ctidTraderAccountId(account.getCtidTraderAccountId().toString())
                             .build();
                     OrderPosition savedPosition = orderPositionRepository.saveAndFlush(position);
 
@@ -169,6 +171,7 @@ public class OrderService {
                             .orderType(webhookDTO.getOrderType())
                             .account(account)
                             .savedOrder(savedOrder)
+                            .payloadType(PayloadType.PROTO_OA_NEW_ORDER_REQ)
                             .build();
                     CompletableFuture<String> future = cTraderApiService.placeOrder(request);
                 } catch (Exception e) {
@@ -194,7 +197,7 @@ public class OrderService {
                         .build();
                 AlertTradingEntity saveAlertTradingEntity = alertTradingRepository.save(alertTradingEntity);
                 //sync to supabase
-                //alertTradingService.saveAndSyncAlert(saveAlertTradingEntity);
+                alertTradingService.saveAndSyncAlert(saveAlertTradingEntity);
             });
         }
     }
@@ -204,18 +207,14 @@ public class OrderService {
 
     @Transactional
     public void processWebhookClose(MessageTradingViewDTO webhookDTO) {
-
         log.info("Processing close order for signalToken: {}", webhookDTO.getSignalToken());
         //Lấy ra Botentity có signalToken = webhookDTO.getSignalToken()
-        BotsEntity bot = botsRepository.findBySignalToken(webhookDTO.getSignalToken())
-                .orElseThrow(() -> new RuntimeException("Bot not found with signal token: " + webhookDTO.getSignalToken()));
-
         Symbol symbol = Symbol.fromString6(webhookDTO.getInstrument());
         TradeSide tradeSideInput = TradeSide.fromString(AcctionTrading.fromString(webhookDTO.getAction()).getValue());
-        List<OrderEntity> openOrders = orderRepository.findOpenOrdersBySymbolIdAndBotSignalTokenAndTradeSide(
-                symbol.getId(), tradeSideInput, webhookDTO.getSignalToken());
-
-        if (openOrders.isEmpty()) {
+        OrderEntity openOrder = orderRepository.findOpenOrdersBySymbolIdAndBotSignalTokenAndTradeSide(
+                symbol.getId(), tradeSideInput, webhookDTO.getSignalToken())
+                .orElseThrow(() -> new RuntimeException("Order not found with signal token: " + webhookDTO.getSignalToken()));;
+        if (openOrder==null) {
             log.warn("No open orders found for signalToken: {} and symbol: {}",
                     webhookDTO.getSignalToken(), symbol.getId());
             return;
@@ -223,9 +222,9 @@ public class OrderService {
         // Danh sách để lưu trữ tất cả các CompletableFuture
         List<CompletableFuture<Void>> allFutures = new ArrayList<>();
 
-        for (OrderEntity order : openOrders) {
             CompletableFuture<Void> positionFuture = CompletableFuture.runAsync(() -> {
-                List<OrderPosition> positions = orderPositionRepository.findByOrderId(order.getId());
+                List<OrderPosition> positions = orderPositionRepository.findByOrderIdAndStatusAndOrderType(openOrder.getId(),
+                        "OPEN", OrderTypeSystem.NEW_ORDERS.getName());
 
                 // Xử lý song song các vị thế
                 for (OrderPosition position : positions) {
@@ -233,14 +232,17 @@ public class OrderService {
                         continue;
                     }
                     AccountEntity account = position.getAccount();
-                    String clientMsgId = generateClientMsgId() + "CLOSE_POSITION";
+                    String clientMsgId = position.getClientMsgId() + "_" + "CLOSE_POSITION";
                     //save order
                     OrderPosition positionNew = OrderPosition.builder()
                             .clientMsgId(clientMsgId)
-                            .order(order)
+                            .order(openOrder)
                             .orderType("CLOSE_POSITION")
                             .account(account)
                             .status("PENDING")
+                            .tradeSide(openOrder.getTradeSide().toString())
+                            .symbol(openOrder.getSymbol().toString())
+                            .ctidTraderAccountId(account.getCtidTraderAccountId().toString())
                             .build();
                     OrderPosition savedPosition = orderPositionRepository.saveAndFlush(positionNew);
                     // Tạo một CompletableFuture cho mỗi vị thế
@@ -252,7 +254,7 @@ public class OrderService {
                         }
                         // Đóng vị thế
                         CompletableFuture<String> future = cTraderApiService.closePosition(connection, clientMsgId,
-                                 position.getPositionId(), position.getVolumeSent());
+                                 position.getPositionId(), position.getVolumeSent(), PayloadType.PROTO_OA_CLOSE_POSITION_REQ);
 //                        future.thenAccept(result -> {
 //                            ResponseCtraderDTO responseCtraderDTO = validateRepsone.formatResponsePlaceOrder(result);
 //                            if (responseCtraderDTO.getPayloadReponse() == PayloadType.PROTO_OA_ORDER_ERROR_EVENT.getValue()) {
@@ -296,7 +298,6 @@ public class OrderService {
                     }
                 }
             });
-        }
 
         // Tùy chọn: đợi tất cả các vị thế được xử lý xong
         // CompletableFuture.allOf(allFutures.toArray(new CompletableFuture[0])).join();

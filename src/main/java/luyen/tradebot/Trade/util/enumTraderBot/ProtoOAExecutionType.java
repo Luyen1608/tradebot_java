@@ -9,6 +9,7 @@ public enum ProtoOAExecutionType {
     ORDER_CANCELLED(5, "Order cancelled.", "CANCELLED"),
     ORDER_EXPIRED(6, "Order expired.", "EXPIRED"),
     ORDER_REJECTED(7, "Order rejected.", "REJECTED"), // đơn hàng bị từ chối
+    ORDER_CLOSE(-2, "Order Closed.", "CLOSE"), // đơn hàng đã được đóng
     UNKNOWN(-1, "Unknown execution type.", "NA");
 
     private final int code;

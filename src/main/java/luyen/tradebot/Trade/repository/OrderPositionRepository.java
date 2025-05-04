@@ -13,8 +13,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface OrderPositionRepository extends JpaRepository<OrderPosition, Long> {
+public interface OrderPositionRepository extends JpaRepository<OrderPosition, UUID> {
     Optional<OrderPosition> findByClientMsgId(String clientMsgId);
+
+    @Query(value = "SELECT op FROM OrderPosition op WHERE op.clientMsgId = ?1 ORDER BY op.createAt ASC LIMIT 1")
+    Optional<OrderPosition> findByClientMsgIdLimitOne(String clientMsgId);
 
     List<OrderPosition> findByOrderId(UUID orderId);
 
@@ -61,7 +64,10 @@ public interface OrderPositionRepository extends JpaRepository<OrderPosition, Lo
 
 
     //lấy OrderPosition có orderId = orders.getId và status = Open
-    @Query("SELECT op FROM OrderPosition op WHERE op.order.id = ?1 AND op.status = 'OPEN'")
-    List<OrderPosition> findByOrderIdAndStatus(Long orderId, String status);
+    @Query("SELECT op FROM OrderPosition op WHERE op.order.id = ?1 AND op.status = ?2 ")
+    List<OrderPosition> findByOrderIdAndStatus(UUID orderId, String status);
+
+    @Query("SELECT op FROM OrderPosition op WHERE op.order.id = ?1 AND op.status = ?2 AND UPPER(op.orderType) = ?3 ")
+    List<OrderPosition> findByOrderIdAndStatusAndOrderType(UUID orderId, String status, String orderType);
 
 }

@@ -8,6 +8,7 @@ import luyen.tradebot.Trade.dto.request.PlaceOrderRequest;
 import luyen.tradebot.Trade.model.AccountEntity;
 import luyen.tradebot.Trade.model.OrderEntity;
 import luyen.tradebot.Trade.util.enumTraderBot.AccountType;
+import luyen.tradebot.Trade.util.enumTraderBot.PayloadType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -68,9 +69,10 @@ public class CTraderApiService {
         return request.getConnection().placeOrder(request);
     }
 
-    public CompletableFuture<String> closePosition(CTraderConnection connection, String clientMsgId, int positionId, int volume) {
+    public CompletableFuture<String> closePosition(CTraderConnection connection,
+                                                   String clientMsgId, int positionId, int volume, PayloadType payloadType) {
         // Authenticate specific trader account
-        return connection.closePosition(clientMsgId, positionId, volume);
+        return connection.closePosition(clientMsgId, positionId, volume, payloadType);
     }
 
     public CompletableFuture<String> authenticateTraderAccount(

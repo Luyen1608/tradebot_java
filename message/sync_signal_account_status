@@ -1,0 +1,15 @@
+{
+   "action":"SELL",
+   "symbol":"BTCUSD",
+   "status":"PROCESS",
+   "signal_id":"135483f4-e438-4804-a0eb-986946de1b11",
+   "trading_account_id":"135483f4-e438-4804-a0eb-986946de1b11",
+   "api_connection_id":"135483f4-e438-4804-a0eb-986946de1b11",
+   "original_volume":1.0,
+   "volume_sent":5.0,
+   "volume_multiplier":5.0,
+   "order_id":"18499540",
+   "response_time":"2025-05-03T09:53:40.861550",
+   "error_message":null,
+   "accountid_trading":"43271767"
+}

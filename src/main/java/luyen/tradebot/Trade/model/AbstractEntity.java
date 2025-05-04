@@ -32,7 +32,6 @@ public abstract class AbstractEntity {
     }
 
     @Column(name = "created_at", length = 255)
-//    @Temporal(TemporalType.DATE)
     @CreationTimestamp
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createAt;

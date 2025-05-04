@@ -92,4 +92,5 @@ public class AccountEntity {
 
     private Boolean isConnected;
     private Boolean isAuthenticated;
+    private String signalToken;
 }

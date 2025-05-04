@@ -1,0 +1,49 @@
+order
+
+{
+   "payloadType":2126,
+   "clientMsgId":"trade365_8891d7_475759805352000",
+   "payload":{
+      "ctidTraderAccountId":43271767,
+      "executionType":2,
+      "position":{
+         "positionId":11372046,
+         "tradeData":{
+            "symbolId":101,
+            "volume":0,
+            "tradeSide":2,
+            "guaranteedStopLoss":false,
+            "measurementUnits":"BTC"
+         },
+         "positionStatus":3,
+         "swap":0,
+         "price":0.0,
+         "commission":0,
+         "marginRate":0.0,
+         "mirroringCommission":0,
+         "guaranteedStopLoss":false,
+         "usedMargin":0,
+         "moneyDigits":2
+      },
+      "order":{
+         "orderId":18480077,
+         "tradeData":{
+            "symbolId":101,
+            "volume":5,
+            "tradeSide":2,
+            "openTimestamp":1746157932210,
+            "guaranteedStopLoss":false,
+            "measurementUnits":"BTC"
+         },
+         "orderType":1,
+         "orderStatus":1,
+         "executedVolume":0,
+         "utcLastUpdateTimestamp":1746157932210,
+         "closingOrder":false,
+         "clientOrderId":"trade365_8891d7_475759805352000",
+         "timeInForce":3,
+         "positionId":11372046
+      },
+      "isServerEvent":false
+   }
+}

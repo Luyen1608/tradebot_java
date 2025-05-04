@@ -21,7 +21,6 @@ public class Convert {
         if (messageTradingViewDTO.getInstrument().length() > 6) {
             messageTradingViewDTO.setInstrument(messageTradingViewDTO.getInstrument().substring(0, 6));
         }
-
         OrderWebhookDTO webhookDTO = OrderWebhookDTO.builder()
                 .symbol(Symbol.fromString(messageTradingViewDTO.getInstrument()).getId())
                 .tradeSide(TradeSide.fromString(AcctionTrading.fromString(messageTradingViewDTO.getAction()).getValue()).getValue())
