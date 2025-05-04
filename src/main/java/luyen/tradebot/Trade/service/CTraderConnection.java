@@ -104,6 +104,16 @@ public class CTraderConnection {
             }
             stopPingScheduler();
         }
+
+//        if (webSocketSession != null && webSocketSession.isOpen()) {
+//            try {
+//                webSocketSession.close();
+//                connected = false;
+//                log.info("Disconnected from cTrader WebSocket");
+//            } catch (Exception e) {
+//                log.error("Error disconnecting from cTrader WebSocket", e);
+//            }
+//        }
     }
 
     private void sendAuthMessage() {
