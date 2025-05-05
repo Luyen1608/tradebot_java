@@ -155,8 +155,8 @@ public class OrderService {
                             .originalVolume(webhookDTO.getVolume())
                             .orderType("NEW_ORDER")
                             .status("PENDING")
-                            .tradeSide(String.valueOf(webhookDTO.getTradeSide()))
-                            .symbol(String.valueOf(webhookDTO.getSymbol()))
+                            .tradeSide(TradeSide.fromValue(webhookDTO.getTradeSide()).toString())
+                            .symbol(Symbol.fromId(webhookDTO.getSymbol()).toString())
                             .ctidTraderAccountId(account.getCtidTraderAccountId().toString())
                             .build();
                     OrderPosition savedPosition = orderPositionRepository.saveAndFlush(position);
