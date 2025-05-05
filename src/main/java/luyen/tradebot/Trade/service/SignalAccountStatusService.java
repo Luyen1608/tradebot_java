@@ -69,7 +69,7 @@ public class SignalAccountStatusService {
             HttpEntity<String> requestEntity = new HttpEntity<>(jsonPayload, headers);
 
             // Debug log the payload being sent
-            log.info("Sending signal account status to Supabase: {}", payload);
+            log.info("Sending signal account status to Supabase: {}", jsonPayload);
 
             // Call the API
             ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.POST, requestEntity, String.class);
