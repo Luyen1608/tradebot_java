@@ -142,6 +142,7 @@ public class OrderStatusConsumer {
 
     @Transactional
     public void processCloseOrderReq(JsonNode jsonNode, UUID accountId, String clientMsgId) {
+        log.info("Process Close Order Req kafka");
         ResponseCtraderDTO responseCtraderDTO = validateRepsone.formatResponsePlaceOrder(jsonNode.toString());
         //get account by accountId
         OrderPosition orderPosition = orderPositionRepository.findByClientMsgIdLimitOne(clientMsgId)

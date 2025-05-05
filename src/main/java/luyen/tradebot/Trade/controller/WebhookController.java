@@ -23,6 +23,7 @@ public class WebhookController {
 //        log.info("Received order webhook: {}", webhookDTO);
 
         //kiểm tra getAction là ENTER_LONG hoặc ENTER_SHORT thì chạy vào hàm processWebhookclose
+        log.info("Received order webhook: {}", webhookDTO);
         if ("ENTER_LONG".equalsIgnoreCase(webhookDTO.getAction()) || "ENTER_SHORT".equalsIgnoreCase(webhookDTO.getAction())) {
             orderService.processWebhookOrder(webhookDTO);
             return ResponseEntity.ok("Order placed successfully");

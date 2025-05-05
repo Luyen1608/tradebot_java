@@ -296,6 +296,20 @@ public class OrderService {
                         position.setErrorMessage("Error closing: " + e.getMessage());
                         orderPositionRepository.save(position);
                     }
+                    //create a single AlertTradingEntity record with messageTradingViewDTO
+                    AlertTradingEntity alertTradingEntity = AlertTradingEntity.builder()
+                            .action(AcctionTrading.fromString(webhookDTO.getAction()))
+                            .instrument(webhookDTO.getInstrument())
+                            .timestamp(Convert.convertStringToDateTime(webhookDTO.getTimestamp()))
+                            .signalToken(webhookDTO.getSignalToken())
+                            .maxLag(webhookDTO.getMaxLag())
+                            .investmentType(webhookDTO.getInvestmentType())
+                            .amount(Double.valueOf(webhookDTO.getAmount()))
+                            .status("pending")
+                            .build();
+                    AlertTradingEntity saveAlertTradingEntity = alertTradingRepository.save(alertTradingEntity);
+                    //sync to supabase
+                    alertTradingService.saveAndSyncAlert(saveAlertTradingEntity);
                 }
             });
 

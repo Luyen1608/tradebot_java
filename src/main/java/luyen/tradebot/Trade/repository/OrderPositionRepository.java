@@ -67,7 +67,7 @@ public interface OrderPositionRepository extends JpaRepository<OrderPosition, UU
     @Query("SELECT op FROM OrderPosition op WHERE op.order.id = ?1 AND op.status = ?2 ")
     List<OrderPosition> findByOrderIdAndStatus(UUID orderId, String status);
 
-    @Query("SELECT op FROM OrderPosition op WHERE op.order.id = ?1 AND op.status = ?2 AND UPPER(op.orderType) = ?3 ")
+    @Query("SELECT op FROM OrderPosition op JOIN FETCH op.account  WHERE op.order.id = ?1 AND op.status = ?2 AND UPPER(op.orderType) = ?3 ")
     List<OrderPosition> findByOrderIdAndStatusAndOrderType(UUID orderId, String status, String orderType);
 
 }
