@@ -249,6 +249,18 @@ public class OrderStatusConsumer {
             final UUID orderPositionId = orderPosition.getId();
             log.info("Updated error event in database: clientMsgId={}, errorCode={}",
                     clientMsgId, errorCode);
+            // Capture the ID to use in the async thread
+            CompletableFuture.runAsync(() -> {
+                try {
+                    OrderPosition detachedOrderPosition = orderPositionRepository.findById(orderPositionId)
+                            .orElseThrow(() -> new RuntimeException("OrderPosition not found with ID: " + orderPositionId));
+                    signalAccountStatusService.sendSignalAccountStatus(detachedOrderPosition,
+                            detachedOrderPosition.getTradeSide(), detachedOrderPosition.getSymbol(),
+                            detachedOrderPosition.getCtidTraderAccountId());
+                } catch (Exception e) {
+                    log.error("Error sending signal account status: {}", e.getMessage(), e);
+                }
+            });
 
         } catch (Exception e) {
             log.error("Error saving error event to database: {}", e.getMessage(), e);
