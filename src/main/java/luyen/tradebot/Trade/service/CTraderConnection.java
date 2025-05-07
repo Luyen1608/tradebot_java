@@ -349,7 +349,7 @@ public class CTraderConnection {
                     case PROTO_OA_ORDER_ERROR_EVENT:
                     case PROTO_OA_ERROR_RES:
                         //check actionsystem is order
-                        if (actionSystem.equals(ActionSystem.ORDER)) {
+                        if (actionSystem != null && actionSystem.equals(ActionSystem.ORDER)) {
                             // xử lý logic khi nhận được message từ websocket
                             String jsonMessage = objectMapper.writeValueAsString(kafkaData);
                             log.info("Sending message to topic {}: key={}, value={}", "order-status-topic", clientMsgId, jsonMessage);
