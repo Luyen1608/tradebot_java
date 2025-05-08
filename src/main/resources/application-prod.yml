@@ -10,7 +10,7 @@ spring:
     url: ${POSTGRESQL_URL:jdbc:postgresql://103.75.184.167:5432/trade_bot}
     username: ${POSTGRESQL_USER:postgres}
     password: ${POSTGRESQL_PASSWORD:tradebot@1608}
-#    username: ${POSTGRESQL_USER:tradebot_user}
+  #    username: ${POSTGRESQL_USER:tradebot_user}
   jpa:
     properties:
       hibernate:
@@ -23,8 +23,7 @@ spring:
       port: 6379
       host: redis
   kafka:
-#    bootstrap-servers: ""
-    bootstrap-servers: kafka:9092
+    bootstrap-servers: localhost:29092
 springdoc:
   api-docs:
     enabled: true
