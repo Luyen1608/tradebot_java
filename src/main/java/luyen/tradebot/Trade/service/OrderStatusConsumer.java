@@ -239,7 +239,7 @@ public class OrderStatusConsumer {
                     jsonNode.path("payload").get("errorCode").asText(null) : null;
             String errorDescription = jsonNode.path("payload").has("description") ?
                     jsonNode.path("payload").get("description").asText(null) : null;
-            OrderPosition orderPosition = orderPositionRepository.findByClientMsgId(clientMsgId)
+            OrderPosition orderPosition = orderPositionRepository.findByClientMsgIdLimitOne(clientMsgId)
                     .orElseThrow(() -> new RuntimeException("OrderPosition not found with clientMsgId: " + clientMsgId));
             orderPosition.setStatus(ProtoOAExecutionType.ORDER_REJECTED.getStatus());
             orderPosition.setExecutionType(ProtoOAExecutionType.ORDER_REJECTED.toString());
