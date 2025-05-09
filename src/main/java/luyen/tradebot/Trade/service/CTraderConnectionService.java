@@ -35,9 +35,19 @@ public class CTraderConnectionService {
     public void init() {
         log.info("Initializing cTrader connections...");
         List<AccountEntity> activeAccounts = accountRepository.findByIsActive(true);
-        for (AccountEntity account : activeAccounts) {
-            connectAccount(account.getId());
-        }
+//        for (AccountEntity account : activeAccounts) {
+//            connectAccount(account.getId());
+//        }
+        activeAccounts.parallelStream().forEach(account -> {
+            try {
+                log.info("Parallel connecting account: {}", account.getId());
+                connectAccount(account.getId());
+            } catch (Exception e) {
+                log.error("Error connecting account {} in parallel: {}", account.getId(), e.getMessage(), e);
+            }
+        });
+
+        log.info("Initiated parallel connection for {} active accounts", activeAccounts.size());
     }
 
     public void saveConnectionDetails(CTraderConnection connection) {

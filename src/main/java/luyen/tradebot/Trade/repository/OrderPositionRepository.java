@@ -14,6 +14,7 @@ import java.util.UUID;
 
 @Repository
 public interface OrderPositionRepository extends JpaRepository<OrderPosition, UUID> {
+    @Query(value = "SELECT op FROM OrderPosition op WHERE op.clientMsgId = ?1 ORDER BY op.createAt ASC LIMIT 1")
     Optional<OrderPosition> findByClientMsgId(String clientMsgId);
 
     @Query(value = "SELECT op FROM OrderPosition op WHERE op.clientMsgId = ?1 ORDER BY op.createAt ASC LIMIT 1")

@@ -8,8 +8,8 @@ spring:
     add-properties: true
   datasource:
     url: ${POSTGRESQL_URL:jdbc:postgresql://localhost:5432/trade_bot}
-    username: ${POSTGRESQL_USER:tradebot_user}
-    password: ${POSTGRESQL_PASSWORD:tradebot@1608}
+    username: ${POSTGRESQL_USER:postgres}
+    password: ${POSTGRESQL_PASSWORD:123}
   jpa:
     properties:
       hibernate:

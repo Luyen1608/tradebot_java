@@ -180,7 +180,7 @@ public class OrderStatusConsumer {
             log.info("Process New Order Req kafka");
             ResponseCtraderDTO responseCtraderDTO = validateRepsone.formatResponsePlaceOrder(jsonNode.toString());
             //get account by accountId
-            OrderPosition orderPosition = orderPositionRepository.findByClientMsgId(clientMsgId)
+            OrderPosition orderPosition = orderPositionRepository.findByClientMsgIdLimitOne(clientMsgId)
                     .orElseThrow(() -> new RuntimeException("OrderPosition not found with clientMsgId: " + clientMsgId));
             switch (ProtoOAExecutionType.fromCode(responseCtraderDTO.getExecutionType())) {
                 case ORDER_ACCEPTED:
