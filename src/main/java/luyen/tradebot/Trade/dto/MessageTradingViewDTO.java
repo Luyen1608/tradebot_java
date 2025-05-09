@@ -27,4 +27,8 @@ public class MessageTradingViewDTO {
     private String investmentType;
     private String amount;
     private String orderType = "MARKET";
+    private String relative_stop_loss;
+    private String relative_take_profit;
+    private String stop_loss;
+    private String take_profit;
 }

@@ -48,6 +48,8 @@ public class OrderEntity extends AbstractEntity {
 
     private Double stopLoss;
     private Double takeProfit;
+    private Double relativeStopLoss;
+    private Double relativeTakeProfit;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_id")

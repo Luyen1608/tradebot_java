@@ -21,6 +21,8 @@ public class OrderWebhookDTO {
     private int tradeSide;
     private BigDecimal stopLoss;
     private BigDecimal takeProfit;
+    private BigDecimal relative_stop_loss;
+    private BigDecimal relative_take_profit;
     private int volume;
 
     private String type; // Used for "close" operations

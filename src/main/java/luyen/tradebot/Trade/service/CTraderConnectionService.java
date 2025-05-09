@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -38,19 +39,37 @@ public class CTraderConnectionService {
 //        for (AccountEntity account : activeAccounts) {
 //            connectAccount(account.getId());
 //        }
-        activeAccounts.parallelStream().forEach(account -> {
-            try {
-                log.info("Parallel connecting account: {}", account.getId());
-                connectAccount(account.getId());
-            } catch (Exception e) {
-                log.error("Error connecting account {} in parallel: {}", account.getId(), e.getMessage(), e);
-            }
-        });
+//        activeAccounts.parallelStream().forEach(account -> {
+//            try {
+//                log.info("Parallel connecting account: {}", account.getId());
+//                connectAccount(account.getId());
+//            } catch (Exception e) {
+//                log.error("Error connecting account {} in parallel: {}", account.getId(), e.getMessage(), e);
+//            }
+//        });
+//
+//        log.info("Initiated parallel connection for {} active accounts", activeAccounts.size());
+        // Sử dụng CompletableFuture để quản lý các kết nối song song tốt hơn
+        List<CompletableFuture<Void>> connectionFutures = activeAccounts.stream()
+                .map(account -> CompletableFuture.runAsync(() -> {
+                    try {
+                        log.info("Parallel connecting account: {}", account.getId());
+                        connectAccount(account.getId());
+                    } catch (Exception e) {
+                        log.error("Error connecting account {} in parallel: {}", account.getId(), e.getMessage(), e);
+                    }
+                }))
+                .toList();
 
-        log.info("Initiated parallel connection for {} active accounts", activeAccounts.size());
+        // Đợi tất cả các kết nối hoàn thành
+        CompletableFuture.allOf(connectionFutures.toArray(new CompletableFuture[0])).join();
+
+        log.info("Completed parallel connection for {} active accounts", activeAccounts.size());
+
     }
 
-    public void saveConnectionDetails(CTraderConnection connection) {
+    @Transactional
+    public synchronized void saveConnectionDetails(CTraderConnection connection) {
         try {
             UUID accountId = connection.getAccountId();
             AccountEntity asyncAccount = accountRepository.findById(accountId)
@@ -58,6 +77,11 @@ public class CTraderConnectionService {
 
             asyncAccount.setIsConnected(true);
             accountRepository.saveAndFlush(asyncAccount);
+            // Đảm bảo kết nối được lưu trong map
+            if (!connections.containsKey(accountId)) {
+                connections.put(accountId, connection);
+                log.info("Added connection to map for account: {}", accountId);
+            }
 //            ConnectedEntity connectedEntity = connectedRepository.findByAccountId(accountId)
 //                    .orElse(new ConnectedEntity());
 //            connectedEntity.setAccount(asyncAccount);
@@ -70,23 +94,24 @@ public class CTraderConnectionService {
         }
     }
 
-    public void saveConnectionAuthenticated(CTraderConnection connection) {
+    @Transactional
+    public synchronized void saveConnectionAuthenticated(CTraderConnection connection) {
         try {
             UUID accountId = connection.getAccountId();
+            log.info("Saving authentication details for account: {}", accountId);
             AccountEntity asyncAccount = accountRepository.findById(accountId)
                     .orElseThrow(() -> new RuntimeException("Account not found with ID: " + accountId));
 
             asyncAccount.setIsAuthenticated(true);
             accountRepository.saveAndFlush(asyncAccount);
-//
-//            ConnectedEntity connectedEntity = connectedRepository.findByAccountId(accountId)
-//                    .orElse(new ConnectedEntity());
-//            AccountEntity asyncAccount = accountRepository.findById(accountId).orElse(null);
-//            connectedEntity.setAccount(asyncAccount);
-//            connectedEntity.setConnectionStatus(ConnectStatus.CONNECTED);
-//            connectedEntity.setAuthenticated(true);
-//            connectedEntity.setLastConnectionTime(new Date());
-//            connectedRepository.save(connectedEntity);
+            if (connections.containsKey(accountId)) {
+                CTraderConnection existingConnection = connections.get(accountId);
+                existingConnection.setAuthenticatedTraderAccountId(connection.getAuthenticatedTraderAccountId());
+                log.info("Updated authenticated trader account ID for account: {}", accountId);
+            } else {
+                connections.put(accountId, connection);
+                log.info("Added authenticated connection to map for account: {}", accountId);
+            }
             log.info("Connection Authenticated: {}", accountId);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -94,10 +119,16 @@ public class CTraderConnectionService {
     }
 
     @Transactional()
-    public void connectAccount(UUID accountId) {
+    public synchronized void connectAccount(UUID accountId) {
+        if (connections.containsKey(accountId)) {
+            log.info("Connection already exists for account: {}", accountId);
+            return;
+        }
         AccountEntity freshAccount = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("Account not found with ID: " + accountId));
         try {
+            log.info("Creating new connection for account: {} ({})",
+                    freshAccount.getId(), freshAccount.getTypeAccount());
             // Create a new connection to cTrader API
             CTraderConnection connection = cTraderApiService.connect(
                     freshAccount.getId(),
@@ -124,15 +155,19 @@ public class CTraderConnectionService {
             if (freshAccount.getCtidTraderAccountId() != 0) {
                 try {
                     final int traderAccountId = freshAccount.getCtidTraderAccountId();
+                    log.info("Authenticating trader account: {} for account: {}",
+                            traderAccountId, freshAccount.getId());
                     connection.authenticateTraderAccount(traderAccountId)
                             .thenAccept(success -> {
                                 if (success != null) {
-                                    log.info("Save authenticated trader account: {}", traderAccountId);
+                                    log.info("Successfully authenticated trader account: {} for account: {}",
+                                            traderAccountId, freshAccount.getId());
+
                                 }
                             });
                 } catch (Exception e) {
-                    log.error("Failed to authenticate trader account: {}",
-                            freshAccount.getCtidTraderAccountId(), e);
+                    log.error("Failed to authenticate trader account: {} for account: {}",
+                            freshAccount.getCtidTraderAccountId(), freshAccount.getId(), e);
                     connections.remove(freshAccount.getId());
                     disconnectAccount(freshAccount.getId());
                 }
@@ -169,29 +204,47 @@ public class CTraderConnectionService {
         }
     }
 
-    public void reconnect(CTraderConnection connection) {
+    @Transactional
+    public synchronized void reconnect(CTraderConnection connection) {
         UUID accountId = connection.getAccountId();
         log.info("Attempting to reconnect for account: " + accountId);
         connection.close(); // Đóng kết nối cũ nếu còn mở
         connections.remove(accountId);
         // Tạo kết nối mới
-        CTraderConnection newConnection = cTraderApiService.connect(
-                accountId,
-                connection.getClientId(),
-                connection.getSecretId(),
-                connection.getAccessToken(),
-                null,
-                this,
-                connection.getWsUrl(),
-                connection.getVolumeMultiplier(),
-                connection.getAuthenticatedTraderAccountId()
-        );
-        newConnection.setAuthenticatedTraderAccountId(connection.getAuthenticatedTraderAccountId());
-        connections.put(accountId, newConnection);
-        // check khi connect thành công thì mới tiếp tục authenticate trader account
-        if (newConnection.isConnectionSuccessful()) {
-            newConnection.authenticateTraderAccount(newConnection.getAuthenticatedTraderAccountId());
-            return;
+        try {
+            // Tạo kết nối mới
+            CTraderConnection newConnection = cTraderApiService.connect(
+                    accountId,
+                    connection.getClientId(),
+                    connection.getSecretId(),
+                    connection.getAccessToken(),
+                    null,
+                    this,
+                    connection.getWsUrl(),
+                    connection.getVolumeMultiplier(),
+                    connection.getAuthenticatedTraderAccountId()
+            );
+
+            // Sao chép thông tin xác thực từ kết nối cũ
+            newConnection.setAuthenticatedTraderAccountId(connection.getAuthenticatedTraderAccountId());
+            // Lưu kết nối mới vào map
+            connections.put(accountId, newConnection);
+            log.info("Created new connection for account: {}", accountId);
+            // Chỉ xác thực tài khoản trader nếu kết nối thành công và có ID tài khoản trader
+            if (newConnection.isConnectionSuccessful() && newConnection.getAuthenticatedTraderAccountId() != 0) {
+                log.info("Authenticating trader account: {} for reconnected account: {}",
+                        newConnection.getAuthenticatedTraderAccountId(), accountId);
+                newConnection.authenticateTraderAccount(newConnection.getAuthenticatedTraderAccountId())
+                        .thenAccept(success -> {
+                            if (success != null) {
+                                log.info("Successfully authenticated trader account after reconnection: {}", newConnection.getAuthenticatedTraderAccountId());
+                            }
+                        });
+            } else {
+                log.warn("Reconnection successful but not authenticating trader account for account: {}", accountId);
+            }
+        } catch (Exception e) {
+            log.error("Failed to reconnect account: {}", accountId, e);
         }
     }
 

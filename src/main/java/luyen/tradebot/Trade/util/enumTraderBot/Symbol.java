@@ -3,9 +3,24 @@ package luyen.tradebot.Trade.util.enumTraderBot;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum Symbol {
-    BTCUSD(101),
+
+    //Major currency pairs
+    EURUSD(1),
+    GBPUSD(2),
+    USDJPY(4),
+    USDCHF(6),
+    AUDUSD(5),
+    USDCAD(8),
     XAUUSD(41),
-    ADAUSD(433);
+    XAGUSD(42),
+    XPTUSD(97),
+    //Tien dien tu
+    BTCUSD(101),
+    ETHUSD(102),
+    XRPUSD(414),
+    LTCUSD(407),
+    ADAUSD(433),
+    DOTUSD(436);
     private final int id;
 
     Symbol(int id) {
@@ -25,6 +40,7 @@ public enum Symbol {
         }
         throw new IllegalArgumentException("Unknown symbol ID: " + id);
     }
+
     public static Symbol fromString(String text) {
         try {
             return Symbol.valueOf(text.toUpperCase());
@@ -32,6 +48,7 @@ public enum Symbol {
             throw new IllegalArgumentException("Unknown symbol: " + text);
         }
     }
+
     //fromString full ví dụ BTCUSDT.P se ra BTCUSD
     public static Symbol fromStringFull(String text) {
         try {
@@ -53,9 +70,6 @@ public enum Symbol {
             throw new IllegalArgumentException("Unknown symbol: " + text);
         }
     }
-
-
-
 
 
 }
