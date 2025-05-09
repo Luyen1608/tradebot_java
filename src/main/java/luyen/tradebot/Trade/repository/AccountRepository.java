@@ -27,6 +27,8 @@ public interface AccountRepository extends JpaRepository<AccountEntity, UUID> {
 
     boolean existsByClientId(String clientId);
 
+    boolean existsByAccessToken(String accessToken);
+
     // delete account by id
     void deleteById(UUID id);
 

@@ -77,8 +77,8 @@ public class AccountService {
         log.debug("Tạo tài khoản mới: {}", accountDTO.getClientId());
 
         // Kiểm tra tài khoản đã tồn tại chưa
-        if (accountRepository.existsByClientId((accountDTO.getClientId()))) {
-            throw new IllegalArgumentException("Tài khoản với Client ID này đã tồn tại");
+        if (accountRepository.existsByAccessToken((accountDTO.getAccessToken()))) {
+            throw new IllegalArgumentException("Tài khoản với Access Token này đã tồn tại");
         }
         AccountEntity account = AccountEntity.builder()
                 .accountName(accountDTO.getName())
@@ -166,8 +166,8 @@ public class AccountService {
         log.debug("Tạo tài khoản mới từ Supabase: {}", accountDTO.getClientId());
 
         // Kiểm tra tài khoản đã tồn tại chưa
-        if (accountRepository.existsByClientId(accountDTO.getClientId())) {
-            throw new IllegalArgumentException("Tài khoản với Client ID này đã tồn tại");
+        if (accountRepository.existsByAccessToken(accountDTO.getAccessToken())) {
+            throw new IllegalArgumentException("Tài khoản với Acess Token này đã tồn tại");
         }
 
         // Kiểm tra xem ID đã tồn tại chưa
