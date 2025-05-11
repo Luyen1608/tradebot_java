@@ -24,7 +24,8 @@ public interface OrderRepository extends JpaRepository<OrderEntity, UUID> {
     List<OrderEntity> findOpenOrdersByBotIdAndSymbolId(UUID botId, Integer symbolId);
 
     @Query("SELECT DISTINCT o FROM Order o JOIN o.positions p WHERE o.symbolId = ?1 AND o.tradeSide = ?2 " +
-            "AND o.status = 'OPEN' AND o.account.bot.signalToken = ?3 ORDER BY o.createAt desc limit 1")
+            " AND o.account.bot.signalToken = ?3 ORDER BY o.createAt desc limit 1")
+//    AND o.status = 'OPEN'
     Optional<OrderEntity>  findOpenOrdersBySymbolIdAndBotSignalTokenAndTradeSide(Integer symbolId, TradeSide tradeSide, String signalToken);
 
     @Modifying

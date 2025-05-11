@@ -46,10 +46,10 @@ public class OrderEntity extends AbstractEntity {
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private OrderType orderType; // MARKET, LIMIT, STOP
 
-    private Double stopLoss;
-    private Double takeProfit;
-    private Double relativeStopLoss;
-    private Double relativeTakeProfit;
+    private Integer stopLoss;
+    private Integer takeProfit;
+    private Integer relativeStopLoss;
+    private Integer relativeTakeProfit;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_id")

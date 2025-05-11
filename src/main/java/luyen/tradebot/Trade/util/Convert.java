@@ -26,6 +26,10 @@ public class Convert {
                 .tradeSide(TradeSide.fromString(AcctionTrading.fromString(messageTradingViewDTO.getAction()).getValue()).getValue())
                 .signalToken(messageTradingViewDTO.getSignalToken())
                 .orderType(OrderType.fromString(messageTradingViewDTO.getOrderType()).getValue())
+                .stopLoss((int)Double.parseDouble(messageTradingViewDTO.getRelative_stop_loss()))
+                .takeProfit((int)Double.parseDouble(messageTradingViewDTO.getTake_profit()))
+                .relative_stop_loss((int)Double.parseDouble(messageTradingViewDTO.getRelative_stop_loss()))
+                .relative_take_profit((int)Double.parseDouble(messageTradingViewDTO.getRelative_take_profit()))
                 .volume(volumeInt)
                 .type("Order")
                 .build();

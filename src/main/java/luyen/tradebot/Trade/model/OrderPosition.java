@@ -4,6 +4,7 @@ package luyen.tradebot.Trade.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @NoArgsConstructor
@@ -50,6 +51,11 @@ public class OrderPosition extends AbstractEntity{
     private String tradeSide;
     private String symbol;
     private String ctidTraderAccountId;
+
+    private Integer stopLoss;
+    private Integer takeProfit;
+    private Integer relativeStopLoss;
+    private Integer relativeTakeProfit;
 
 
 

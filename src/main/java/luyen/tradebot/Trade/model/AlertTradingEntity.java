@@ -7,6 +7,7 @@ import luyen.tradebot.Trade.util.enumTraderBot.AcctionTrading;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -46,7 +47,19 @@ public class AlertTradingEntity extends AbstractEntity {
 
     @Column(name = "status", length = 255)
     private String status;
-    
+
+    @Column(name = "stop_loss")
+    private Integer stopLoss;
+
+    @Column(name = "take_profit")
+    private Integer takeProfit;
+
+    @Column(name = "relative_stop_loss")
+    private Integer relativeStopLoss;
+
+    @Column(name = "relative_take_profit")
+    private Integer relativeTakeProfit;
+
     @Override
     public String toString() {
         return "AlertTradingEntity{" +

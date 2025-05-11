@@ -21,6 +21,11 @@ public class PlaceOrderRequest {
     private AccountEntity account;
     private OrderEntity savedOrder;
 
+    private Integer stopLoss;
+    private Integer takeProfit;
+    private Integer relativeStopLoss;
+    private Integer relativeTakeProfit;
+
     private PayloadType payloadType;
 
 

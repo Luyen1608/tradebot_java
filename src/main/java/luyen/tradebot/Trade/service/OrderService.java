@@ -125,6 +125,10 @@ public class OrderService {
                 .orderType(OrderType.fromValue(webhookDTO.getOrderType()))
                 .comment("Created Order webhook for bot: " + bot.getName())
                 .openTime(LocalDateTime.now())
+                .stopLoss(webhookDTO.getStopLoss())
+                .takeProfit(webhookDTO.getTakeProfit())
+                .relativeStopLoss(webhookDTO.getRelative_stop_loss())
+                .relativeTakeProfit(webhookDTO.getRelative_take_profit())
                 .account(accounts.get(0)) // Use the first account as the reference account
                 .botId(bot.getId()) // Use the first account as the reference account
                 .build();
@@ -154,6 +158,11 @@ public class OrderService {
                             .account(account)
                             .volumeMultiplier(account.getVolumeMultiplier())
                             .originalVolume(webhookDTO.getVolume())
+                            .stopLoss(webhookDTO.getStopLoss())
+                            .takeProfit(webhookDTO.getTakeProfit())
+                            .relativeStopLoss(webhookDTO.getRelative_stop_loss())
+                            .relativeTakeProfit(webhookDTO.getRelative_take_profit())
+                            .originalVolume(webhookDTO.getVolume())
                             .orderType("NEW_ORDER")
                             .status("PENDING")
                             .tradeSide(TradeSide.fromValue(webhookDTO.getTradeSide()).toString())
@@ -169,6 +178,10 @@ public class OrderService {
                             .symbol(webhookDTO.getSymbol())
                             .tradeSide(webhookDTO.getTradeSide())
                             .volume(webhookDTO.getVolume())
+                            .stopLoss(webhookDTO.getStopLoss())
+                            .takeProfit(webhookDTO.getTakeProfit())
+                            .relativeStopLoss(webhookDTO.getRelative_stop_loss())
+                            .relativeTakeProfit(webhookDTO.getRelative_take_profit())
                             .orderType(webhookDTO.getOrderType())
                             .account(account)
                             .savedOrder(savedOrder)
@@ -194,7 +207,11 @@ public class OrderService {
                         .maxLag(messageTradingViewDTO.getMaxLag())
                         .investmentType(messageTradingViewDTO.getInvestmentType())
                         .amount(Double.valueOf(messageTradingViewDTO.getAmount()))
-                        .status("pending")
+                        .stopLoss(webhookDTO.getStopLoss())
+                        .takeProfit(webhookDTO.getTakeProfit())
+                        .relativeStopLoss(webhookDTO.getRelative_stop_loss())
+                        .relativeTakeProfit(webhookDTO.getRelative_take_profit())
+                        .status("Success")
                         .build();
                 AlertTradingEntity saveAlertTradingEntity = alertTradingRepository.save(alertTradingEntity);
                 //sync to supabase

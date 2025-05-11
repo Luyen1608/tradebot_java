@@ -59,7 +59,11 @@ public class SignalAccountStatusService {
                     orderPosition.getStatus(),
                     orderPosition.getCreateAt().toString(),
                     orderPosition.getErrorMessage(),
-                    ctidTraderAccountId
+                    ctidTraderAccountId,
+                    orderPosition.getStopLoss().toString(),
+                    orderPosition.getTakeProfit().toString(),
+                    orderPosition.getRelativeStopLoss().toString(),
+                    orderPosition.getRelativeTakeProfit().toString()
 
             );
             // Convert payload to JSON string
@@ -133,9 +137,19 @@ public class SignalAccountStatusService {
         @JsonProperty("accountid_trading")
         private final String accountidTrading;
 
+        @JsonProperty("stop_loss")
+        private final String stopLoss;
+        @JsonProperty("take_profit")
+        private final String takeProfit;
+        @JsonProperty("relative_stop_loss")
+        private final String relativeStopLoss;
+        @JsonProperty("relative_take_profit")
+        private final String relativeTakeProfit;
+
         public SignalAccountStatusPayload(String signalId, String tradingAccountId, String apiConnectionId, String action,
                                           String symbol, double originalVolume, double volumeSent, double volumeMultiplier,
-                                          String orderId, String status, String responseTime, String errorMessage, String accountidTrading) {
+                                          String orderId, String status, String responseTime, String errorMessage,
+                                          String accountidTrading, String stopLoss, String takeProfit, String relativeStopLoss, String relativeTakeProfit) {
             this.signalId = signalId != null ? signalId : UUID.randomUUID().toString();
             this.tradingAccountId = tradingAccountId;
             this.apiConnectionId = apiConnectionId;
@@ -149,6 +163,10 @@ public class SignalAccountStatusService {
             this.responseTime = responseTime;
             this.errorMessage = errorMessage;
             this.accountidTrading = accountidTrading;
+            this.stopLoss = stopLoss;
+            this.takeProfit = takeProfit;
+            this.relativeStopLoss = relativeStopLoss;
+            this.relativeTakeProfit = relativeTakeProfit;
         }
 
         // Getters needed for JSON serialization
@@ -167,13 +185,6 @@ public class SignalAccountStatusService {
             return apiConnectionId;
         }
 
-        public String getAction() {
-            return action;
-        }
-
-        public String getSymbol() {
-            return symbol;
-        }
 
         @JsonProperty("original_volume")
         public Double getOriginalVolume() {
@@ -230,6 +241,10 @@ public class SignalAccountStatusService {
                     ", response_time='" + responseTime + '\'' +
                     ", error_message='" + errorMessage + '\'' +
                     ", accountid_trading='" + accountidTrading + '\'' +
+                    ", stop_loss='" + stopLoss + '\'' +
+                    ", take_profit='" + takeProfit + '\'' +
+                    ", relative_stop_loss='" + relativeStopLoss + '\'' +
+                    ", relative_take_profit='" + relativeTakeProfit + '\'' +
                     '}';
         }
     }
@@ -243,7 +258,7 @@ public class SignalAccountStatusService {
             String symbol,
             Double originalVolume,
             Double volumeMultiplier,
-            String accountidTrading) {
+            String accountidTrading,String stopLoss,String takeProfit,String relativeStopLoss,String relativeTakeProfit) {
 
         // Calculate volume sent based on original volume and multiplier
         Double volumeSent = (originalVolume != null && volumeMultiplier != null)
@@ -263,7 +278,8 @@ public class SignalAccountStatusService {
                 "pending", // status is always 'pending'
                 null, // response_time is null initially
                 null, // error_message is null initially
-                accountidTrading
+                accountidTrading,
+                stopLoss,takeProfit,relativeStopLoss,relativeTakeProfit
         );
     }
 
