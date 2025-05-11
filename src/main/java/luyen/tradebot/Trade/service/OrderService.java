@@ -241,7 +241,7 @@ public class OrderService {
         
         // Get all positions that need to be closed in a single query
         List<OrderPosition> positions = orderPositionRepository.findByOrderIdAndStatusAndOrderType(
-                openOrder.getId(), "OPEN", OrderTypeSystem.NEW_ORDERS.getName());
+                openOrder.getId(), OrderTypeSystem.NEW_ORDERS.getName());
         
         if (positions.isEmpty()) {
             log.info("No open positions found for order: {}", openOrder.getId());
@@ -252,7 +252,7 @@ public class OrderService {
         
         // Group positions by connection to minimize connection lookups
         Map<UUID, List<OrderPosition>> positionsByAccountId = positions.stream()
-                .filter(position -> "OPEN".equals(position.getStatus()))
+//                .filter(position -> "OPEN".equals(position.getStatus()))
                 .collect(Collectors.groupingBy(position -> position.getAccount().getId()));
         
         // Create a single AlertTradingEntity record for this webhook
