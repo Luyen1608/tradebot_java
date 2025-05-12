@@ -10,6 +10,7 @@ spring:
     url: ${POSTGRESQL_URL:jdbc:postgresql://103.75.184.167:5432/trade_bot}
     username: ${POSTGRESQL_USER:postgres}
     password: ${POSTGRESQL_PASSWORD:tradebot@1608}
+    driver-class-name: org.postgresql.Driver
   #    username: ${POSTGRESQL_USER:tradebot_user}
   jpa:
     properties:
