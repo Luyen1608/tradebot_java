@@ -13,6 +13,18 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 
 public class Convert {
+    /**
+     * +     * Rounds down a number to the nearest thousand
+     * +     * Examples:
+     * +     * 3478958 -> 3478000
+     * +     * 34789589 -> 34789000
+     * +     * 347895899 -> 347895000
+     * +
+     */
+    public static int roundDownToNearestThousand(double value) {
+        return (int) (Math.floor(value / 1000) * 1000);
+    }
+
     public static OrderWebhookDTO convertTradeviewToCtrader(MessageTradingViewDTO messageTradingViewDTO) {
         BigDecimal volume = new BigDecimal(messageTradingViewDTO.getAmount());
         int volumeInt = volume.multiply(BigDecimal.valueOf(1000)).intValue();
@@ -21,21 +33,28 @@ public class Convert {
         if (messageTradingViewDTO.getInstrument().length() > 6) {
             messageTradingViewDTO.setInstrument(messageTradingViewDTO.getInstrument().substring(0, 6));
         }
+        double relativeTakeProfit = Double.parseDouble(messageTradingViewDTO.getRelative_take_profit());
+        double relativeStopLoss = Double.parseDouble(messageTradingViewDTO.getRelative_stop_loss());
+        double takeProfit = Double.parseDouble(messageTradingViewDTO.getTake_profit());
+        double stopLos = Double.parseDouble(messageTradingViewDTO.getStop_loss());
+        int roundedRelativeTakeProfit = roundDownToNearestThousand(relativeTakeProfit);
+        int roundedRelativeStopLoss = roundDownToNearestThousand(relativeStopLoss);
         OrderWebhookDTO webhookDTO = OrderWebhookDTO.builder()
                 .symbol(Symbol.fromString(messageTradingViewDTO.getInstrument()).getId())
                 .tradeSide(TradeSide.fromString(AcctionTrading.fromString(messageTradingViewDTO.getAction()).getValue()).getValue())
                 .signalToken(messageTradingViewDTO.getSignalToken())
                 .orderType(OrderType.fromString(messageTradingViewDTO.getOrderType()).getValue())
-                .stopLoss((int)Double.parseDouble(messageTradingViewDTO.getRelative_stop_loss()))
-                .takeProfit((int)Double.parseDouble(messageTradingViewDTO.getTake_profit()))
-                .relative_stop_loss((int)Double.parseDouble(messageTradingViewDTO.getRelative_stop_loss()))
-                .relative_take_profit((int)Double.parseDouble(messageTradingViewDTO.getRelative_take_profit()))
+                .stopLoss((int) stopLos)
+                .takeProfit((int) takeProfit)
+                .relative_stop_loss(roundedRelativeStopLoss)
+                .relative_take_profit(roundedRelativeTakeProfit)
                 .volume(volumeInt)
                 .type("Order")
                 .build();
         return webhookDTO;
     }
-    public static LocalDateTime  convertStringToDateTime(String dateTimeString) {
+
+    public static LocalDateTime convertStringToDateTime(String dateTimeString) {
         // Chuyển đổi chuỗi thành đối tượng LocalDateTime
         return Instant.parse(dateTimeString)
                 .atZone(ZoneId.systemDefault())

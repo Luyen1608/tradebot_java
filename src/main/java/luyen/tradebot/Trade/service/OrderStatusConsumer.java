@@ -179,12 +179,14 @@ public class OrderStatusConsumer {
         try {
             log.info("Process New Order Req kafka");
             ResponseCtraderDTO responseCtraderDTO = validateRepsone.formatResponsePlaceOrder(jsonNode.toString());
-            log.info("ExecutionType from response: {}", responseCtraderDTO.getExecutionType());
-
+            ProtoOAExecutionType executionType = ProtoOAExecutionType.fromCode(responseCtraderDTO.getExecutionType());
             //get account by accountId
             OrderPosition orderPosition = orderPositionRepository.findByClientMsgIdLimitOne(clientMsgId)
                     .orElseThrow(() -> new RuntimeException("OrderPosition not found with clientMsgId: " + clientMsgId));
-            ProtoOAExecutionType executionType = ProtoOAExecutionType.fromCode(responseCtraderDTO.getExecutionType());
+            final UUID orderPositionId = orderPosition.getId();
+            final String tradeSide = orderPosition.getTradeSide();
+            final String symbol = orderPosition.getSymbol();
+            final String ctidTraderAccountId = orderPosition.getCtidTraderAccountId();
             switch (executionType) {
                 case ORDER_ACCEPTED:
                     log.info("Process New Order Req kafka Execution Type Accepted");
@@ -214,7 +216,6 @@ public class OrderStatusConsumer {
             }
             orderPositionRepository.saveAndFlush(orderPosition);
             // Capture the ID to use in the async thread
-            final UUID orderPositionId = orderPosition.getId();
             final String clientMsgIdFinal = clientMsgId;
             // Ensure transaction is committed before running async task
             CompletableFuture.runAsync(() -> {
@@ -232,8 +233,7 @@ public class OrderStatusConsumer {
                     log.info("Fetched detached OrderPosition with status: {}", detachedOrderPosition.getStatus());
 
                     signalAccountStatusService.sendSignalAccountStatus(detachedOrderPosition,
-                            detachedOrderPosition.getTradeSide(), detachedOrderPosition.getSymbol(),
-                            detachedOrderPosition.getCtidTraderAccountId());
+                            tradeSide, symbol, ctidTraderAccountId);
                     log.info("Signal account status sent successfully");
                 } catch (Exception e) {
                     log.error("Error sending signal account status: {}", e.getMessage(), e);
