@@ -230,7 +230,7 @@ public class OrderService {
         Symbol symbol = Symbol.fromString6(webhookDTO.getInstrument());
         TradeSide tradeSideInput = TradeSide.fromString(AcctionTrading.fromString(webhookDTO.getAction()).getValue());
         OrderEntity openOrder = orderRepository.findOpenOrdersBySymbolIdAndBotSignalTokenAndTradeSide(
-                        symbol.getId(), tradeSideInput, webhookDTO.getSignalToken())
+                symbol.getId(), tradeSideInput, webhookDTO.getSignalToken())
                 .orElseThrow(() -> new RuntimeException("Order not found with signal token: " + webhookDTO.getSignalToken()));
 
         if (openOrder == null) {
@@ -297,6 +297,10 @@ public class OrderService {
                             .orderType("CLOSE_POSITION")
                             .account(position.getAccount())
                             .status("PENDING")
+                            .stopLoss(position.getStopLoss())
+                            .takeProfit(position.getTakeProfit())
+                            .relativeStopLoss(position.getRelativeStopLoss())
+                            .relativeTakeProfit(position.getRelativeTakeProfit())
                             .positionId(position.getPositionId())
                             .tradeSide(openOrder.getTradeSide().toString())
                             .symbol(openOrder.getSymbol().toString())
