@@ -226,35 +226,35 @@ public class OrderService {
     @Transactional
     public void processWebhookClose(MessageTradingViewDTO webhookDTO) {
         log.info("Processing close order for signalToken: {}", webhookDTO.getSignalToken());
-        
+
         Symbol symbol = Symbol.fromString6(webhookDTO.getInstrument());
         TradeSide tradeSideInput = TradeSide.fromString(AcctionTrading.fromString(webhookDTO.getAction()).getValue());
         OrderEntity openOrder = orderRepository.findOpenOrdersBySymbolIdAndBotSignalTokenAndTradeSide(
-                symbol.getId(), tradeSideInput, webhookDTO.getSignalToken())
+                        symbol.getId(), tradeSideInput, webhookDTO.getSignalToken())
                 .orElseThrow(() -> new RuntimeException("Order not found with signal token: " + webhookDTO.getSignalToken()));
-        
+
         if (openOrder == null) {
             log.warn("No open orders found for signalToken: {} and symbol: {}",
                     webhookDTO.getSignalToken(), symbol.getId());
             return;
         }
-        
+
         // Get all positions that need to be closed in a single query
         List<OrderPosition> positions = orderPositionRepository.findByOrderIdAndStatusAndOrderType(
                 openOrder.getId(), OrderTypeSystem.NEW_ORDERS.getName());
-        
+
         if (positions.isEmpty()) {
             log.info("No open positions found for order: {}", openOrder.getId());
             return;
         }
-        
+
         log.info("Found {} positions to close for order: {}", positions.size(), openOrder.getId());
-        
+
         // Group positions by connection to minimize connection lookups
         Map<UUID, List<OrderPosition>> positionsByAccountId = positions.stream()
 //                .filter(position -> "OPEN".equals(position.getStatus()))
                 .collect(Collectors.groupingBy(position -> position.getAccount().getId()));
-        
+
         // Create a single AlertTradingEntity record for this webhook
         AlertTradingEntity alertTradingEntity = AlertTradingEntity.builder()
                 .action(AcctionTrading.fromString(webhookDTO.getAction()))
@@ -267,10 +267,10 @@ public class OrderService {
                 .status("pending")
                 .build();
         AlertTradingEntity savedAlertTradingEntity = alertTradingRepository.save(alertTradingEntity);
-        
+
         // Process each account's positions in parallel
         List<CompletableFuture<Void>> accountFutures = new ArrayList<>();
-        
+
         positionsByAccountId.forEach((accountId, accountPositions) -> {
             CompletableFuture<Void> accountFuture = CompletableFuture.runAsync(() -> {
                 // Get connection once per account
@@ -284,11 +284,11 @@ public class OrderService {
                     });
                     return;
                 }
-                
+
                 // Create all new position records in batch
                 List<OrderPosition> newPositions = new ArrayList<>();
                 Map<String, OrderPosition> clientMsgIdToPosition = new HashMap<>();
-                
+
                 for (OrderPosition position : accountPositions) {
                     String clientMsgId = position.getClientMsgId() + "_" + "CLOSE_POSITION";
                     OrderPosition positionNew = OrderPosition.builder()
@@ -297,6 +297,7 @@ public class OrderService {
                             .orderType("CLOSE_POSITION")
                             .account(position.getAccount())
                             .status("PENDING")
+                            .positionId(position.getPositionId())
                             .tradeSide(openOrder.getTradeSide().toString())
                             .symbol(openOrder.getSymbol().toString())
                             .ctidTraderAccountId(position.getAccount().getCtidTraderAccountId().toString())
@@ -304,24 +305,45 @@ public class OrderService {
                     newPositions.add(positionNew);
                     clientMsgIdToPosition.put(clientMsgId, position);
                 }
-                
+
                 // Save all new positions in a single transaction
                 List<OrderPosition> savedPositions = orderPositionRepository.saveAllAndFlush(newPositions);
-                
                 // Send all close commands in parallel
                 List<CompletableFuture<String>> closeFutures = new ArrayList<>();
-                
+
                 for (OrderPosition newPosition : savedPositions) {
                     OrderPosition originalPosition = clientMsgIdToPosition.get(newPosition.getClientMsgId());
                     try {
+                        Integer positionId = originalPosition.getPositionId();
+                        if (positionId == null) {
+                            positionId = newPosition.getPositionId();
+                        }
+
+                        // If still null, try to refresh from database
+                        if (positionId == null && originalPosition.getId() != null) {
+                            OrderPosition refreshedPosition = orderPositionRepository.findById(originalPosition.getId()).orElse(null);
+                            if (refreshedPosition != null) {
+                                positionId = refreshedPosition.getPositionId();
+                            }
+                        }
+
+                        // If positionId is still null, log error and skip
+                        if (positionId == null) {
+                            log.error("Cannot close position: positionId is null for clientMsgId: {}", newPosition.getClientMsgId());
+                            newPosition.setStatus("ERROR_CLOSING");
+                            newPosition.setErrorMessage("Error closing: positionId is null");
+                            orderPositionRepository.save(newPosition);
+                            continue;
+                        }
+                        final Integer finalPositionId = positionId;
                         // Send close position command
                         CompletableFuture<String> closeFuture = cTraderApiService.closePosition(
-                                connection, 
+                                connection,
                                 newPosition.getClientMsgId(),
-                                originalPosition.getPositionId(), 
-                                originalPosition.getVolumeSent(), 
+                                finalPositionId,
+                                originalPosition.getVolumeSent(),
                                 PayloadType.PROTO_OA_CLOSE_POSITION_REQ);
-                        
+
                         // Handle response
                         closeFuture.whenComplete((result, ex) -> {
                             if (ex != null) {
@@ -333,7 +355,7 @@ public class OrderService {
                                 log.info("Successfully sent close command for position: {}", newPosition.getClientMsgId());
                             }
                         });
-                        
+
                         closeFutures.add(closeFuture);
                     } catch (Exception e) {
                         log.error("Error sending close command for position: {}", newPosition.getClientMsgId(), e);
@@ -342,17 +364,17 @@ public class OrderService {
                         orderPositionRepository.save(newPosition);
                     }
                 }
-                
+
                 // Wait for all close commands to be sent (optional)
                 // CompletableFuture.allOf(closeFutures.toArray(new CompletableFuture[0])).join();
             });
-            
+
             accountFutures.add(accountFuture);
         });
-        
+
         // Sync alert to supabase (do this outside the parallel processing to avoid contention)
         alertTradingService.saveAndSyncAlert(savedAlertTradingEntity);
-        
+
         // Optionally wait for all accounts to be processed
         // CompletableFuture.allOf(accountFutures.toArray(new CompletableFuture[0])).join();
     }
