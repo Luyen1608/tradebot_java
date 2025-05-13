@@ -31,7 +31,7 @@ public interface OrderPositionRepository extends JpaRepository<OrderPosition, UU
     Optional<OrderPosition> findByOrderIdAndAccountId(UUID orderId, UUID accountId);
 
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
     @Query("UPDATE OrderPosition op SET op.executionType = :executionType " +
             "WHERE op.orderCtraderId = :orderCtraderId AND op.positionId = :positionId")
@@ -41,10 +41,13 @@ public interface OrderPositionRepository extends JpaRepository<OrderPosition, UU
 
 
     // update executionType và errorMessage theo positionId và orderCtraderId
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
-    @Query("UPDATE OrderPosition op SET op.executionType = :executionType, op.errorMessage = :errorMessage, op.errorCode = :errorCode, " +
-            " op.status = :orderStatus  WHERE op.clientMsgId = :clientMsgId")
+    @Query("UPDATE OrderPosition op SET op.executionType = :executionType, " +
+                        "op.errorMessage = :errorMessage, " +
+                        "op.errorCode = :errorCode, " +
+                        "op.status = :orderStatus " +
+                        "WHERE op.clientMsgId = :clientMsgId")
     int updateByOrderCtraderIdAndPositionId(
             @Param("executionType") String executionType,
             @Param("errorMessage") String errorMessage,
@@ -54,7 +57,7 @@ public interface OrderPositionRepository extends JpaRepository<OrderPosition, UU
 
 
     // update errorcode and errormessage by clientMsgId
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
     @Query("UPDATE OrderPosition op SET op.status = :orderStatus, op.errorCode = :errorCode, op.errorMessage = :errorMessage " +
             "WHERE op.clientMsgId = :clientMsgId")

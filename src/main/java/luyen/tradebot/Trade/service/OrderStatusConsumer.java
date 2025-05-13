@@ -86,40 +86,48 @@ public class OrderStatusConsumer {
             String clientMsgId = jsonNode.path("clientMsgId").asText();
             // Parse raw message để lấy thông tin chi tiết
             JsonNode rawMessageNode = objectMapper.readTree(rawMessage);
-            
+
             // Get account information
             AccountEntity account = accountRepository.findById(UUID.fromString(accountId))
                     .orElseThrow(() -> new RuntimeException("Account not found with accountId Order Position "));
-            
+
             try {
-                // First check if the order position exists
+
                 OrderPosition orderPosition = orderPositionRepository.findByClientMsgId(clientMsgId)
                         .orElseThrow(() -> new RuntimeException("OrderPosition not found with clientMsgId: " + clientMsgId));
-                
-                // Store the ID for later use
-                final UUID orderPositionId = orderPosition.getId();
-                
-                // Use direct update method to avoid optimistic locking issues
-                int updatedRows = orderPositionRepository.updateByOrderCtraderIdAndPositionId(
-                        null, // executionType - not changing
-                        null, // errorMessage
-                        null, // errorCode
-                        ProtoOAExecutionType.ORDER_ACCEPTED.getStatus(),
-                        clientMsgId
-                );
-                
-                if (updatedRows > 0) {
-                    // Refresh the entity to get the latest state
-                    orderPosition = orderPositionRepository.findById(orderPositionId)
-                            .orElseThrow(() -> new RuntimeException("OrderPosition not found after update"));
-                    
-                    // Update additional fields
-                    orderPosition.setVolumeMultiplier(account.getVolumeMultiplier());
-                    orderPosition.setVolumeSent(jsonNode.path("payload").path("volume").asInt());
-                    orderPositionRepository.saveAndFlush(orderPosition);
-                }
+
+                orderPosition.setVolumeMultiplier(account.getVolumeMultiplier());
+                orderPosition.setVolumeSent(jsonNode.path("payload").path("volume").asInt());
+                orderPosition.setStatus(ProtoOAExecutionType.ORDER_ACCEPTED.getStatus());
+                orderPositionRepository.saveAndFlush(orderPosition);
+//                // First check if the order position exists
+//                OrderPosition orderPosition = orderPositionRepository.findByClientMsgId(clientMsgId)
+//                        .orElseThrow(() -> new RuntimeException("OrderPosition not found with clientMsgId: " + clientMsgId));
+//
+//                // Store the ID for later use
+//                final UUID orderPositionId = orderPosition.getId();
+//
+//                // Use direct update method to avoid optimistic locking issues
+//                int updatedRows = orderPositionRepository.updateByOrderCtraderIdAndPositionId(
+//                        null, // executionType - not changing
+//                        null, // errorMessage
+//                        null, // errorCode
+//                        ProtoOAExecutionType.ORDER_ACCEPTED.getStatus(),
+//                        clientMsgId
+//                );
+//
+//                if (updatedRows > 0) {
+//                    // Refresh the entity to get the latest state
+//                    orderPosition = orderPositionRepository.findById(orderPositionId)
+//                            .orElseThrow(() -> new RuntimeException("OrderPosition not found after update"));
+//
+//                    // Update additional fields
+//                    orderPosition.setVolumeMultiplier(account.getVolumeMultiplier());
+//                    orderPosition.setVolumeSent(jsonNode.path("payload").path("volume").asInt());
+//                    orderPositionRepository.saveAndFlush(orderPosition);
+//                }
             } catch (Exception e) {
-                log.error("Error updating OrderPosition: {}", e.getMessage());
+                log.error("createNewOrder: {}", e.getMessage());
                 throw e;
             }
         } catch (JsonProcessingException e) {
@@ -166,64 +174,92 @@ public class OrderStatusConsumer {
     public void processCloseOrderReq(JsonNode jsonNode, UUID accountId, String clientMsgId) {
         log.info("Process Close Order Req kafka");
         ResponseCtraderDTO responseCtraderDTO = validateRepsone.formatResponsePlaceOrder(jsonNode.toString());
-        
+
         // First, get the OrderPosition to check if it exists and get necessary data
         OrderPosition orderPosition = orderPositionRepository.findByClientMsgIdLimitOne(clientMsgId)
                 .orElseThrow(() -> new RuntimeException("OrderPosition not found with clientMsgId: " + clientMsgId));
-        
+
         // Store the ID for later use
         final UUID orderPositionId = orderPosition.getId();
-        
+
         ProtoOAExecutionType executionType = ProtoOAExecutionType.fromCode(responseCtraderDTO.getExecutionType());
         switch (executionType) {
             case ORDER_ACCEPTED:
-                // Use repository method to update directly in the database
-                int updatedRows = orderPositionRepository.updateByOrderCtraderIdAndPositionId(
-                        ProtoOAExecutionType.ORDER_ACCEPTED.toString(),
-                        null, // errorMessage
-                        null, // errorCode
-                        ProtoOAExecutionType.ORDER_ACCEPTED.getStatus(),
-                        clientMsgId
-                );
-                
-                // Additional updates that aren't covered by the repository method
-                if (updatedRows > 0) {
-                    // Refresh the entity to get the latest state
-                    orderPosition = orderPositionRepository.findById(orderPositionId)
-                            .orElseThrow(() -> new RuntimeException("OrderPosition not found after update"));
-                    
+                try {
                     orderPosition.setOrderCtraderId(responseCtraderDTO.getOrderCtraderId());
                     orderPosition.setVolumeSent(responseCtraderDTO.getVolume());
                     orderPosition.setPositionId(responseCtraderDTO.getPositionId());
-                    orderPositionRepository.saveAndFlush(orderPosition);
+                    orderPosition.setStatus(ProtoOAExecutionType.ORDER_ACCEPTED.getStatus());
+                    orderPosition.setExecutionType(ProtoOAExecutionType.ORDER_ACCEPTED.toString());
+                } catch (Exception e) {
+                    log.error("Error processing ORDER_ACCEPTED close order request: {}", e.getMessage(), e);
+                    // Re-throw to ensure transaction is rolled back
+                    throw new RuntimeException("Failed to process close order request", e);
                 }
+//
+//                // Use repository method to update directly in the database
+//                int updatedRows = orderPositionRepository.updateByOrderCtraderIdAndPositionId(
+//                        ProtoOAExecutionType.ORDER_ACCEPTED.toString(),
+//                        null, // errorMessage
+//                        null, // errorCode
+//                        ProtoOAExecutionType.ORDER_ACCEPTED.getStatus(),
+//                        clientMsgId
+//                );
+//
+//                // Additional updates that aren't covered by the repository method
+//                if (updatedRows > 0) {
+//                    // Refresh the entity to get the latest state
+//                    orderPosition = orderPositionRepository.findById(orderPositionId)
+//                            .orElseThrow(() -> new RuntimeException("OrderPosition not found after update"));
+//
+//                    orderPosition.setOrderCtraderId(responseCtraderDTO.getOrderCtraderId());
+//                    orderPosition.setVolumeSent(responseCtraderDTO.getVolume());
+//                    orderPosition.setPositionId(responseCtraderDTO.getPositionId());
+//                    orderPositionRepository.saveAndFlush(orderPosition);
+//                }
                 break;
-                
+
             case ORDER_FILLED:
-                // Update order position status directly
-                updatedRows = orderPositionRepository.updateByOrderCtraderIdAndPositionId(
-                        ProtoOAExecutionType.ORDER_FILLED.toString(),
-                        null, // errorMessage
-                        null, // errorCode
-                        ProtoOAExecutionType.ORDER_FILLED.getStatus(),
-                        clientMsgId
-                );
-                
-                // Handle order entity update if needed
-                if (updatedRows > 0 && orderPosition.getOrder() != null) {
-                    UUID orderId = orderPosition.getOrder().getId();
-                    // Update order entity in a separate transaction to avoid locking issues
-                    OrderEntity orderEntity = orderRepository.findById(orderId)
-                            .orElseThrow(() -> new RuntimeException("Order not found with orderId: " + orderId));
+                try {
+                    orderPosition.setStatus(ProtoOAExecutionType.ORDER_FILLED.getStatus());
+                    orderPosition.setExecutionType(ProtoOAExecutionType.ORDER_FILLED.toString());
+                    //if success close order then update order entity
+                    OrderEntity orderEntity = orderRepository.findById(orderPosition.getOrder().getId()).orElseThrow(
+                            () -> new RuntimeException("Order not found with orderId: " + orderPosition.getOrder().getId()));
                     orderEntity.setStatus(ProtoOAExecutionType.ORDER_CLOSE.getStatus());
                     orderRepository.saveAndFlush(orderEntity);
-                    log.info("Order status updated to CLOSE for orderId: {}", orderId);
+                } catch (Exception e) {
+                    log.error("Error processing ORDER_FILLED close order request: {}", e.getMessage(), e);
+                    // Re-throw to ensure transaction is rolled back
+                    throw new RuntimeException("Failed to process close order request", e);
                 }
+
+
+//
+//                // Update order position status directly
+//                updatedRows = orderPositionRepository.updateByOrderCtraderIdAndPositionId(
+//                        ProtoOAExecutionType.ORDER_FILLED.toString(),
+//                        null, // errorMessage
+//                        null, // errorCode
+//                        ProtoOAExecutionType.ORDER_FILLED.getStatus(),
+//                        clientMsgId
+//                );
+//
+//                // Handle order entity update if needed
+//                if (updatedRows > 0 && orderPosition.getOrder() != null) {
+//                    UUID orderId = orderPosition.getOrder().getId();
+//                    // Update order entity in a separate transaction to avoid locking issues
+//                    OrderEntity orderEntity = orderRepository.findById(orderId)
+//                            .orElseThrow(() -> new RuntimeException("Order not found with orderId: " + orderId));
+//                    orderEntity.setStatus(ProtoOAExecutionType.ORDER_CLOSE.getStatus());
+//                    orderRepository.saveAndFlush(orderEntity);
+//                    log.info("Order status updated to CLOSE for orderId: {}", orderId);
+//                }
                 break;
-                
             default:
                 log.info("Execution type {} not handled for database persistence", jsonNode.path("payload").path("executionType"));
         }
+        orderPositionRepository.saveAndFlush(orderPosition);
     }
 
     @Transactional
@@ -232,60 +268,59 @@ public class OrderStatusConsumer {
             log.info("Process New Order Req kafka");
             ResponseCtraderDTO responseCtraderDTO = validateRepsone.formatResponsePlaceOrder(jsonNode.toString());
             ProtoOAExecutionType executionType = ProtoOAExecutionType.fromCode(responseCtraderDTO.getExecutionType());
-            // Use direct update queries instead of entity manipulation to avoid optimistic locking issues
-            ProtoOAExecutionType executionType = ProtoOAExecutionType.fromCode(responseCtraderDTO.getExecutionType());
-            
-            // First, get the OrderPosition to check if it exists and get necessary data
             OrderPosition orderPosition = orderPositionRepository.findByClientMsgIdLimitOne(clientMsgId)
                     .orElseThrow(() -> new RuntimeException("OrderPosition not found with clientMsgId: " + clientMsgId));
-            
+
             // Store necessary data before any updates
             final UUID orderPositionId = orderPosition.getId();
             final String tradeSide = orderPosition.getTradeSide();
             final String symbol = orderPosition.getSymbol();
             final String ctidTraderAccountId = orderPosition.getCtidTraderAccountId();
-            
+
             switch (executionType) {
                 case ORDER_ACCEPTED:
                     log.info("Process New Order Req kafka Execution Type Accepted");
-                    // Use repository method to update directly in the database
-                    int updatedRows = orderPositionRepository.updateByOrderCtraderIdAndPositionId(
-                            ProtoOAExecutionType.ORDER_ACCEPTED.toString(),
-                            null, // errorMessage
-                            null, // errorCode
-                            ProtoOAExecutionType.ORDER_ACCEPTED.getStatus(),
-                            clientMsgId
-                    );
-                    
-                    // Additional updates that aren't covered by the repository method
-                    if (updatedRows > 0) {
-                        // Refresh the entity to get the latest state
-                        orderPosition = orderPositionRepository.findById(orderPositionId)
-                                .orElseThrow(() -> new RuntimeException("OrderPosition not found after update"));
-                        
-                        orderPosition.setOrderCtraderId(responseCtraderDTO.getOrderCtraderId());
-                        orderPosition.setVolumeSent(responseCtraderDTO.getVolume());
-                        orderPosition.setPositionId(responseCtraderDTO.getPositionId());
-                        orderPositionRepository.saveAndFlush(orderPosition);
-                    }
+                    orderPosition.setOrderCtraderId(responseCtraderDTO.getOrderCtraderId());
+                    orderPosition.setVolumeSent(responseCtraderDTO.getVolume());
+                    orderPosition.setPositionId(responseCtraderDTO.getPositionId());
+                    orderPosition.setStatus(ProtoOAExecutionType.ORDER_ACCEPTED.getStatus());
+                    orderPosition.setExecutionType(ProtoOAExecutionType.ORDER_ACCEPTED.toString());
+                    orderPositionRepository.saveAndFlush(orderPosition);
                     break;
-                    
                 case ORDER_FILLED:
                     log.info("Process New Order Req kafka Execution Type Filled for orderPosition: {}", orderPositionId);
                     // Update order position status directly
-                    updatedRows = orderPositionRepository.updateByOrderCtraderIdAndPositionId(
-                            ProtoOAExecutionType.ORDER_FILLED.toString(),
-                            null, // errorMessage
-                            null, // errorCode
-                            ProtoOAExecutionType.ORDER_FILLED.getStatus(),
-                            clientMsgId
-                    );
-                    
+                    try {
+                        int updatedRows = orderPositionRepository.updateByOrderCtraderIdAndPositionId(
+                                ProtoOAExecutionType.ORDER_FILLED.toString(),
+                                null, // errorMessage
+                                null, // errorCode
+                                "OPEN",
+                                clientMsgId
+                        );
+                        log.info("Update result: {} rows affected for clientMsgId: {}", updatedRows, clientMsgId);
+
+                        if (updatedRows == 0) {
+                            // Fallback to direct entity update if the query didn't update any rows
+                            log.warn("No rows updated by query, falling back to direct entity update");
+                            orderPosition.setExecutionType(ProtoOAExecutionType.ORDER_FILLED.toString());
+                            orderPosition.setStatus(ProtoOAExecutionType.ORDER_FILLED.getStatus());
+                            orderPositionRepository.saveAndFlush(orderPosition);
+                            log.info("Direct entity update completed for orderPosition: {}", orderPositionId);
+                        }
+                    } catch (Exception e) {
+                        log.error("Error updating order position: {}", e.getMessage(), e);
+                        // Fallback to direct entity update
+                        orderPosition.setExecutionType(ProtoOAExecutionType.ORDER_FILLED.toString());
+                        orderPosition.setStatus(ProtoOAExecutionType.ORDER_FILLED.getStatus());
+                        orderPositionRepository.saveAndFlush(orderPosition);
+                        log.info("Fallback direct entity update completed after error");
+                    }
                     // Handle closing order if needed
                     if (responseCtraderDTO.isClosingOrder() && orderPosition.getOrder() != null) {
                         UUID orderId = orderPosition.getOrder().getId();
                         log.info("Processing closing order for orderId: {}", orderId);
-                        
+
                         // Update order entity in a separate transaction to avoid locking issues
                         OrderEntity orderEntity = orderRepository.findById(orderId)
                                 .orElseThrow(() -> new RuntimeException("Order not found with orderId: " + orderId));
@@ -294,11 +329,11 @@ public class OrderStatusConsumer {
                         log.info("Order status updated to CLOSE for orderId: {}", orderId);
                     }
                     break;
-                    
+
                 default:
                     log.info("Execution type {} not handled for database persistence", jsonNode.path("payload").path("executionType"));
             }
-            
+
             // Ensure transaction is committed before running async task
             final String clientMsgIdFinal = clientMsgId;
             CompletableFuture.runAsync(() -> {
@@ -311,7 +346,7 @@ public class OrderStatusConsumer {
                                 log.info("Falling back to clientMsgId lookup");
                                 return orderPositionRepository.findByClientMsgIdLimitOne(clientMsgIdFinal)
                                         .orElseThrow(() -> new RuntimeException("OrderPosition not found with clientMsgId: " + clientMsgIdFinal));
-                            }tradeSide, symbol, ctidTraderAccountId);
+                            });
 
                     log.info("Fetched detached OrderPosition with status: {}", detachedOrderPosition.getStatus());
 
@@ -345,17 +380,17 @@ public class OrderStatusConsumer {
                     jsonNode.path("payload").get("errorCode").asText(null) : null;
             String errorDescription = jsonNode.path("payload").has("description") ?
                     jsonNode.path("payload").get("description").asText(null) : null;
-            
+
             // First, get the OrderPosition to check if it exists and get necessary data
             OrderPosition orderPosition = orderPositionRepository.findByClientMsgIdLimitOne(clientMsgId)
                     .orElseThrow(() -> new RuntimeException("OrderPosition not found with clientMsgId: " + clientMsgId));
-            
+
             // Store necessary data before any updates
             final UUID orderPositionId = orderPosition.getId();
             final String tradeSide = orderPosition.getTradeSide();
             final String symbol = orderPosition.getSymbol();
             final String ctidTraderAccountId = orderPosition.getCtidTraderAccountId();
-            
+
             // Use direct update method to avoid optimistic locking issues
             orderPositionRepository.updateErrorCodeAndErrorMessageByClientMsgId(
                     errorCode,
@@ -363,17 +398,17 @@ public class OrderStatusConsumer {
                     ProtoOAExecutionType.ORDER_REJECTED.getStatus(),
                     clientMsgId
             );
-            
+
             log.info("Updated error event in database: clientMsgId={}, errorCode={}",
                     clientMsgId, errorCode);
-                    
+
             // Ensure transaction is committed before running async task
             CompletableFuture.runAsync(() -> {
                 try {
                     // Fetch a fresh instance from the database to ensure we have the latest state
                     OrderPosition detachedOrderPosition = orderPositionRepository.findById(orderPositionId)
                             .orElseThrow(() -> new RuntimeException("OrderPosition not found with ID: " + orderPositionId));
-                    
+
                     signalAccountStatusService.sendSignalAccountStatus(detachedOrderPosition,
                             tradeSide, symbol, ctidTraderAccountId);
                 } catch (Exception e) {
