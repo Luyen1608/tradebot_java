@@ -253,6 +253,19 @@ public class AccountService {
         if (accountDTO.getSignalToken() != null) {
             account.setSignalToken(accountDTO.getSignalToken());
         }
+        // update các trường còn lại
+        if (accountDTO.getStatus() != null) {
+            switch (accountDTO.getStatus()) {
+                case "connected":
+                    account.setActive(true);
+                    break;
+                case "disconnected":
+                    account.setActive(false);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Trạng thái không hợp lệ: " + accountDTO.getStatus());
+            }
+        }
         if (accountDTO.getAccountidTrading() != null) {
             account.setAccountName(accountDTO.getAccountidTrading());
             try {
@@ -274,6 +287,11 @@ public class AccountService {
             }
             eventPublisher.publishEvent(new AccountCreatedEvent(savedAccount.getId()));
 //            connectionService.connectAccount(savedAccount.getId());
+        } else {
+            // Nếu account bị vô hiệu hóa hoặc lỗi xảy ra, hãy đóng kết nối nếu đang mở.
+            if (savedAccount.getIsConnected()) {
+                connectionService.disconnectAccount(savedAccount.getId());
+            }
         }
         log.info("Account updated successfully with ID: {}", savedAccount.getId());
 

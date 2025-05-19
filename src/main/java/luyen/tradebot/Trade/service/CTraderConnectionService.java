@@ -36,19 +36,6 @@ public class CTraderConnectionService {
     public void init() {
         log.info("Initializing cTrader connections...");
         List<AccountEntity> activeAccounts = accountRepository.findByIsActive(true);
-//        for (AccountEntity account : activeAccounts) {
-//            connectAccount(account.getId());
-//        }
-//        activeAccounts.parallelStream().forEach(account -> {
-//            try {
-//                log.info("Parallel connecting account: {}", account.getId());
-//                connectAccount(account.getId());
-//            } catch (Exception e) {
-//                log.error("Error connecting account {} in parallel: {}", account.getId(), e.getMessage(), e);
-//            }
-//        });
-//
-//        log.info("Initiated parallel connection for {} active accounts", activeAccounts.size());
         // Sử dụng CompletableFuture để quản lý các kết nối song song tốt hơn
         List<CompletableFuture<Void>> connectionFutures = activeAccounts.stream()
                 .map(account -> CompletableFuture.runAsync(() -> {
