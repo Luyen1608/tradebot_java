@@ -14,13 +14,19 @@ public enum Symbol {
     XAUUSD(41),
     XAGUSD(42),
     XPTUSD(97),
+    NZDUSD(12),
     //Tien dien tu
     BTCUSD(101),
     ETHUSD(102),
     XRPUSD(414),
     LTCUSD(407),
     ADAUSD(433),
-    DOTUSD(436);
+    DOTUSD(436),
+    SOLUSD(435),
+    DOGUSD(434),
+    BNBUSD(415),
+    TRXUSD(429),
+    TONUSD(1552);
     private final int id;
 
     Symbol(int id) {
