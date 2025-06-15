@@ -5,8 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import luyen.tradebot.Trade.dto.request.PlaceOrderRequest;
-import luyen.tradebot.Trade.model.AccountEntity;
-import luyen.tradebot.Trade.model.OrderEntity;
 import luyen.tradebot.Trade.util.enumTraderBot.AccountType;
 import luyen.tradebot.Trade.util.enumTraderBot.PayloadType;
 import org.springframework.beans.factory.annotation.Value;
@@ -75,11 +73,11 @@ public class CTraderApiService {
         return connection.closePosition(clientMsgId, positionId, volume, payloadType);
     }
 
-    public CompletableFuture<String> authenticateTraderAccount(
-            CTraderConnection connection, int ctidTraderAccountId) {
-        // Authenticate specific trader account
-        return connection.authenticateTraderAccount(ctidTraderAccountId);
-    }
+//    public CompletableFuture<String> authenticateTraderAccount(
+//            CTraderConnection connection, int ctidTraderAccountId) {
+//        // Authenticate specific trader account
+//        return connection.authenticateTraderAccount(ctidTraderAccountId);
+//    }
 
     public String getAccessToken(String clientId, String clientSecret) {
         HttpHeaders headers = new HttpHeaders();

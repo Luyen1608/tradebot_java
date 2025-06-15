@@ -7,6 +7,8 @@ import jakarta.websocket.*;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import luyen.tradebot.Trade.dto.request.PlaceOrderRequest;
+import luyen.tradebot.Trade.dto.respone.ResponseCtraderDTO;
+import luyen.tradebot.Trade.util.ValidateRepsone;
 import luyen.tradebot.Trade.util.enumTraderBot.ActionSystem;
 import luyen.tradebot.Trade.util.enumTraderBot.PayloadType;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,7 +48,7 @@ public class CTraderConnection {
     private String accountType;
     //    private final Map<String, CompletableFuture<String>> pendingRequests = new ConcurrentHashMap<>();
     private boolean manualDisconnect = false;
-    private ActionSystem actionSystem = null;
+    private ActionSystem actionSystem = ActionSystem.AUTH;
 
     public CTraderConnection(UUID accountId, String clientId, String secretId, String accessToken,
                              CTraderConnectionService connectionService, String wsUrl,
@@ -71,6 +73,7 @@ public class CTraderConnection {
         try {
             WebSocketContainer container = ContainerProvider.getWebSocketContainer();
             session = container.connectToServer(this, URI.create(wsUrl));
+            actionSystem = ActionSystem.AUTH;
             log.info("WebSocket connection initiated at {}, waiting for onOpen event...", wsUrl);
         } catch (Exception e) {
             log.error("Failed to connect to cTrader WebSocket at {}", wsUrl, e);
@@ -118,10 +121,12 @@ public class CTraderConnection {
 
     private void sendAuthMessage() {
         // Implement authentication with access token
+        actionSystem = ActionSystem.AUTH;
         String authMessage = String.format(
                 "{\"clientMsgId\": \"%s\",\"payloadType\": 2100,\"payload\": {\"clientId\": \"%s\",\"clientSecret\": \"%s\"}}",
                 generateClientMsgId(), clientId, secretId
         );
+
         sendRequest(authMessage);
     }
 
@@ -350,13 +355,23 @@ public class CTraderConnection {
                     case PROTO_OA_EXECUTION_EVENT:
                     case PROTO_OA_ORDER_ERROR_EVENT:
                     case PROTO_OA_ERROR_RES:
+                        //check error authen
+                        ResponseCtraderDTO res = ValidateRepsone.formatResponse(message);
                         //check actionsystem is order
-                        if (actionSystem != null && actionSystem.equals(ActionSystem.ORDER)) {
-                            // xử lý logic khi nhận được message từ websocket
+                        if (actionSystem != null ) {
                             String jsonMessage = objectMapper.writeValueAsString(kafkaData);
-                            log.info("Sending message to topic {}: key={}, value={}", "order-status-topic", clientMsgId, jsonMessage);
-                            kafkaTemplate.send("order-status-topic", jsonMessage);
-//                  kafkaProducerService.sendMessage("order-status-topic", clientMsgId, kafkaData);
+                            if (actionSystem.equals(ActionSystem.ORDER)){
+                                // xử lý logic khi nhận được message từ websocket
+
+                                log.info("Sending message to topic {}: key={}, value={}", "order-status-topic", clientMsgId, jsonMessage);
+                                kafkaTemplate.send("order-status-topic", jsonMessage);
+                            } else if (actionSystem.equals(ActionSystem.AUTH)){
+                                if (!res.getErrorCode().equals("N/A")){
+                                    this.manualDisconnect = true;
+                                }
+                                kafkaTemplate.send("order-status-auth", jsonMessage);
+                                break;
+                            }
                         }
                         break;
                     case PROTO_OA_APPLICATION_AUTH_RES:

@@ -15,6 +15,7 @@ import luyen.tradebot.Trade.repository.OrderRepository;
 import luyen.tradebot.Trade.util.ValidateRepsone;
 import luyen.tradebot.Trade.util.enumTraderBot.ActionSystem;
 import luyen.tradebot.Trade.util.enumTraderBot.PayloadType;
+import luyen.tradebot.Trade.util.enumTraderBot.ProtoOAErrorCode;
 import luyen.tradebot.Trade.util.enumTraderBot.ProtoOAExecutionType;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
@@ -68,6 +69,35 @@ public class OrderStatusConsumer {
         }
     }
 
+    @KafkaListener(topics = "order-status-auth", groupId = "tradebot-group")
+    public void listenAuthStatus(String message) {
+        log.info("Received message from order-auth-topic: {}", message);
+        try {
+            JsonNode jsonNode = objectMapper.readTree(message);
+            // Lấy thông tin từ message
+            String rawMessage = jsonNode.path("rawMessage").asText();
+            String accountId = jsonNode.path("accountId").asText();
+            String messageType = jsonNode.path("messageType").asText();
+            String clientMsgId = jsonNode.path("clientMsgId").asText();
+            // Parse raw message để lấy thông tin chi tiết
+            JsonNode rawMessageNode = objectMapper.readTree(rawMessage);
+            ResponseCtraderDTO res = ValidateRepsone.formatResponse(rawMessage);
+
+            AccountEntity account = accountRepository.findById(UUID.fromString(accountId))
+                    .orElseThrow(() -> new RuntimeException("Account not found"));
+            // Xử lý message dựa trên loại
+            if (!res.getErrorCode().equals("N/A")){
+                account.setErrorMessage(res.getErrorCode() + "-" + res.getDescription());
+//                ProtoOAErrorCode protoOAErrorCode = ProtoOAErrorCode.valueOf(res.getErrorCode());
+                account.setIsAuthenticated(false);
+            }
+            accountRepository.save(account);
+        } catch (JsonProcessingException e) {
+            log.error("Error parsing message: {}", e.getMessage());
+        } catch (Exception e) {
+            log.error("Error processing message: {}", e.getMessage(), e);
+        }
+    }
     @KafkaListener(topics = "order-placed-topic", groupId = "tradebot-group")
     @Transactional
     public void createNewOrder(String message) {
@@ -163,7 +193,7 @@ public class OrderStatusConsumer {
                     processErrorEvent(jsonNode, accountId, clientMsgId);
                     break;
                 default:
-                    log.info("Message type {} not handled for database persistence", messageType);
+                    log.info("Message type {} not handled for database pers istence", messageType);
             }
         } catch (IllegalArgumentException e) {
             log.warn("Unknown message type: {}", messageType);
