@@ -349,6 +349,7 @@ public class CTraderConnection {
                 kafkaData.put("timestamp", System.currentTimeMillis());
                 kafkaData.put("rawMessage", message);
                 kafkaData.put("clientMsgId", clientMsgId);
+                String jsonMessage = objectMapper.writeValueAsString(kafkaData);
                 // Xử lý các loại thông báo khác dựa trên payloadType (nếu cần)
                 switch (Objects.requireNonNull(payloadTypeEnum)) {
                     case PROTO_OA_CLOSE_POSITION_REQ:
@@ -359,10 +360,9 @@ public class CTraderConnection {
                         ResponseCtraderDTO res = ValidateRepsone.formatResponse(message);
                         //check actionsystem is order
                         if (actionSystem != null ) {
-                            String jsonMessage = objectMapper.writeValueAsString(kafkaData);
+
                             if (actionSystem.equals(ActionSystem.ORDER)){
                                 // xử lý logic khi nhận được message từ websocket
-
                                 log.info("Sending message to topic {}: key={}, value={}", "order-status-topic", clientMsgId, jsonMessage);
                                 kafkaTemplate.send("order-status-topic", jsonMessage);
                             } else if (actionSystem.equals(ActionSystem.AUTH)){
@@ -389,6 +389,8 @@ public class CTraderConnection {
                         startPingScheduler();
                         break;
                     default:
+                        kafkaTemplate.send("write-log-error", jsonMessage);
+                        break;
                 }
             }
         } catch (Exception e) {

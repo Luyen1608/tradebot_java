@@ -7,11 +7,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import luyen.tradebot.Trade.dto.respone.ResponseCtraderDTO;
 import luyen.tradebot.Trade.model.AccountEntity;
+import luyen.tradebot.Trade.model.ErrorLogEntity;
 import luyen.tradebot.Trade.model.OrderEntity;
 import luyen.tradebot.Trade.model.OrderPosition;
 import luyen.tradebot.Trade.repository.AccountRepository;
 import luyen.tradebot.Trade.repository.OrderPositionRepository;
 import luyen.tradebot.Trade.repository.OrderRepository;
+import luyen.tradebot.Trade.repository.impl.ErrorLogRepository;
 import luyen.tradebot.Trade.util.ValidateRepsone;
 import luyen.tradebot.Trade.util.enumTraderBot.ActionSystem;
 import luyen.tradebot.Trade.util.enumTraderBot.PayloadType;
@@ -35,6 +37,7 @@ public class OrderStatusConsumer {
     private final ObjectMapper objectMapper;
     private final OrderRepository orderRepository;
     private final AccountRepository accountRepository;
+    private final ErrorLogRepository errorLogRepository;
     private final OrderPositionRepository orderPositionRepository;
     private final ValidateRepsone validateRepsone;
 
@@ -47,7 +50,7 @@ public class OrderStatusConsumer {
      */
     @KafkaListener(topics = "order-status-topic", groupId = "tradebot-group")
     public void listenOrderStatus(String message) {
-        log.info("Received message from order-status-topic: {}", message);
+//        log.info("Received message from order-status-topic: {}", message);
         try {
             JsonNode jsonNode = objectMapper.readTree(message);
 
@@ -71,7 +74,7 @@ public class OrderStatusConsumer {
 
     @KafkaListener(topics = "order-status-auth", groupId = "tradebot-group")
     public void listenAuthStatus(String message) {
-        log.info("Received message from order-auth-topic: {}", message);
+//        log.info("Received message from order-auth-topic: {}", message);
         try {
             JsonNode jsonNode = objectMapper.readTree(message);
             // Lấy thông tin từ message
@@ -98,6 +101,31 @@ public class OrderStatusConsumer {
             log.error("Error processing message: {}", e.getMessage(), e);
         }
     }
+    @KafkaListener(topics = "write-log-error", groupId = "tradebot-group")
+    public void addErrorLog(String message) {
+        log.info("Received message from write-log-error: {}", message);
+        try {
+            JsonNode jsonNode = objectMapper.readTree(message);
+            // Lấy thông tin từ message
+            String rawMessage = jsonNode.path("rawMessage").asText();
+            String accountId = jsonNode.path("accountId").asText();
+            String messageType = jsonNode.path("messageType").asText();
+            String clientMsgId = jsonNode.path("clientMsgId").asText();
+            // Parse raw message để lấy thông tin chi tiết
+            JsonNode rawMessageNode = objectMapper.readTree(rawMessage);
+            ResponseCtraderDTO res = ValidateRepsone.formatResponse(rawMessage);
+            ErrorLogEntity errorLogEntity = ErrorLogEntity.builder()
+                    .accountId(accountId)
+                    .errorMessage(rawMessage)
+                    .build();
+            errorLogRepository.save(errorLogEntity);
+        } catch (JsonProcessingException e) {
+            log.error("Error parsing message: {}", e.getMessage());
+        } catch (Exception e) {
+            log.error("Error processing message: {}", e.getMessage(), e);
+        }
+    }
+
     @KafkaListener(topics = "order-placed-topic", groupId = "tradebot-group")
     @Transactional
     public void createNewOrder(String message) {

@@ -49,53 +49,6 @@ public class OrderService {
     private String prefix = "trade365_";
 
     public OrderEntity closeOrder(UUID orderId, UUID accountId) {
-//        OrderEntity order = orderRepository.findById(orderId)
-//                .orElseThrow(() -> new RuntimeException("Order not found"));
-//
-//        AccountEntity account = accountRepository.findById(accountId)
-//                .orElseThrow(() -> new RuntimeException("Account not found"));
-//
-//        OrderPosition position = orderPositionRepository.findByOrderIdAndAccountId(orderId, accountId)
-//                .orElseThrow(() -> new RuntimeException("Position not found for this order and account"));
-//
-//        if (!"OPEN".equals(position.getStatus())) {
-//            throw new RuntimeException("Position is not open");
-//        }
-//
-//        if (!account.getConnecting().isConnected()) {
-//            throw new RuntimeException("Account is not connected");
-//        }
-//
-//        CTraderConnection connection = connectionService.getConnection(account.getId());
-//        if (connection == null) {
-//            position.setErrorMessage("No active connection for account");
-//            orderPositionRepository.save(position);
-//            return order;
-//        }
-//
-//        CompletableFuture<String> future = connection.closePosition(position.getPositionId(), 1, 1);
-//
-//        future.thenAccept(result -> {
-//            position.setStatus("CLOSED");
-//            orderPositionRepository.save(position);
-//
-//            // Check if all positions are closed
-//            List<OrderPosition> openPositions = orderPositionRepository.findByOrderId(orderId).stream()
-//                    .filter(p -> "OPEN".equals(p.getStatus()))
-//                    .toList();
-//
-//            if (openPositions.isEmpty()) {
-//                order.setStatus("CLOSED");
-//                order.setCloseTime(LocalDateTime.now());
-//                orderRepository.save(order);
-//            }
-//        }).exceptionally(ex -> {
-//            position.setStatus("ERROR_CLOSING");
-//            position.setErrorMessage("Error closing: " + ex.getMessage());
-//            orderPositionRepository.save(position);
-//            return null;
-//        });
-//        return order;
         return null;
     }
 
