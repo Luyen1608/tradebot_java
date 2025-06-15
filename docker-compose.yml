@@ -1,8 +1,8 @@
 #version: "3.9"
 services:
-
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
+    restart: always
     container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
@@ -11,6 +11,7 @@ services:
       - "22181:2181"
   kafka:
     image: confluentinc/cp-kafka:latest
+    restart: always
     container_name: kafka
     depends_on:
       - zookeeper
@@ -24,25 +25,9 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-  api-service:
-    container_name: api-container
-    image: api-image-sample
-    build:
-      context: ./
-      dockerfile: Dockerfile
-    environment:
-      API_TITLE_COMPOSE: API doc dev compose
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-    env_file:
-      - .env
-#lấy chia ra : công đang chạy (ví dụ dang chay trne cong 8086 muốn chìa ra công 8080 thì vết
-#    8080:8086
-    ports:
-      - '8086:8086'
-    networks:
-      - backend
   redis:
     image: redis:6.2-alpine
+    restart: always
     container_name: redis
     hostname: redis
     ports:
@@ -52,13 +37,7 @@ services:
       - REDIS_DISABLE_COMMANDS=FLUSHDB;FLUSHALL
     networks:
       - backend
-#  api-service-test:
-#    container_name: api-container2
-#    image: api-image-sample
-#    ports:
-#      - '8089:8080'
-#    networks:
-#      - backend
+
 networks:
   backend:
     driver: bridge
