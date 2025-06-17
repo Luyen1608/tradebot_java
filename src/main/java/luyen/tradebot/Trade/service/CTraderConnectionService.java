@@ -40,8 +40,10 @@ public class CTraderConnectionService {
         List<CompletableFuture<Void>> connectionFutures = activeAccounts.stream()
                 .map(account -> CompletableFuture.runAsync(() -> {
                     try {
-                        log.info("Parallel connecting account: {}", account.getId());
-                        connectAccount(account.getId());
+                        if (account.isActive()){
+                            log.info("Parallel connecting account: {}", account.getId());
+                            connectAccount(account.getId());
+                        }
                     } catch (Exception e) {
                         log.error("Error connecting account {} in parallel: {}", account.getId(), e.getMessage(), e);
                     }

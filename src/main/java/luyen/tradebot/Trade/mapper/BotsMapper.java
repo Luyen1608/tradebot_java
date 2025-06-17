@@ -42,6 +42,8 @@ public class BotsMapper {
      * @return the updated BotsEntity
      */
     public BotsEntity updateEntityFromDto(BotsEntity entity, BotSupabaseDTO dto) {
+        //check dto.getname is value
+
         entity.setName(dto.getName());
         entity.setDescription(dto.getDescription());
         entity.setStatus(dto.getStatus());

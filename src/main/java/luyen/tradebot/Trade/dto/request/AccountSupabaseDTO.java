@@ -22,6 +22,7 @@ public class AccountSupabaseDTO implements Serializable {
     private UUID userId;
     private LocalDateTime addedDate;
     private String status;
+    private Boolean active;
     private Double volumeMultiplier;
     private UUID apiConnectId;
     private String signalToken;

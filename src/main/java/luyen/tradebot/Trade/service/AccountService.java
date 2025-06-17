@@ -189,11 +189,23 @@ public class AccountService {
         account.setAccessToken(accountDTO.getAccessToken());
         account.setRefreshToken("refresh_token"); // This should come from token response
         account.setTokenExpiry(DateUtil.plusDate(30));
-        account.setActive(true);
+        account.setActive(accountDTO.getActive());
         account.setTypeAccount(AccountType.DEMO); // Default value, can be updated later
         account.setVolumeMultiplier(accountDTO.getVolumeMultiplier());
         account.setBot(bot);
-
+        // update các trường còn lại
+        if (accountDTO.getStatus() != null) {
+            switch (accountDTO.getStatus()) {
+                case "connected":
+                    account.setActive(true);
+                    break;
+                case "disconnected":
+                    account.setActive(false);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Trạng thái không hợp lệ: " + accountDTO.getStatus());
+            }
+        }
         // Set creation and update timestamps if available in the DTO
         if (accountDTO.getCreatedAt() != null) {
             account.setCreateAt(accountDTO.getCreatedAt());
