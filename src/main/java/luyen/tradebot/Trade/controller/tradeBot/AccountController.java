@@ -136,12 +136,12 @@ public class AccountController {
                 log.info("Handling UPDATE event for bot_accounts");
                 Map<String, Object> record = payload.getRecord();
                 Map<String, Object> oldRecord = payload.getOldRecord();
-                if (oldRecord != null && oldRecord.get("id") != null) {
-                    if (oldRecord != null && oldRecord.get("id") != null) {
-                        String accountIdOld = oldRecord.get("id").toString();
-                        accountService.deleteAccount(UUID.fromString(accountIdOld));
-                    }
-                }
+//                if (oldRecord != null && oldRecord.get("id") != null) {
+//                    if (oldRecord != null && oldRecord.get("id") != null) {
+//                        String accountIdOld = oldRecord.get("id").toString();
+//                        accountService.deleteAccount(UUID.fromString(accountIdOld));
+//                    }
+//                }
                 if (record != null && record.get("id") != null) {
                     // Xử lý các trường UUID có thể null
                     String idStr = record.get("id").toString();
