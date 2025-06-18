@@ -65,8 +65,8 @@ public class BotsController {
                        .isDeleted(record.get("is_deleted") != null ? (Boolean) record.get("is_deleted") : false)
                        .ownerId(ownerId)
                        .isBestSeller(record.get("is_best_seller") != null ? (Boolean) record.get("is_best_seller") : false)
-                       .createdAt(record.get("created_at") != null ? (LocalDateTime) record.get("created_at") : null)
-                       .updatedAt(record.get("updated_at") != null ? (LocalDateTime) record.get("updated_at") : null)
+//                       .createdAt(record.get("created_at") != null ? (LocalDateTime) record.get("created_at") : null)
+//                       .updatedAt(record.get("updated_at") != null ? (LocalDateTime) record.get("updated_at") : null)
                        .build();
                 BotsEntity createdBot = botsService.createBot(botSupabaseDTO);
                 BotSupabaseDTO responseDto = botsMapper.toDto(createdBot);
