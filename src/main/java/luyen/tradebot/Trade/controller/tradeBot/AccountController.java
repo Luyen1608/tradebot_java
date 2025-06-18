@@ -190,8 +190,8 @@ public class AccountController {
                             .secretId((String) record.get("secret_id"))
                             .accessToken((String) record.get("access_token"))
                             .live(record.get("live") != null ? (Boolean) record.get("live") : false)
-                            .createdAt(record.get("created_at") != null ? (LocalDateTime) record.get("created_at") : null)
-                            .updatedAt(record.get("updated_at") != null ? (LocalDateTime) record.get("updated_at") : null)
+//                            .createdAt(record.get("created_at") != null ? (LocalDateTime) record.get("created_at") : null)
+//                            .updatedAt(record.get("updated_at") != null ? (LocalDateTime) record.get("updated_at") : null)
                             .build();
                     try {
                         AccountEntity updatedAccount = accountService.updateAccountFromSupabase(id, accountDTO);
