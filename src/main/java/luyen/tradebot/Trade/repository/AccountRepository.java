@@ -2,6 +2,7 @@ package luyen.tradebot.Trade.repository;
 
 import luyen.tradebot.Trade.model.AccountEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
@@ -35,6 +36,11 @@ public interface AccountRepository extends JpaRepository<AccountEntity, UUID> {
 
     Optional<AccountEntity> findById(UUID id);
 
+    //update isactive
+
+@Modifying
+@Query("UPDATE Account a SET a.isActive = :isActive WHERE a.id = :accountId")
+void updateIsActiveById(boolean isActive, UUID accountId);
     //find account by id
 
 }

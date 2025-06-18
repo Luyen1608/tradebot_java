@@ -104,12 +104,22 @@ public class AccountController {
                         .createdAt(record.get("created_at") != null ? (LocalDateTime) record.get("created_at") : null)
                         .updatedAt(record.get("updated_at") != null ? (LocalDateTime) record.get("updated_at") : null)
                         .build();
-                AccountEntity newAccount = accountService.createAccountFromSupabase(accountDTO);
-                ApiResponse<AccountEntity> response = ApiResponse.<AccountEntity>builder()
-                        .status(HttpStatus.CREATED.value())
-                        .message("Account created successfully")
-                        .data(newAccount)
-                        .build();
+                AccountEntity newAccount = new AccountEntity();
+                ApiResponse<AccountEntity> response = new ApiResponse<>();
+                try{
+                    newAccount = (AccountEntity)accountService.createAccountFromSupabase(accountDTO);
+                     response = ApiResponse.<AccountEntity>builder()
+                            .status(HttpStatus.CREATED.value())
+                            .message("Account created successfully")
+                            .data(newAccount)
+                            .build();
+                } catch (Exception e){
+                    response = ApiResponse.<AccountEntity>builder()
+                            .status(HttpStatus.CREATED.value())
+                            .message(e.toString())
+                            .data(newAccount)
+                            .build();
+                }
                 return new ResponseEntity<>(response, HttpStatus.CREATED);
             } else if ("DELETE".equals(payload.getType())) {
                 // 2) DELETE → xóa bot_accounts theo bot_ids

@@ -1,5 +1,6 @@
 package luyen.tradebot.Trade.dto.request;
 
+import jakarta.validation.constraints.Null;
 import lombok.*;
 import luyen.tradebot.Trade.util.enumTraderBot.AccountStatus;
 import luyen.tradebot.Trade.util.enumTraderBot.AccountType;
@@ -22,7 +23,11 @@ public class AccountSupabaseDTO implements Serializable {
     private UUID userId;
     private LocalDateTime addedDate;
     private String status;
+
+    // có thể không có active
+    @Null
     private Boolean active;
+
     private Double volumeMultiplier;
     private UUID apiConnectId;
     private String signalToken;

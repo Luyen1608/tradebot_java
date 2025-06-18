@@ -12,6 +12,7 @@ import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -93,4 +94,7 @@ public class AccountEntity {
     private Boolean isConnected;
     private Boolean isAuthenticated;
     private String signalToken;
+
+    @OneToMany(mappedBy = "account", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrderPosition> orderPositions;
 }
