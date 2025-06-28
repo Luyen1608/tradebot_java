@@ -9,7 +9,6 @@ import luyen.tradebot.Trade.dto.request.BotRequestDTO;
 import luyen.tradebot.Trade.dto.respone.BotResponse;
 import luyen.tradebot.Trade.dto.respone.ResponseData;
 import luyen.tradebot.Trade.service.BotService;
-import luyen.tradebot.Trade.service.CTraderConnectionManager;
 import luyen.tradebot.Trade.service.TracingService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -24,7 +23,6 @@ import java.util.concurrent.CompletableFuture;
 @Slf4j
 public class AdminController {
 
-    private final CTraderConnectionManager connectionManager;
 
     private final BotService botService;
 
@@ -84,11 +82,6 @@ public class AdminController {
             log.error("error message = {} ", e.getMessage(), e.getCause());
             return new ResponseData<>(HttpStatus.BAD_REQUEST.value(), e.getMessage(), null);
         }
-    }
-
-    @PostMapping("/request-account-list")
-    public CompletableFuture<String> requestAccountList(@RequestParam String accessToken) {
-        return connectionManager.requestAccountList(accessToken);
     }
 
     @GetMapping("/connected")

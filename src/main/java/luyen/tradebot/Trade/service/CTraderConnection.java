@@ -147,7 +147,10 @@ public class CTraderConnection {
         actionSystem = ActionSystem.ORDER;
         return sendRequest(closeMessage);
     }
-
+    public CompletableFuture<String> getOrderList(int ctidTraderAccountId, Long fromTimestamp, Long toTimestamp) {
+        String message = createOrderListRequestMessage(ctidTraderAccountId, fromTimestamp, toTimestamp);
+        return sendRequest(message);
+}
     private String createGetAccountListMessage() {
         return String.format(
                 "{\"clientMsgId\": \"%s\",\"payloadType\": 2149,\"payload\": {\"accessToken\": \"%s\"}}",
@@ -203,6 +206,22 @@ public class CTraderConnection {
         // Tính toán giá trị của volume bằng cách nhân với volumeMultiplier return int
         int volumeSend = (int) Math.round(volumeMultiplier * request.getVolume());
         jsonBuilder.append("\"volume\": ").append(volumeSend);
+        jsonBuilder.append("}}");
+
+        return jsonBuilder.toString();
+    }
+    private String createOrderListRequestMessage(int ctidTraderAccountId, Long fromTimestamp, Long toTimestamp) {
+        // This is a simplified version - in real implementation, use protobuf
+        // JSON format for order placement
+        StringBuilder jsonBuilder = new StringBuilder();
+        jsonBuilder.append("{");
+        jsonBuilder.append("\"clientMsgId\": \"").append(generateClientMsgId()).append("\",");
+//        jsonBuilder.append("\"payloadType\": 2106,");
+        jsonBuilder.append("\"payloadType\": ").append("2175").append(",");
+        jsonBuilder.append("\"payload\": {");
+        jsonBuilder.append("\"ctidTraderAccountId\": ").append(ctidTraderAccountId).append(",");
+        jsonBuilder.append("\"fromTimestamp\": ").append(fromTimestamp).append(",");
+        jsonBuilder.append("\"toTimestamp\": ").append(toTimestamp).append(",");
         jsonBuilder.append("}}");
 
         return jsonBuilder.toString();
@@ -453,4 +472,3 @@ public class CTraderConnection {
     }
 
 
-}
