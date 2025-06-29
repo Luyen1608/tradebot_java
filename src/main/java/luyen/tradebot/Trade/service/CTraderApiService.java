@@ -56,7 +56,8 @@ public class CTraderApiService {
         connection.connect();
         return connection;
     }
-    public CompletableFuture<String> getOrderList(CTraderConnection connection, int ctidTraderAccountId, Long fromTimestamp, Long toTimestamp) {
+    public CompletableFuture<String> getOrderList(CTraderConnection connection,
+                                                  int ctidTraderAccountId, Long fromTimestamp, Long toTimestamp) {
         return connection.getOrderList( ctidTraderAccountId,  fromTimestamp,  toTimestamp);
     }
     public CompletableFuture<String> getTraderAccounts(CTraderConnection connection) {

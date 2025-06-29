@@ -147,10 +147,12 @@ public class CTraderConnection {
         actionSystem = ActionSystem.ORDER;
         return sendRequest(closeMessage);
     }
+
     public CompletableFuture<String> getOrderList(int ctidTraderAccountId, Long fromTimestamp, Long toTimestamp) {
         String message = createOrderListRequestMessage(ctidTraderAccountId, fromTimestamp, toTimestamp);
         return sendRequest(message);
-}
+    }
+
     private String createGetAccountListMessage() {
         return String.format(
                 "{\"clientMsgId\": \"%s\",\"payloadType\": 2149,\"payload\": {\"accessToken\": \"%s\"}}",
@@ -210,6 +212,7 @@ public class CTraderConnection {
 
         return jsonBuilder.toString();
     }
+
     private String createOrderListRequestMessage(int ctidTraderAccountId, Long fromTimestamp, Long toTimestamp) {
         // This is a simplified version - in real implementation, use protobuf
         // JSON format for order placement
@@ -221,8 +224,9 @@ public class CTraderConnection {
         jsonBuilder.append("\"payload\": {");
         jsonBuilder.append("\"ctidTraderAccountId\": ").append(ctidTraderAccountId).append(",");
         jsonBuilder.append("\"fromTimestamp\": ").append(fromTimestamp).append(",");
-        jsonBuilder.append("\"toTimestamp\": ").append(toTimestamp).append(",");
+        jsonBuilder.append("\"toTimestamp\": ").append(toTimestamp);
         jsonBuilder.append("}}");
+//        jsonBuilder.append("}");
 
         return jsonBuilder.toString();
     }
@@ -378,14 +382,14 @@ public class CTraderConnection {
                         //check error authen
                         ResponseCtraderDTO res = ValidateRepsone.formatResponse(message);
                         //check actionsystem is order
-                        if (actionSystem != null ) {
+                        if (actionSystem != null) {
 
-                            if (actionSystem.equals(ActionSystem.ORDER)){
+                            if (actionSystem.equals(ActionSystem.ORDER)) {
                                 // xử lý logic khi nhận được message từ websocket
                                 log.info("Sending message to topic {}: key={}, value={}", "order-status-topic", clientMsgId, jsonMessage);
                                 kafkaTemplate.send("order-status-topic", jsonMessage);
-                            } else if (actionSystem.equals(ActionSystem.AUTH)){
-                                if (!res.getErrorCode().equals("N/A")){
+                            } else if (actionSystem.equals(ActionSystem.AUTH)) {
+                                if (!res.getErrorCode().equals("N/A")) {
                                     this.manualDisconnect = true;
                                 }
                                 kafkaTemplate.send("order-status-auth", jsonMessage);
@@ -470,5 +474,6 @@ public class CTraderConnection {
             }
         }
     }
+}
 
 
