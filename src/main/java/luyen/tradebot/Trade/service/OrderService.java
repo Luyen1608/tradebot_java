@@ -18,6 +18,7 @@ import luyen.tradebot.Trade.util.SaveInfo;
 import luyen.tradebot.Trade.util.ValidateRepsone;
 import luyen.tradebot.Trade.util.enumTraderBot.*;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,22 +52,24 @@ public class OrderService {
     public OrderEntity closeOrder(UUID orderId, UUID accountId) {
         return null;
     }
-    public String getOrderList(UUID accountID, Long fromTimestamp, Long toTimestamp){
+    public CompletableFuture<String> getOrderList(UUID accountID, Long fromTimestamp, Long toTimestamp){
 
         Optional<AccountEntity> account = accountRepository.findById(accountID);
         if (account.isEmpty()){
             log.error("Account not found with id: {}", accountID);
-            return "Account not found with id: " +accountID;
+//            return CompletableFuture.completedFuture(ResponseEntity.badRequest().body("fromTimestamp must be >= 0"));
+//            return "Account not found with id: " +accountID;
+            return CompletableFuture.completedFuture("No active connection for account: " + accountID);
         }
         CTraderConnection connection = connectionService.getConnection(accountID);
         if (connection == null) {
             log.error("No active connection for account: {}", accountID);
-            return "No active connection for account: " +accountID;
+            return CompletableFuture.completedFuture("No active connection for account: " + accountID);
+//            return "No active connection for account: " +accountID;
         }
         int ctidTraderAccountId = account.get().getCtidTraderAccountId();
 
-        CompletableFuture<String> future = cTraderApiService.getOrderList(connection,ctidTraderAccountId,  fromTimestamp,  toTimestamp);
-        return "Get Order List Successfully!";
+        return cTraderApiService.getOrderList(connection,ctidTraderAccountId,  fromTimestamp,  toTimestamp);
     }
 
     @Transactional

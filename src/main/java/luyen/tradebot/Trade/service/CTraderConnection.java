@@ -411,6 +411,9 @@ public class CTraderConnection {
                         connectionService.saveConnectionAuthenticated(this);
                         startPingScheduler();
                         break;
+
+                    case PROTO_OA_ORDER_LIST_RES:
+                        break;
                     default:
                         kafkaTemplate.send("write-log-error", jsonMessage);
                         break;

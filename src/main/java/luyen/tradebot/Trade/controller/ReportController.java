@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/api/report")
@@ -52,7 +53,7 @@ public class ReportController {
 
 
     @GetMapping("/orderList")
-    public ResponseEntity<?> getOrderList(
+    public CompletableFuture<ResponseEntity<String>> getOrderList(
             @RequestParam UUID accountId,
             @RequestParam Long fromTimestamp,
             @RequestParam Long toTimestamp) {
@@ -64,25 +65,33 @@ public class ReportController {
         }
         // Kiểm tra fromTimestamp >= 0
         if (fromTimestamp < 0) {
-            return ResponseEntity.badRequest().body("fromTimestamp must be >= 0");
+//            return ResponseEntity.badRequest().body("fromTimestamp must be >= 0");
+            return CompletableFuture.completedFuture(ResponseEntity.badRequest().body("fromTimestamp must be >= 0"));
         }
         // Xử lý logic với fromTimestamp
         if (toTimestamp == null) {
             // Xử lý trường hợp không có fromTimestamp (ví dụ: đặt giá trị mặc định)
             toTimestamp = 0L; // Giá trị mặc định là 1/1/1970
         }
+
         // Kiểm tra fromTimestamp >= 0
         if (toTimestamp < 0) {
-            return ResponseEntity.badRequest().body("toTimestamp must be >= 0");
+//            return ResponseEntity.badRequest().body("toTimestamp must be >= 0");
+            return CompletableFuture.completedFuture(ResponseEntity.badRequest().body("toTimestamp must be >= 0"));
         }
-        String result = orderService.getOrderList(accountId, fromTimestamp, toTimestamp);
-        ApiResponse<AccountEntity> response = new ApiResponse<>();
-        response = ApiResponse.<AccountEntity>builder()
-                .status(HttpStatus.OK.value())
-                .message(result)
-                .data(null)
-                .build();
+//        String result = orderService.getOrderList(accountId, fromTimestamp, toTimestamp);
 
-        return  new ResponseEntity<>(response, HttpStatus.OK);
+        return orderService.getOrderList(accountId, fromTimestamp, toTimestamp)
+                .thenApply(ResponseEntity::ok)
+                .exceptionally(ex -> ResponseEntity.status(500).body("⚠ Error: " + ex.getMessage()));
+
+//        ApiResponse<AccountEntity> response = new ApiResponse<>();
+//        response = ApiResponse.<AccountEntity>builder()
+//                .status(HttpStatus.OK.value())
+//                .message(result)
+//                .data(null)
+//                .build();
+
+//        return  new ResponseEntity<>(response, HttpStatus.OK);
     }
 }
