@@ -15,6 +15,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.async.DeferredResult;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -53,45 +54,98 @@ public class ReportController {
 
 
     @GetMapping("/orderList")
-    public CompletableFuture<ResponseEntity<String>> getOrderList(
+    public DeferredResult<ResponseEntity<String>> getOrderList(
             @RequestParam UUID accountId,
             @RequestParam Long fromTimestamp,
             @RequestParam Long toTimestamp) {
-//        log.info("Received order webhook: {}", webhookDTO);
+        
+        // Tạo DeferredResult với timeout 120 giây (120000ms)
+        DeferredResult<ResponseEntity<String>> deferredResult = new DeferredResult<>(120000L);
+        
         // Xử lý logic với fromTimestamp
         if (fromTimestamp == null) {
-            // Xử lý trường hợp không có fromTimestamp (ví dụ: đặt giá trị mặc định)
             fromTimestamp = 0L; // Giá trị mặc định là 1/1/1970
         }
         // Kiểm tra fromTimestamp >= 0
         if (fromTimestamp < 0) {
-//            return ResponseEntity.badRequest().body("fromTimestamp must be >= 0");
-            return CompletableFuture.completedFuture(ResponseEntity.badRequest().body("fromTimestamp must be >= 0"));
+            deferredResult.setResult(ResponseEntity.badRequest().body("fromTimestamp must be >= 0"));
+            return deferredResult;
         }
-        // Xử lý logic với fromTimestamp
+        // Xử lý logic với toTimestamp
         if (toTimestamp == null) {
-            // Xử lý trường hợp không có fromTimestamp (ví dụ: đặt giá trị mặc định)
             toTimestamp = 0L; // Giá trị mặc định là 1/1/1970
         }
 
-        // Kiểm tra fromTimestamp >= 0
+        // Kiểm tra toTimestamp >= 0
         if (toTimestamp < 0) {
-//            return ResponseEntity.badRequest().body("toTimestamp must be >= 0");
-            return CompletableFuture.completedFuture(ResponseEntity.badRequest().body("toTimestamp must be >= 0"));
+            deferredResult.setResult(ResponseEntity.badRequest().body("toTimestamp must be >= 0"));
+            return deferredResult;
         }
-//        String result = orderService.getOrderList(accountId, fromTimestamp, toTimestamp);
 
-        return orderService.getOrderList(accountId, fromTimestamp, toTimestamp)
-                .thenApply(ResponseEntity::ok)
-                .exceptionally(ex -> ResponseEntity.status(500).body("⚠ Error: " + ex.getMessage()));
+        // Xử lý timeout
+        deferredResult.onTimeout(() -> {
+            log.warn("Request timeout for getOrderList with accountId: {}", accountId);
+            deferredResult.setResult(ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT)
+                    .body("Request timeout after 120 seconds"));
+        });
 
-//        ApiResponse<AccountEntity> response = new ApiResponse<>();
-//        response = ApiResponse.<AccountEntity>builder()
-//                .status(HttpStatus.OK.value())
-//                .message(result)
-//                .data(null)
-//                .build();
+        // Xử lý async
+        orderService.getOrderList(accountId, fromTimestamp, toTimestamp)
+                .thenAccept(result -> deferredResult.setResult(ResponseEntity.ok(result)))
+                .exceptionally(ex -> {
+                    log.error("Error in getOrderList: ", ex);
+                    deferredResult.setResult(ResponseEntity.status(500).body("⚠ Error: " + ex.getMessage()));
+                    return null;
+                });
 
-//        return  new ResponseEntity<>(response, HttpStatus.OK);
+        return deferredResult;
+    }
+    @GetMapping("/detailList")
+    public DeferredResult<ResponseEntity<String>> getDetailList(
+            @RequestParam UUID accountId,
+            @RequestParam Long fromTimestamp,
+            @RequestParam Long toTimestamp,
+            @RequestParam(defaultValue = "10") int maxRows) {
+        
+        // Tạo DeferredResult với timeout 120 giây (120000ms)
+        DeferredResult<ResponseEntity<String>> deferredResult = new DeferredResult<>(120000L);
+        
+        // Xử lý logic với fromTimestamp
+        if (fromTimestamp == null) {
+            fromTimestamp = 0L; // Giá trị mặc định là 1/1/1970
+        }
+        // Kiểm tra fromTimestamp >= 0
+        if (fromTimestamp < 0) {
+            deferredResult.setResult(ResponseEntity.badRequest().body("fromTimestamp must be >= 0"));
+            return deferredResult;
+        }
+        // Xử lý logic với toTimestamp
+        if (toTimestamp == null) {
+            toTimestamp = 0L; // Giá trị mặc định là 1/1/1970
+        }
+
+        // Kiểm tra toTimestamp >= 0
+        if (toTimestamp < 0) {
+            deferredResult.setResult(ResponseEntity.badRequest().body("toTimestamp must be >= 0"));
+            return deferredResult;
+        }
+
+        // Xử lý timeout
+        deferredResult.onTimeout(() -> {
+            log.warn("Request timeout for getDetailList with accountId: {}", accountId);
+            deferredResult.setResult(ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT)
+                    .body("Request timeout after 120 seconds"));
+        });
+
+        // Xử lý async
+        orderService.getDetailList(accountId, fromTimestamp, toTimestamp, maxRows)
+                .thenAccept(result -> deferredResult.setResult(ResponseEntity.ok(result)))
+                .exceptionally(ex -> {
+                    log.error("Error in getDetailList: ", ex);
+                    deferredResult.setResult(ResponseEntity.status(500).body("⚠ Error: " + ex.getMessage()));
+                    return null;
+                });
+
+        return deferredResult;
     }
 }

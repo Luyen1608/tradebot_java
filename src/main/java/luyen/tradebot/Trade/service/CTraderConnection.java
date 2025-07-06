@@ -152,6 +152,10 @@ public class CTraderConnection {
         String message = createOrderListRequestMessage(ctidTraderAccountId, fromTimestamp, toTimestamp);
         return sendRequest(message);
     }
+    public CompletableFuture<String> getDetailList(int ctidTraderAccountId, Long fromTimestamp, Long toTimestamp, int maxRows) {
+        String message = createDetailListRequestMessage(ctidTraderAccountId, fromTimestamp, toTimestamp,maxRows);
+        return sendRequest(message);
+    }
 
     private String createGetAccountListMessage() {
         return String.format(
@@ -230,6 +234,23 @@ public class CTraderConnection {
 
         return jsonBuilder.toString();
     }
+    private String createDetailListRequestMessage(int ctidTraderAccountId, Long fromTimestamp, Long toTimestamp, int maxRows) {
+        // This is a simplified version - in real implementation, use protobuf
+        // JSON format for order placement
+        StringBuilder jsonBuilder = new StringBuilder();
+        jsonBuilder.append("{");
+        jsonBuilder.append("\"clientMsgId\": \"").append(generateClientMsgId()).append("\",");
+//        jsonBuilder.append("\"payloadType\": 2106,");
+        jsonBuilder.append("\"payloadType\": ").append("2133").append(",");
+        jsonBuilder.append("\"payload\": {");
+        jsonBuilder.append("\"ctidTraderAccountId\": ").append(ctidTraderAccountId).append(",");
+        jsonBuilder.append("\"fromTimestamp\": ").append(fromTimestamp).append(",");
+        jsonBuilder.append("\"toTimestamp\": ").append(toTimestamp).append(",");
+        jsonBuilder.append("\"maxRows\": ").append(maxRows);
+        jsonBuilder.append("}}");
+        return jsonBuilder.toString();
+    }
+
 
     public CompletableFuture<String> getAccountListByAccessToken() {
         String message = createGetAccountListMessage();

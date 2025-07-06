@@ -71,6 +71,22 @@ public class OrderService {
 
         return cTraderApiService.getOrderList(connection,ctidTraderAccountId,  fromTimestamp,  toTimestamp);
     }
+    public CompletableFuture<String> getDetailList(UUID accountID, Long fromTimestamp, Long toTimestamp, int maxRows){
+
+        Optional<AccountEntity> account = accountRepository.findById(accountID);
+        if (account.isEmpty()){
+            log.error("Account not found with id: {}", accountID);
+            return CompletableFuture.completedFuture("No active connection for account: " + accountID);
+        }
+        CTraderConnection connection = connectionService.getConnection(accountID);
+        if (connection == null) {
+            log.error("No active connection for account: {}", accountID);
+            return CompletableFuture.completedFuture("No active connection for account: " + accountID);
+        }
+        int ctidTraderAccountId = account.get().getCtidTraderAccountId();
+
+        return cTraderApiService.getDetailList(connection,ctidTraderAccountId,  fromTimestamp,  toTimestamp,maxRows);
+    }
 
     @Transactional
     public void processWebhookOrder(MessageTradingViewDTO messageTradingViewDTO) {

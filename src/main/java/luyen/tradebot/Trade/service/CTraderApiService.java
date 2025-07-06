@@ -60,6 +60,11 @@ public class CTraderApiService {
                                                   int ctidTraderAccountId, Long fromTimestamp, Long toTimestamp) {
         return connection.getOrderList( ctidTraderAccountId,  fromTimestamp,  toTimestamp);
     }
+    public CompletableFuture<String> getDetailList(CTraderConnection connection,
+                                                  int ctidTraderAccountId, Long fromTimestamp, Long toTimestamp ,int maxRows) {
+        return connection.getDetailList( ctidTraderAccountId,  fromTimestamp,  toTimestamp,maxRows);
+    }
+
     public CompletableFuture<String> getTraderAccounts(CTraderConnection connection) {
         // Get trader accounts via WebSocket
         return connection.getAccountListByAccessToken();
