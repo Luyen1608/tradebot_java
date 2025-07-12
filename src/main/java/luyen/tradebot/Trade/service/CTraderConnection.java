@@ -346,9 +346,9 @@ public class CTraderConnection {
                             // 2. Gửi qua WebSocket
                             session.getAsyncRemote().sendText(message);
 //                            System.out.println("Sent ProtoHeartbeatEvent ping to cTrader server...");
-                            log.info("Sent ProtoHeartbeatEvent ping to cTrader server: Account : {}", accountId);
+                            heartbeatLogger.info("Sent ProtoHeartbeatEvent ping to cTrader server: Account : {}", accountId);
                         } catch (Exception e) {
-                            log.error("Failed to send heartbeat:", e);
+                            heartbeatLogger.error("Failed to send heartbeat:", e);
 //                            System.err.println("Failed to send heartbeat: " + e.getMessage());
                         }
                     }
@@ -367,7 +367,6 @@ public class CTraderConnection {
 
     @OnMessage
     public void onMessage(String message) {
-        log.info("Received message for account " + accountId + ": " + message);
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode rootNode = objectMapper.readTree(message);
@@ -379,6 +378,7 @@ public class CTraderConnection {
 //                log.info("ProtoHeartbeatEvent received for account: {}", accountId);
                 return;
             }
+            log.info("Received message for account " + accountId + ": " + message);
             String clientMsgId = rootNode.path("clientMsgId").asText();
 //            if (pendingRequests.containsKey(clientMsgId)) {
 //                pendingRequests.get(clientMsgId).complete(message);

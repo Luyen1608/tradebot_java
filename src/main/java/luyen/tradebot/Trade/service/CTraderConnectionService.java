@@ -143,31 +143,31 @@ public class CTraderConnectionService {
             log.info("Successfully connected account: {} ({})",
                     freshAccount.getAccountId(), freshAccount.getTypeAccount());
             // If the account has a trader account ID already, authenticate it
-            if (freshAccount.getCtidTraderAccountId() != 0) {
-                try {
-                    final int traderAccountId = freshAccount.getCtidTraderAccountId();
-                    log.info("Authenticating trader account: {} for account: {}",
-                            traderAccountId, freshAccount.getId());
-                    connection.authenticateTraderAccount(traderAccountId)
-                            .thenAccept(success -> {
-                                if (success != null) {
-                                    log.info("Successfully authenticated trader account: {} for account: {}",
-                                            traderAccountId, freshAccount.getId());
-
-                                }
-                            });
-                } catch (Exception e) {
-                    log.error("Failed to authenticate trader account: {} for account: {}",
-                            freshAccount.getCtidTraderAccountId(), freshAccount.getId(), e);
-                    connections.remove(freshAccount.getId());
-                    disconnectAccount(freshAccount.getId());
-                }
-            } else // remove connenct
-            {
-                log.info("Remove connection for account: {}", freshAccount.getAccountId());
-                connections.remove(freshAccount.getId());
-                disconnectAccount(freshAccount.getId());
-            }
+//            if (freshAccount.getCtidTraderAccountId() != 0) {
+//                try {
+//                    final int traderAccountId = freshAccount.getCtidTraderAccountId();
+//                    log.info("Authenticating trader account: {} for account: {}",
+//                            traderAccountId, freshAccount.getId());
+//                    connection.authenticateTraderAccount(traderAccountId)
+//                            .thenAccept(success -> {
+//                                if (success != null) {
+//                                    log.info("Successfully authenticated trader account: {} for account: {}",
+//                                            traderAccountId, freshAccount.getId());
+//
+//                                }
+//                            });
+//                } catch (Exception e) {
+//                    log.error("Failed to authenticate trader account: {} for account: {}",
+//                            freshAccount.getCtidTraderAccountId(), freshAccount.getId(), e);
+//                    connections.remove(freshAccount.getId());
+//                    disconnectAccount(freshAccount.getId());
+//                }
+//            } else // remove connenct
+//            {
+//                log.info("Remove connection for account: {}", freshAccount.getAccountId());
+//                connections.remove(freshAccount.getId());
+//                disconnectAccount(freshAccount.getId());
+//            }
         } catch (Exception e) {
             log.error("Failed to connect account: ({})", freshAccount.getAccountId(), e);
             freshAccount.setIsConnected(false);
