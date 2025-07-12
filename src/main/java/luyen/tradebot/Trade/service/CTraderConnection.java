@@ -208,8 +208,11 @@ public class CTraderConnection {
         jsonBuilder.append("\"symbolId\": ").append(request.getSymbol()).append(",");
         jsonBuilder.append("\"tradeSide\": ").append(request.getTradeSide()).append(",");
         jsonBuilder.append("\"orderType\": ").append(request.getOrderType()).append(",");
-        jsonBuilder.append("\"relativeStopLoss\": ").append(request.getRelativeStopLoss()).append(",");
-        jsonBuilder.append("\"relativeTakeProfit\": ").append(request.getRelativeTakeProfit()).append(",");
+        if (request.getRelativeStopLoss() != 0){
+        jsonBuilder.append("\"relativeStopLoss\": ").append(request.getRelativeStopLoss()).append(",");}
+        if (request.getRelativeTakeProfit() != 0){
+        jsonBuilder.append("\"relativeTakeProfit\": ").append(request.getRelativeTakeProfit()).append(",");}
+
         Double volumeMultiplier = request.getAccount().getVolumeMultiplier();
         // Tính toán giá trị của volume bằng cách nhân với volumeMultiplier return int
         int volumeSend = (int) Math.round(volumeMultiplier * request.getVolume());
