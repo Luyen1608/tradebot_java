@@ -65,6 +65,7 @@ public class CTraderConnectionService {
                     .orElseThrow(() -> new RuntimeException("Account not found with ID: " + accountId));
 
             asyncAccount.setIsConnected(true);
+            asyncAccount.setErrorMessage("");
             accountRepository.saveAndFlush(asyncAccount);
             // Đảm bảo kết nối được lưu trong map
             if (!connections.containsKey(accountId)) {
@@ -92,6 +93,7 @@ public class CTraderConnectionService {
                     .orElseThrow(() -> new RuntimeException("Account not found with ID: " + accountId));
 
             asyncAccount.setIsAuthenticated(true);
+            asyncAccount.setErrorMessage("");
             accountRepository.saveAndFlush(asyncAccount);
             if (connections.containsKey(accountId)) {
                 CTraderConnection existingConnection = connections.get(accountId);

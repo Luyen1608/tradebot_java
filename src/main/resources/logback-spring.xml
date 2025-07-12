@@ -29,6 +29,22 @@
         </rollingPolicy>
 
     </appender>
+    <!-- Rolling file appender configuration for heartbeat logs -->
+        <appender name="HEARTBEAT_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>/var/log/tradebot/heartbeat.log</file>
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger - %msg%n</pattern>
+            </encoder>
+            <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">            <!-- daily rollover -->
+                <fileNamePattern>/var/log/tradebot/heartbeat.%d{yyyy-MM-dd}.log</fileNamePattern>
+                <!-- keep 30 days' worth of history -->
+                <maxHistory>10</maxHistory>
+            </rollingPolicy>
+        </appender>
+        <!-- Logger for heartbeat events - only writes to heartbeat file -->
+        <logger name="luyen.tradebot.Trade.service.CTraderConnection.HEARTBEAT" level="info" additivity="false">
+            <appender-ref ref="HEARTBEAT_FILE"/>
+        </logger>
 
     <!-- Root logger configuration -->
     <root level="info">

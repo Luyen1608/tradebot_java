@@ -11,6 +11,8 @@ import luyen.tradebot.Trade.dto.respone.ResponseCtraderDTO;
 import luyen.tradebot.Trade.util.ValidateRepsone;
 import luyen.tradebot.Trade.util.enumTraderBot.ActionSystem;
 import luyen.tradebot.Trade.util.enumTraderBot.PayloadType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 
@@ -49,7 +51,7 @@ public class CTraderConnection {
     //    private final Map<String, CompletableFuture<String>> pendingRequests = new ConcurrentHashMap<>();
     private boolean manualDisconnect = false;
     private ActionSystem actionSystem = ActionSystem.AUTH;
-
+    private static final Logger heartbeatLogger = LoggerFactory.getLogger("luyen.tradebot.Trade.service.CTraderConnection.HEARTBEAT");
     public CTraderConnection(UUID accountId, String clientId, String secretId, String accessToken,
                              CTraderConnectionService connectionService, String wsUrl,
                              KafkaTemplate<String, String> kafkaTemplate, KafkaProducerService kafkaProducerService,
@@ -373,7 +375,8 @@ public class CTraderConnection {
             int payloadType = rootNode.get("payloadType").asInt();
             PayloadType payloadTypeEnum = PayloadType.fromValue(payloadType);
             if (payloadTypeEnum == PayloadType.PROTO_OA_HEART_BEAT) {
-                log.info("ProtoHeartbeatEvent received for account: {}", accountId);
+                heartbeatLogger.info("ProtoHeartbeatEvent received for account: {}", accountId);
+//                log.info("ProtoHeartbeatEvent received for account: {}", accountId);
                 return;
             }
             String clientMsgId = rootNode.path("clientMsgId").asText();
