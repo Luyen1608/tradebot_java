@@ -33,10 +33,28 @@ public class Convert {
         if (messageTradingViewDTO.getInstrument().length() > 6) {
             messageTradingViewDTO.setInstrument(messageTradingViewDTO.getInstrument().substring(0, 6));
         }
-        double relativeTakeProfit = Double.parseDouble(messageTradingViewDTO.getRelative_take_profit());
-        double relativeStopLoss = Double.parseDouble(messageTradingViewDTO.getRelative_stop_loss());
-        double takeProfit = Double.parseDouble(messageTradingViewDTO.getTake_profit());
-        double stopLos = Double.parseDouble(messageTradingViewDTO.getStop_loss());
+        // Kiểm tra và parse các giá trị, sử dụng giá trị mặc định nếu null
+        double relativeTakeProfit = 0;
+        double relativeStopLoss = 0;
+        double takeProfit = 0;
+        double stopLos = 0;
+        
+        if (messageTradingViewDTO.getRelative_take_profit() != null && !messageTradingViewDTO.getRelative_take_profit().trim().isEmpty()) {
+            relativeTakeProfit = Double.parseDouble(messageTradingViewDTO.getRelative_take_profit());
+        }
+        
+        if (messageTradingViewDTO.getRelative_stop_loss() != null && !messageTradingViewDTO.getRelative_stop_loss().trim().isEmpty()) {
+            relativeStopLoss = Double.parseDouble(messageTradingViewDTO.getRelative_stop_loss());
+        }
+        
+        if (messageTradingViewDTO.getTake_profit() != null && !messageTradingViewDTO.getTake_profit().trim().isEmpty()) {
+            takeProfit = Double.parseDouble(messageTradingViewDTO.getTake_profit());
+        }
+        
+        if (messageTradingViewDTO.getStop_loss() != null && !messageTradingViewDTO.getStop_loss().trim().isEmpty()) {
+            stopLos = Double.parseDouble(messageTradingViewDTO.getStop_loss());
+        }
+        
         int roundedRelativeTakeProfit = roundDownToNearestThousand(relativeTakeProfit);
         int roundedRelativeStopLoss = roundDownToNearestThousand(relativeStopLoss);
         OrderWebhookDTO webhookDTO = OrderWebhookDTO.builder()
