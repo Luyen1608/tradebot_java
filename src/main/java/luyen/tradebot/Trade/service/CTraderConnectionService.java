@@ -222,18 +222,18 @@ public class CTraderConnectionService {
             connections.put(accountId, newConnection);
             log.info("Created new connection for account: {}", accountId);
             // Chỉ xác thực tài khoản trader nếu kết nối thành công và có ID tài khoản trader
-            if (newConnection.isConnectionSuccessful() && newConnection.getAuthenticatedTraderAccountId() != 0) {
-                log.info("Authenticating trader account: {} for reconnected account: {}",
-                        newConnection.getAuthenticatedTraderAccountId(), accountId);
-                newConnection.authenticateTraderAccount(newConnection.getAuthenticatedTraderAccountId())
-                        .thenAccept(success -> {
-                            if (success != null) {
-                                log.info("Successfully authenticated trader account after reconnection: {}", newConnection.getAuthenticatedTraderAccountId());
-                            }
-                        });
-            } else {
-                log.warn("Reconnection successful but not authenticating trader account for account: {}", accountId);
-            }
+//            if (newConnection.isConnectionSuccessful() && newConnection.getAuthenticatedTraderAccountId() != 0) {
+//                log.info("Authenticating trader account: {} for reconnected account: {}",
+//                        newConnection.getAuthenticatedTraderAccountId(), accountId);
+//                newConnection.authenticateTraderAccount(newConnection.getAuthenticatedTraderAccountId())
+//                        .thenAccept(success -> {
+//                            if (success != null) {
+//                                log.info("Successfully authenticated trader account after reconnection: {}", newConnection.getAuthenticatedTraderAccountId());
+//                            }
+//                        });
+//            } else {
+//                log.warn("Reconnection successful but not authenticating trader account for account: {}", accountId);
+//            }
         } catch (Exception e) {
             log.error("Failed to reconnect account: {}", accountId, e);
         }
