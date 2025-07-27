@@ -52,6 +52,8 @@ public class CTraderConnection {
     private boolean manualDisconnect = false;
     private ActionSystem actionSystem = ActionSystem.AUTH;
     private String clientMsgId ="";
+    private int reconnectAttempts = 0;
+    private static final int MAX_RECONNECT_ATTEMPTS = 3;
     private static final Logger heartbeatLogger = LoggerFactory.getLogger("luyen.tradebot.Trade.service.CTraderConnection.HEARTBEAT");
     public CTraderConnection(UUID accountId, String clientId, String secretId, String accessToken,
                              CTraderConnectionService connectionService, String wsUrl,
@@ -400,14 +402,17 @@ public class CTraderConnection {
                 kafkaData.put("rawMessage", message);
                 kafkaData.put("clientMsgId", clientMsgId);
                 String jsonMessage = objectMapper.writeValueAsString(kafkaData);
+                //check error authen
+                ResponseCtraderDTO res = ValidateRepsone.formatResponse(message);
                 // Xử lý các loại thông báo khác dựa trên payloadType (nếu cần)
+
                 switch (Objects.requireNonNull(payloadTypeEnum)) {
                     case PROTO_OA_CLOSE_POSITION_REQ:
                     case PROTO_OA_EXECUTION_EVENT:
+
                     case PROTO_OA_ORDER_ERROR_EVENT:
                     case PROTO_OA_ERROR_RES:
-                        //check error authen
-                        ResponseCtraderDTO res = ValidateRepsone.formatResponse(message);
+
                         //check actionsystem is order
                         if (actionSystem != null) {
                             if (actionSystem.equals(ActionSystem.ORDER)) {
@@ -415,14 +420,25 @@ public class CTraderConnection {
                                 log.info("Sending message to topic {}: key={}, value={}", "order-status-topic", clientMsgId, jsonMessage);
                                 kafkaTemplate.send("order-status-topic", jsonMessage);
                                 //xu ly truong hop payloadType 2142 INVALID_REQUEST -  Trading account is not authorized :
-                                if (!"N/A".equals(res.getErrorCode())){
-                                    if ("INVALID_REQUEST".equals(res.getErrorCode()) && res.getDescription().contains("account is not authorized")){
-                                        connectionService.reconnect(this, clientMsgId);
-                                        log.info("Reconnect if order INVALID_REQUEST");
+                                if (!"".equals(res.getErrorCode())) {
+                                    if ("INVALID_REQUEST".equals(res.getErrorCode()) && res.getDescription().contains("account is not authorized")) {
+                                        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                                            reconnectAttempts++;
+                                            connectionService.reconnect(this, clientMsgId);
+                                            log.info("Reconnect if order INVALID_REQUEST round -----: {}", reconnectAttempts);
+                                        } else {
+                                            log.info("Max reconnect attempts reached for account: {}", accountId);
+                                        }
+
+                                    }
+                                } else {
+                                    if (res.getPayloadType() == 3){
+                                        resetReconnectAttempts();
                                     }
                                 }
+
                             } else if (actionSystem.equals(ActionSystem.AUTH)) {
-                                if (!res.getErrorCode().equals("N/A")) {
+                                if (!"".equals(res.getErrorCode())) {
                                     this.manualDisconnect = true;
                                 }
                                 kafkaTemplate.send("order-status-auth", jsonMessage);
@@ -463,7 +479,10 @@ public class CTraderConnection {
             responseFuture = null; // Reset để dùng cho request tiếp theo
         }
     }
-
+    public void resetReconnectAttempts() {
+        this.reconnectAttempts = 0;
+        log.info("Reconnect attempts reset for account: {}", accountId);
+    }
     @OnClose
     public void onClose(Session session, CloseReason reason) {
         log.warn("Connection closed for account = {} and session ID={}", accountId + ": " + reason.getReasonPhrase(), session.getId());

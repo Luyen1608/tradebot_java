@@ -194,7 +194,7 @@ public class OrderService {
                         .signalToken(messageTradingViewDTO.getSignalToken())
                         .maxLag(messageTradingViewDTO.getMaxLag())
                         .investmentType(messageTradingViewDTO.getInvestmentType())
-                        .amount(Double.valueOf(messageTradingViewDTO.getAmount()))
+                        .amount(Convert.convertAmountToDouble(messageTradingViewDTO.getAmount()))
                         .stopLoss(webhookDTO.getStopLoss())
                         .takeProfit(webhookDTO.getTakeProfit())
                         .relativeStopLoss(webhookDTO.getRelative_stop_loss())
@@ -251,7 +251,7 @@ public class OrderService {
                 .signalToken(webhookDTO.getSignalToken())
                 .maxLag(webhookDTO.getMaxLag())
                 .investmentType(webhookDTO.getInvestmentType())
-                .amount(Double.valueOf(webhookDTO.getAmount()))
+                .amount(Convert.convertAmountToDouble(webhookDTO.getAmount()))
                 .status("pending")
                 .build();
         AlertTradingEntity savedAlertTradingEntity = alertTradingRepository.save(alertTradingEntity);

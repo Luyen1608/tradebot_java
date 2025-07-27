@@ -49,8 +49,11 @@ public class ValidateRepsone {
             // Lấy payload
             JsonNode payloadNode = rootNode.get("payload");
             // Lấy errorCode và description
-            String errorCode = payloadNode.has("errorCode") ? payloadNode.get("errorCode").asText() : "N/A";
+            String errorCode = payloadNode.has("errorCode") ? payloadNode.get("errorCode").asText() : "";
             String description = payloadNode.has("description") ? payloadNode.get("description").asText() : "No description";
+            int executionType = payloadNode.has("executionType") ? payloadNode.get("executionType").asInt() : 0;
+
+            responseCtraderDTO.setExecutionType(executionType);
             responseCtraderDTO.setPayloadReponse(payloadType);
             responseCtraderDTO.setErrorCode(errorCode);
             responseCtraderDTO.setDescription(description);

@@ -89,7 +89,7 @@ public class OrderStatusConsumer {
             AccountEntity account = accountRepository.findById(UUID.fromString(accountId))
                     .orElseThrow(() -> new RuntimeException("Account not found"));
             // Xử lý message dựa trên loại
-            if (!res.getErrorCode().equals("N/A")){
+            if (!"".equals(res.getErrorCode())){
                 account.setErrorMessage(res.getErrorCode() + "-" + res.getDescription());
 //                ProtoOAErrorCode protoOAErrorCode = ProtoOAErrorCode.valueOf(res.getErrorCode());
                 account.setIsAuthenticated(false);
