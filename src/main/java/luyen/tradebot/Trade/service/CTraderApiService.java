@@ -44,7 +44,7 @@ public class CTraderApiService {
     public CTraderConnection connect(UUID accountId, String clientId, String clientSecret,
                                      String accessToken, AccountType accountType,
                                      CTraderConnectionService ctraderConnectionService, String wsUrl,Double volumeMultiplier,
-                                     int ctidTraderAccountId) {
+                                     int ctidTraderAccountId, String clientMsgId) {
         // Implement WebSocket connection to cTrader API
         if (wsUrl ==null){
             wsUrl = "DEMO".equalsIgnoreCase(accountType.toString()) ?
@@ -52,7 +52,7 @@ public class CTraderApiService {
         }
 //        CTraderConnection connection = new CTraderConnection(accountId, clientId, clientSecret, accessToken, ctraderConnectionService, wsUrl);
         CTraderConnection connection = new CTraderConnection(accountId, clientId, clientSecret, accessToken,
-                  ctraderConnectionService, wsUrl, kafkaTemplate, kafkaProducerService, prefix, volumeMultiplier, ctidTraderAccountId);
+                  ctraderConnectionService, wsUrl, kafkaTemplate, kafkaProducerService, prefix, volumeMultiplier, ctidTraderAccountId, clientMsgId);
         connection.connect();
         return connection;
     }

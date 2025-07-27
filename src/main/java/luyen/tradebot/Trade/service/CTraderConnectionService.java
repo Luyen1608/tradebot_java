@@ -4,16 +4,21 @@ package luyen.tradebot.Trade.service;
 import jakarta.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import luyen.tradebot.Trade.dto.OrderWebhookDTO;
+import luyen.tradebot.Trade.dto.request.PlaceOrderRequest;
 import luyen.tradebot.Trade.model.AccountEntity;
 import luyen.tradebot.Trade.model.ConnectedEntity;
+import luyen.tradebot.Trade.model.OrderPosition;
 import luyen.tradebot.Trade.repository.AccountRepository;
 import luyen.tradebot.Trade.repository.ConnectedRepository;
-import luyen.tradebot.Trade.util.enumTraderBot.ConnectStatus;
+import luyen.tradebot.Trade.repository.OrderPositionRepository;
+import luyen.tradebot.Trade.util.enumTraderBot.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,7 +31,7 @@ public class CTraderConnectionService {
 
     private final AccountRepository accountRepository;
     private final CTraderApiService cTraderApiService;
-
+    private final OrderPositionRepository orderPositionRepository;
     private final ConnectedRepository connectedRepository;
 
     // Lưu trữ thông tin kết nối với khóa là accountId (không phải clientId)
@@ -87,6 +92,37 @@ public class CTraderConnectionService {
     @Transactional
     public synchronized void saveConnectionAuthenticated(CTraderConnection connection) {
         try {
+            String clientMsgId = connection.getClientMsgId();
+            if (!"".equals(clientMsgId)){
+                // order placer
+                OrderPosition orderPosition = orderPositionRepository.findByClientMsgIdLimitOne(clientMsgId)
+                        .orElseThrow(() -> new RuntimeException("OrderPosition not found with clientMsgId: " + clientMsgId));;
+                int symbol = Symbol.fromString6(orderPosition.getSymbol()).getId();
+                int tradeSide = TradeSide.fromString(orderPosition.getTradeSide()).getValue();
+                int originVolumn = orderPosition.getOriginalVolume();
+                int volumeMultiple = orderPosition.getOriginalVolume();
+                int stopLoss = orderPosition.getStopLoss();
+                int takePro = orderPosition.getTakeProfit();
+                int relativeStop = orderPosition.getRelativeStopLoss();
+                int realativeTake = orderPosition.getRelativeTakeProfit();
+
+                PlaceOrderRequest request = PlaceOrderRequest.builder()
+                        .connection(connection)
+                        .clientMsgId(connection.getClientMsgId())
+                        .symbol(symbol)
+                        .tradeSide(tradeSide)
+                        .volume(originVolumn)
+                        .stopLoss(stopLoss)
+                        .takeProfit(takePro)
+                        .relativeStopLoss(relativeStop)
+                        .relativeTakeProfit(realativeTake)
+                        .orderType(OrderType.fromString("MARKET").getValue())
+                        .account(orderPosition.getAccount())
+//                        .savedOrder(savedOrder)
+                        .payloadType(PayloadType.PROTO_OA_NEW_ORDER_REQ)
+                        .build();
+                cTraderApiService.placeOrder(request);
+            }
             UUID accountId = connection.getAccountId();
             log.info("Saving authentication details for account: {}", accountId);
             AccountEntity asyncAccount = accountRepository.findById(accountId)
@@ -96,8 +132,8 @@ public class CTraderConnectionService {
             asyncAccount.setErrorMessage("");
             accountRepository.saveAndFlush(asyncAccount);
             if (connections.containsKey(accountId)) {
-                CTraderConnection existingConnection = connections.get(accountId);
-                existingConnection.setAuthenticatedTraderAccountId(connection.getAuthenticatedTraderAccountId());
+//                CTraderConnection existingConnection = connections.get(accountId);
+//                existingConnection.setAuthenticatedTraderAccountId(connection.getAuthenticatedTraderAccountId());
                 log.info("Updated authenticated trader account ID for account: {}", accountId);
             } else {
                 connections.put(accountId, connection);
@@ -130,7 +166,8 @@ public class CTraderConnectionService {
                     this,
                     null,
                     freshAccount.getVolumeMultiplier(),
-                    freshAccount.getCtidTraderAccountId()
+                    freshAccount.getCtidTraderAccountId(),
+                    ""
             );
 //            if (!connection.isConnectionSuccessful()) {
 //                log.warn("Connection not successful for account: {} ({})",
@@ -196,7 +233,7 @@ public class CTraderConnectionService {
     }
 
     @Transactional
-    public synchronized void reconnect(CTraderConnection connection) {
+    public synchronized void reconnect(CTraderConnection connection, String clientMsgId) {
         UUID accountId = connection.getAccountId();
         log.info("Attempting to reconnect for account: " + accountId);
         connection.close(); // Đóng kết nối cũ nếu còn mở
@@ -213,11 +250,12 @@ public class CTraderConnectionService {
                     this,
                     connection.getWsUrl(),
                     connection.getVolumeMultiplier(),
-                    connection.getAuthenticatedTraderAccountId()
+                    connection.getAuthenticatedTraderAccountId(),
+                    clientMsgId
             );
 
             // Sao chép thông tin xác thực từ kết nối cũ
-            newConnection.setAuthenticatedTraderAccountId(connection.getAuthenticatedTraderAccountId());
+//            newConnection.setAuthenticatedTraderAccountId(connection.getAuthenticatedTraderAccountId());
             // Lưu kết nối mới vào map
             connections.put(accountId, newConnection);
             log.info("Created new connection for account: {}", accountId);

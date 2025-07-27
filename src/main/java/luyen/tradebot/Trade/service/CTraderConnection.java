@@ -35,7 +35,7 @@ public class CTraderConnection {
 
     private KafkaProducerService kafkaProducerService;
     private KafkaTemplate<String, String> kafkaTemplate;
-
+    private ValidateRepsone validateRepsone;
     @Value("${tradebot.prefix}")
     private String prefix = "trade365_";
     private ScheduledExecutorService pingScheduler;
@@ -51,11 +51,12 @@ public class CTraderConnection {
     //    private final Map<String, CompletableFuture<String>> pendingRequests = new ConcurrentHashMap<>();
     private boolean manualDisconnect = false;
     private ActionSystem actionSystem = ActionSystem.AUTH;
+    private String clientMsgId ="";
     private static final Logger heartbeatLogger = LoggerFactory.getLogger("luyen.tradebot.Trade.service.CTraderConnection.HEARTBEAT");
     public CTraderConnection(UUID accountId, String clientId, String secretId, String accessToken,
                              CTraderConnectionService connectionService, String wsUrl,
                              KafkaTemplate<String, String> kafkaTemplate, KafkaProducerService kafkaProducerService,
-                             String prefix, Double volumeMultiplier, int ctidTraderAccountId) {
+                             String prefix, Double volumeMultiplier, int ctidTraderAccountId, String clientMsgId) {
         this.accountId = accountId;
         this.kafkaTemplate = kafkaTemplate;
         this.accessToken = accessToken;
@@ -66,6 +67,7 @@ public class CTraderConnection {
         this.volumeMultiplier = volumeMultiplier;
         this.authenticatedTraderAccountId = ctidTraderAccountId;
         this.kafkaProducerService = kafkaProducerService;
+        this.clientMsgId = clientMsgId;
         if (prefix != null) {
             this.prefix = prefix;
         }
@@ -189,9 +191,7 @@ public class CTraderConnection {
         jsonBuilder.append("{");
         jsonBuilder.append("\"clientMsgId\": \"").append(generateClientMsgId()).append("\",");
         jsonBuilder.append("\"payloadType\": 51");
-
         jsonBuilder.append("}");
-
         return jsonBuilder.toString();
     }
 
@@ -410,11 +410,17 @@ public class CTraderConnection {
                         ResponseCtraderDTO res = ValidateRepsone.formatResponse(message);
                         //check actionsystem is order
                         if (actionSystem != null) {
-
                             if (actionSystem.equals(ActionSystem.ORDER)) {
                                 // xử lý logic khi nhận được message từ websocket
                                 log.info("Sending message to topic {}: key={}, value={}", "order-status-topic", clientMsgId, jsonMessage);
                                 kafkaTemplate.send("order-status-topic", jsonMessage);
+                                //xu ly truong hop payloadType 2142 INVALID_REQUEST -  Trading account is not authorized :
+                                if (!"N/A".equals(res.getErrorCode())){
+                                    if ("INVALID_REQUEST".equals(res.getErrorCode()) && res.getDescription().contains("account is not authorized")){
+                                        connectionService.reconnect(this, clientMsgId);
+                                        log.info("Reconnect if order INVALID_REQUEST");
+                                    }
+                                }
                             } else if (actionSystem.equals(ActionSystem.AUTH)) {
                                 if (!res.getErrorCode().equals("N/A")) {
                                     this.manualDisconnect = true;
@@ -436,6 +442,7 @@ public class CTraderConnection {
                     case PROTO_OA_ACCOUNT_AUTH_RES:
                         log.info("Successfully authenticated trader account: {}", authenticatedTraderAccountId);
                         connectionService.saveConnectionAuthenticated(this);
+                        this.clientMsgId = "";
                         startPingScheduler();
                         break;
 
@@ -472,7 +479,7 @@ public class CTraderConnection {
         // Only reconnect if this wasn't a manual disconnect
 
         if (!manualDisconnect) {
-            connectionService.reconnect(this); // Tự động reconnect khi đóng
+            connectionService.reconnect(this, ""); // Tự động reconnect khi đóng
         } else {
             log.info("Manual disconnect detected for account: {}, not reconnecting", accountId);
         }
@@ -489,7 +496,7 @@ public class CTraderConnection {
             log.error("Error closing session for account " + accountId, e);
         }
         if (!manualDisconnect) {
-            connectionService.reconnect(this); // Tự động reconnect khi đóng
+            connectionService.reconnect(this, ""); // Tự động reconnect khi đóng
         } else {
             log.info("Manual disconnect detected for account: {}, not reconnecting", accountId);
         }

@@ -4,9 +4,6 @@ package luyen.tradebot.Trade.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.math.BigDecimal;
-import java.util.UUID;
-
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -15,7 +12,6 @@ import java.util.UUID;
 @Entity(name = "OrderPosition")
 @Table(name = "tbl_order_positions")
 public class OrderPosition extends AbstractEntity{
-
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id")

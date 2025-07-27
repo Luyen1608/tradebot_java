@@ -44,7 +44,7 @@ public class OrderEntity extends AbstractEntity {
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    private OrderType orderType; // MARKET, LIMIT, STOP
+    private OrderType orderType;
 
     private Integer stopLoss;
     private Integer takeProfit;
