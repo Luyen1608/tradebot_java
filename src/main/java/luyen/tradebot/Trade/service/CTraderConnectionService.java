@@ -93,8 +93,9 @@ public class CTraderConnectionService {
     public synchronized void saveConnectionAuthenticated(CTraderConnection connection) {
         try {
             String clientMsgId = connection.getClientMsgId();
-            if (!"".equals(clientMsgId)){
+            if (!"".equals(clientMsgId) && !clientMsgId.isEmpty()){
                 // order placer
+                log.info("Resend order : {} - {}", clientMsgId, connection.getAuthenticatedTraderAccountId());
                 OrderPosition orderPosition = orderPositionRepository.findByClientMsgIdLimitOne(clientMsgId)
                         .orElseThrow(() -> new RuntimeException("OrderPosition not found with clientMsgId: " + clientMsgId));;
                 int symbol = Symbol.fromString6(orderPosition.getSymbol()).getId();

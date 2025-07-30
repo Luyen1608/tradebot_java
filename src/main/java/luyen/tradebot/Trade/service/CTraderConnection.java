@@ -51,7 +51,7 @@ public class CTraderConnection {
     //    private final Map<String, CompletableFuture<String>> pendingRequests = new ConcurrentHashMap<>();
     private boolean manualDisconnect = false;
     private ActionSystem actionSystem = ActionSystem.AUTH;
-    private String clientMsgId ="";
+    private String clientMsgId = "";
     private int reconnectAttempts = 0;
     private static final int MAX_RECONNECT_ATTEMPTS = 3;
     private static final Logger heartbeatLogger = LoggerFactory.getLogger("luyen.tradebot.Trade.service.CTraderConnection.HEARTBEAT");
@@ -425,7 +425,7 @@ public class CTraderConnection {
                                         if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
                                             reconnectAttempts++;
                                             connectionService.reconnect(this, clientMsgId);
-                                            log.info("Reconnect if order INVALID_REQUEST round -----: {}", reconnectAttempts);
+                                            log.info("Reconnect if order INVALID_REQUEST round -----: {} - {} - {}", reconnectAttempts, authenticatedTraderAccountId, clientMsgId);
                                         } else {
                                             log.info("Max reconnect attempts reached for account: {}", accountId);
                                         }
