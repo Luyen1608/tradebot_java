@@ -93,37 +93,6 @@ public class CTraderConnectionService {
     public synchronized void saveConnectionAuthenticated(CTraderConnection connection) {
         try {
             String clientMsgId = connection.getClientMsgId();
-            if (!"".equals(clientMsgId) && !clientMsgId.isEmpty()){
-                // order placer
-                log.info("Resend order : {} - {}", clientMsgId, connection.getAuthenticatedTraderAccountId());
-                OrderPosition orderPosition = orderPositionRepository.findByClientMsgIdLimitOne(clientMsgId)
-                        .orElseThrow(() -> new RuntimeException("OrderPosition not found with clientMsgId: " + clientMsgId));;
-                int symbol = Symbol.fromString6(orderPosition.getSymbol()).getId();
-                int tradeSide = TradeSide.fromString(orderPosition.getTradeSide()).getValue();
-                int originVolumn = orderPosition.getOriginalVolume();
-                int volumeMultiple = orderPosition.getOriginalVolume();
-                int stopLoss = orderPosition.getStopLoss();
-                int takePro = orderPosition.getTakeProfit();
-                int relativeStop = orderPosition.getRelativeStopLoss();
-                int realativeTake = orderPosition.getRelativeTakeProfit();
-
-                PlaceOrderRequest request = PlaceOrderRequest.builder()
-                        .connection(connection)
-                        .clientMsgId(connection.getClientMsgId())
-                        .symbol(symbol)
-                        .tradeSide(tradeSide)
-                        .volume(originVolumn)
-                        .stopLoss(stopLoss)
-                        .takeProfit(takePro)
-                        .relativeStopLoss(relativeStop)
-                        .relativeTakeProfit(realativeTake)
-                        .orderType(OrderType.fromString("MARKET").getValue())
-                        .account(orderPosition.getAccount())
-//                        .savedOrder(savedOrder)
-                        .payloadType(PayloadType.PROTO_OA_NEW_ORDER_REQ)
-                        .build();
-                cTraderApiService.placeOrder(request);
-            }
             UUID accountId = connection.getAccountId();
             log.info("Saving authentication details for account: {}", accountId);
             AccountEntity asyncAccount = accountRepository.findById(accountId)
@@ -141,6 +110,39 @@ public class CTraderConnectionService {
                 log.info("Added authenticated connection to map for account: {}", accountId);
             }
             log.info("Connection Authenticated: {}", accountId);
+            log.info("{} - Resend order : {} - {}",connection.getAccountId(), clientMsgId, connection.getAuthenticatedTraderAccountId());
+            if (!"".equals(clientMsgId) && !clientMsgId.isEmpty()){
+                // order placer
+                OrderPosition orderPosition = orderPositionRepository.findByClientMsgIdLimitOne(clientMsgId)
+                        .orElseThrow(() -> new RuntimeException("OrderPosition not found with clientMsgId: " + clientMsgId));;
+                int symbol = Symbol.fromString6(orderPosition.getSymbol()).getId();
+                int tradeSide = TradeSide.fromString(orderPosition.getTradeSide()).getValue();
+                int originVolumn = orderPosition.getOriginalVolume();
+                int volumeMultiple = orderPosition.getOriginalVolume();
+                int stopLoss = orderPosition.getStopLoss();
+                int takePro = orderPosition.getTakeProfit();
+                int relativeStop = orderPosition.getRelativeStopLoss();
+                int realativeTake = orderPosition.getRelativeTakeProfit();
+//                String clientMsgId = generateClientMsgId();
+                PlaceOrderRequest request = PlaceOrderRequest.builder()
+                        .connection(connection)
+                        .clientMsgId(generateClientMsgId())
+                        .symbol(symbol)
+                        .tradeSide(tradeSide)
+                        .volume(originVolumn)
+                        .stopLoss(stopLoss)
+                        .takeProfit(takePro)
+                        .relativeStopLoss(relativeStop)
+                        .relativeTakeProfit(realativeTake)
+                        .orderType(OrderType.fromString("MARKET").getValue())
+                        .account(orderPosition.getAccount())
+//                        .savedOrder(savedOrder)
+                        .payloadType(PayloadType.PROTO_OA_NEW_ORDER_REQ)
+                        .build();
+
+                log.info("{} - placeOrder : {} - {} - {}",connection.getAccountId(), clientMsgId, connection.getAuthenticatedTraderAccountId(), request);
+                cTraderApiService.placeOrder(request);
+            }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -236,7 +238,7 @@ public class CTraderConnectionService {
     @Transactional
     public synchronized void reconnect(CTraderConnection connection, String clientMsgId) {
         UUID accountId = connection.getAccountId();
-        log.info("Attempting to reconnect for account: " + accountId);
+        log.info("{} - Attempting to reconnect for account: {} - {} - {}",accountId,connection.getAuthenticatedTraderAccountId(), clientMsgId, accountId);
         connection.close(); // Đóng kết nối cũ nếu còn mở
         connections.remove(accountId);
         // Tạo kết nối mới
@@ -254,7 +256,6 @@ public class CTraderConnectionService {
                     connection.getAuthenticatedTraderAccountId(),
                     clientMsgId
             );
-
             // Sao chép thông tin xác thực từ kết nối cũ
 //            newConnection.setAuthenticatedTraderAccountId(connection.getAuthenticatedTraderAccountId());
             // Lưu kết nối mới vào map
@@ -344,5 +345,9 @@ public class CTraderConnectionService {
     public List<Map<String, Object>> getAvailableAccounts(String accessToken) {
         return cTraderApiService.getAccounts(accessToken);
     }
-
+    private String generateClientMsgId() {
+        // Generate a unique client message ID for tracking responses
+        // Ví dụ: "myPrefix_" + UUID.randomUUID().toString().substring(0, 8) + "_" + System.nanoTime();
+        return "trade365_" + UUID.randomUUID().toString().substring(0, 6) + "_" + System.nanoTime();
+    }
 }

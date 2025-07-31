@@ -249,6 +249,8 @@ public class OrderStatusConsumer {
                     orderPosition.setPositionId(responseCtraderDTO.getPositionId());
                     orderPosition.setStatus(ProtoOAExecutionType.ORDER_ACCEPTED.getStatus());
                     orderPosition.setExecutionType(ProtoOAExecutionType.ORDER_ACCEPTED.toString());
+                    orderPosition.setErrorMessage("");
+                    orderPosition.setErrorCode("");
                 } catch (Exception e) {
                     log.error("Error processing ORDER_ACCEPTED close order request: {}", e.getMessage(), e);
                     // Re-throw to ensure transaction is rolled back
@@ -281,6 +283,8 @@ public class OrderStatusConsumer {
                 try {
                     orderPosition.setStatus(ProtoOAExecutionType.ORDER_FILLED.getStatus());
                     orderPosition.setExecutionType(ProtoOAExecutionType.ORDER_FILLED.toString());
+                    orderPosition.setErrorMessage("");
+                    orderPosition.setErrorCode("");
                     //if success close order then update order entity
                     OrderEntity orderEntity = orderRepository.findById(orderPosition.getOrder().getId()).orElseThrow(
                             () -> new RuntimeException("Order not found with orderId: " + orderPosition.getOrder().getId()));
@@ -343,6 +347,8 @@ public class OrderStatusConsumer {
                     orderPosition.setPositionId(responseCtraderDTO.getPositionId());
                     orderPosition.setStatus(ProtoOAExecutionType.ORDER_ACCEPTED.getStatus());
                     orderPosition.setExecutionType(ProtoOAExecutionType.ORDER_ACCEPTED.toString());
+                    orderPosition.setErrorMessage("");
+                    orderPosition.setErrorCode("");
                     orderPositionRepository.saveAndFlush(orderPosition);
                     break;
                 case ORDER_FILLED:
@@ -363,6 +369,8 @@ public class OrderStatusConsumer {
                             log.warn("No rows updated by query, falling back to direct entity update");
                             orderPosition.setExecutionType(ProtoOAExecutionType.ORDER_FILLED.toString());
                             orderPosition.setStatus(ProtoOAExecutionType.ORDER_FILLED.getStatus());
+                            orderPosition.setErrorMessage("");
+                            orderPosition.setErrorCode("");
                             orderPositionRepository.saveAndFlush(orderPosition);
                             log.info("Direct entity update completed for orderPosition: {}", orderPositionId);
                         }

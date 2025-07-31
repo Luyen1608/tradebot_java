@@ -80,7 +80,7 @@ public class CTraderConnection {
             WebSocketContainer container = ContainerProvider.getWebSocketContainer();
             session = container.connectToServer(this, URI.create(wsUrl));
             actionSystem = ActionSystem.AUTH;
-            log.info("WebSocket connection initiated at {}, waiting for onOpen event...", wsUrl);
+            log.info("{} - WebSocket connection initiated at {}, waiting for onOpen event... - {} - {}",accountId,clientMsgId, authenticatedTraderAccountId, wsUrl);
         } catch (Exception e) {
             log.error("Failed to connect to cTrader WebSocket at {}", wsUrl, e);
             throw new RuntimeException("WebSocket connection failed", e);
@@ -383,8 +383,9 @@ public class CTraderConnection {
 //                log.info("ProtoHeartbeatEvent received for account: {}", accountId);
                 return;
             }
-            log.info("Received message for account " + accountId + ": " + message);
+
             String clientMsgId = rootNode.path("clientMsgId").asText();
+            log.info("{} - Received message for account - {}" ,accountId , message);
 //            if (pendingRequests.containsKey(clientMsgId)) {
 //                pendingRequests.get(clientMsgId).complete(message);
 //                pendingRequests.remove(clientMsgId);
@@ -409,10 +410,8 @@ public class CTraderConnection {
                 switch (Objects.requireNonNull(payloadTypeEnum)) {
                     case PROTO_OA_CLOSE_POSITION_REQ:
                     case PROTO_OA_EXECUTION_EVENT:
-
                     case PROTO_OA_ORDER_ERROR_EVENT:
                     case PROTO_OA_ERROR_RES:
-
                         //check actionsystem is order
                         if (actionSystem != null) {
                             if (actionSystem.equals(ActionSystem.ORDER)) {
@@ -424,8 +423,9 @@ public class CTraderConnection {
                                     if ("INVALID_REQUEST".equals(res.getErrorCode()) && res.getDescription().contains("account is not authorized")) {
                                         if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
                                             reconnectAttempts++;
+                                            log.info("{} - Reconnect if order INVALID_REQUEST round -----: {} - {} - {} - {}",accountId, reconnectAttempts, authenticatedTraderAccountId, clientMsgId, accountId);
                                             connectionService.reconnect(this, clientMsgId);
-                                            log.info("Reconnect if order INVALID_REQUEST round -----: {} - {} - {}", reconnectAttempts, authenticatedTraderAccountId, clientMsgId);
+
                                         } else {
                                             log.info("Max reconnect attempts reached for account: {}", accountId);
                                         }
@@ -433,6 +433,7 @@ public class CTraderConnection {
                                     }
                                 } else {
                                     if (res.getPayloadType() == 3){
+                                        this.clientMsgId = "";
                                         resetReconnectAttempts();
                                     }
                                 }
@@ -448,17 +449,16 @@ public class CTraderConnection {
                         break;
                     case PROTO_OA_APPLICATION_AUTH_RES:
                         connected = true;
-                        log.info("Successfully Application authenticated");
+                        log.info("{} - Successfully Application authenticated - {} - {}", accountId, clientMsgId, authenticatedTraderAccountId);
                         if (authenticatedTraderAccountId != 0) {
-                            log.info("Auto authenticating trader account: {}", authenticatedTraderAccountId);
+                            log.info("{} - Auto authenticating trader account: {} - {}",accountId, authenticatedTraderAccountId, accountId);
                             authenticateTraderAccount(authenticatedTraderAccountId);
                         }
                         connectionService.saveConnectionDetails(this);
                         break;
                     case PROTO_OA_ACCOUNT_AUTH_RES:
-                        log.info("Successfully authenticated trader account: {}", authenticatedTraderAccountId);
+                        log.info("{} - Successfully authenticated trader account: {} - {} {}",accountId, authenticatedTraderAccountId, accountId, clientMsgId);
                         connectionService.saveConnectionAuthenticated(this);
-                        this.clientMsgId = "";
                         startPingScheduler();
                         break;
 
@@ -474,8 +474,6 @@ public class CTraderConnection {
         }
         if (responseFuture != null) {
             responseFuture.complete(message); // Hoàn thành Future khi nhận được dữ liệu
-            //ghi log message
-            log.info("Message Ctrader response: {}", message);
             responseFuture = null; // Reset để dùng cho request tiếp theo
         }
     }
