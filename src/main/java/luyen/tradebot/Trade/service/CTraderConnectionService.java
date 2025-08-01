@@ -113,8 +113,12 @@ public class CTraderConnectionService {
             log.info("{} - Resend order : {} - {}",connection.getAccountId(), clientMsgId, connection.getAuthenticatedTraderAccountId());
             if (!"".equals(clientMsgId) && !clientMsgId.isEmpty()){
                 // order placer
-                OrderPosition orderPosition = orderPositionRepository.findByClientMsgIdLimitOne(clientMsgId)
-                        .orElseThrow(() -> new RuntimeException("OrderPosition not found with clientMsgId: " + clientMsgId));;
+                try {
+                Optional<OrderPosition> orderPositionOpt = orderPositionRepository.findByClientMsgIdLimitOne(clientMsgId);
+                if (orderPositionOpt.isPresent()) {
+                    OrderPosition orderPosition = orderPositionOpt.get();
+//                OrderPosition orderPosition = orderPositionRepository.findByClientMsgIdLimitOne(clientMsgId)
+//                        .orElseThrow(() -> new RuntimeException("OrderPosition not found with clientMsgId: " + clientMsgId));;
                 int symbol = Symbol.fromString6(orderPosition.getSymbol()).getId();
                 int tradeSide = TradeSide.fromString(orderPosition.getTradeSide()).getValue();
                 int originVolumn = orderPosition.getOriginalVolume();
@@ -142,8 +146,26 @@ public class CTraderConnectionService {
 
                 log.info("{} - placeOrder : {} - {} - {}",connection.getAccountId(), clientMsgId, connection.getAuthenticatedTraderAccountId(), request);
                 cTraderApiService.placeOrder(request);
+                connection.setClientMsgId("");
+
+            } else {
+                    log.warn("{} - OrderPosition not found with clientMsgId: {} - Cannot retry failed order",
+                                                            connection.getAccountId(), clientMsgId);
+                                            // Reset clientMsgId nếu không tìm thấy order
+                                                    connection.setClientMsgId("");
+                }
+            } catch (Exception e) {
+                log.error("{} - Error while retrying failed order with clientMsgId: {} - {}",
+                        connection.getAccountId(), clientMsgId, e.getMessage(), e);
+                // Reset clientMsgId nếu có lỗi
+                connection.setClientMsgId("");
             }
-        } catch (Exception e) {
+
+        }} catch (Exception e) {
+            log.error("{} - Error while retrying failed order with clientMsgId: {} ",
+                                                connection.getAccountId(), e.getMessage(), e);
+                                // Reset clientMsgId nếu có lỗi
+                                        connection.setClientMsgId("");
             throw new RuntimeException(e);
         }
     }
@@ -239,6 +261,12 @@ public class CTraderConnectionService {
     public synchronized void reconnect(CTraderConnection connection, String clientMsgId) {
         UUID accountId = connection.getAccountId();
         log.info("{} - Attempting to reconnect for account: {} - {} - {}",accountId,connection.getAuthenticatedTraderAccountId(), clientMsgId, accountId);
+        String oldClientId = connection.getClientId();
+        String oldSecretId = connection.getSecretId();
+        String oldAccessToken = connection.getAccessToken();
+        String oldWsUrl = connection.getWsUrl();
+        Double oldVolumeMultiplier = connection.getVolumeMultiplier();
+        int oldAuthenticatedTraderAccountId = connection.getAuthenticatedTraderAccountId();
         connection.close(); // Đóng kết nối cũ nếu còn mở
         connections.remove(accountId);
         // Tạo kết nối mới
@@ -246,14 +274,14 @@ public class CTraderConnectionService {
             // Tạo kết nối mới
             CTraderConnection newConnection = cTraderApiService.connect(
                     accountId,
-                    connection.getClientId(),
-                    connection.getSecretId(),
-                    connection.getAccessToken(),
+                    oldClientId,
+                    oldSecretId,
+                    oldAccessToken,
                     null,
                     this,
-                    connection.getWsUrl(),
-                    connection.getVolumeMultiplier(),
-                    connection.getAuthenticatedTraderAccountId(),
+                    oldWsUrl,
+                    oldVolumeMultiplier,
+                    oldAuthenticatedTraderAccountId,
                     clientMsgId
             );
             // Sao chép thông tin xác thực từ kết nối cũ

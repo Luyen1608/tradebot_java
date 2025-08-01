@@ -19,6 +19,8 @@ import luyen.tradebot.Trade.util.enumTraderBot.ActionSystem;
 import luyen.tradebot.Trade.util.enumTraderBot.PayloadType;
 import luyen.tradebot.Trade.util.enumTraderBot.ProtoOAErrorCode;
 import luyen.tradebot.Trade.util.enumTraderBot.ProtoOAExecutionType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,6 +44,7 @@ public class OrderStatusConsumer {
     private final ValidateRepsone validateRepsone;
 
     private final SignalAccountStatusService signalAccountStatusService;
+    private static final Logger heartbeatLogger = LoggerFactory.getLogger("luyen.tradebot.Trade.service.CTraderConnection.HEARTBEAT");
 
     /**
      * Listener for the order-status-topic
@@ -50,7 +53,7 @@ public class OrderStatusConsumer {
      */
     @KafkaListener(topics = "order-status-topic", groupId = "tradebot-group")
     public void listenOrderStatus(String message) {
-//        log.info("Received message from order-status-topic: {}", message);
+//        heartbeatLogger.info("Received message from order-status-topic: {}", message);
         try {
             JsonNode jsonNode = objectMapper.readTree(message);
 
@@ -66,15 +69,15 @@ public class OrderStatusConsumer {
             processOrderStatusMessage(rawMessageNode, UUID.fromString(accountId), messageType, clientMsgId);
 
         } catch (JsonProcessingException e) {
-            log.error("Error parsing message: {}", e.getMessage());
+            heartbeatLogger.error("Error parsing message: {}", e.getMessage());
         } catch (Exception e) {
-            log.error("Error processing message: {}", e.getMessage(), e);
+            heartbeatLogger.error("Error processing message: {}", e.getMessage(), e);
         }
     }
 
     @KafkaListener(topics = "order-status-auth", groupId = "tradebot-group")
     public void listenAuthStatus(String message) {
-//        log.info("Received message from order-auth-topic: {}", message);
+//        heartbeatLogger.info("Received message from order-auth-topic: {}", message);
         try {
             JsonNode jsonNode = objectMapper.readTree(message);
             // Lấy thông tin từ message
@@ -96,14 +99,14 @@ public class OrderStatusConsumer {
             }
             accountRepository.save(account);
         } catch (JsonProcessingException e) {
-            log.error("Error parsing message: {}", e.getMessage());
+            heartbeatLogger.error("Error parsing message: {}", e.getMessage());
         } catch (Exception e) {
-            log.error("Error processing message: {}", e.getMessage(), e);
+            heartbeatLogger.error("Error processing message: {}", e.getMessage(), e);
         }
     }
     @KafkaListener(topics = "write-log-error", groupId = "tradebot-group")
     public void addErrorLog(String message) {
-        log.info("Received message from write-log-error: {}", message);
+        heartbeatLogger.info("Received message from write-log-error: {}", message);
         try {
             JsonNode jsonNode = objectMapper.readTree(message);
             // Lấy thông tin từ message
@@ -120,16 +123,16 @@ public class OrderStatusConsumer {
                     .build();
             errorLogRepository.save(errorLogEntity);
         } catch (JsonProcessingException e) {
-            log.error("Error parsing message: {}", e.getMessage());
+            heartbeatLogger.error("Error parsing message: {}", e.getMessage());
         } catch (Exception e) {
-            log.error("Error processing message: {}", e.getMessage(), e);
+            heartbeatLogger.error("Error processing message: {}", e.getMessage(), e);
         }
     }
 
     @KafkaListener(topics = "order-placed-topic", groupId = "tradebot-group")
     @Transactional
     public void createNewOrder(String message) {
-        log.info("Received message from order-placed-topic: {}", message);
+        heartbeatLogger.info("Received message from order-placed-topic: {}", message);
         try {
             JsonNode jsonNode = objectMapper.readTree(message);
             //       {
@@ -185,13 +188,13 @@ public class OrderStatusConsumer {
 //                    orderPositionRepository.saveAndFlush(orderPosition);
 //                }
             } catch (Exception e) {
-                log.error("createNewOrder: {}", e.getMessage());
+                heartbeatLogger.error("createNewOrder: {}", e.getMessage());
                 throw e;
             }
         } catch (JsonProcessingException e) {
-            log.error("Error parsing message: {}", e.getMessage());
+            heartbeatLogger.error("Error parsing message: {}", e.getMessage());
         } catch (Exception e) {
-            log.error("Error processing message: {}", e.getMessage(), e);
+            heartbeatLogger.error("Error processing message: {}", e.getMessage(), e);
         }
     }
 
@@ -205,7 +208,7 @@ public class OrderStatusConsumer {
      */
     private void processOrderStatusMessage(JsonNode jsonNode, UUID accountId, String messageType, String clientMsgId) {
         try {
-            log.info("Process Order Status Message kafka");
+            heartbeatLogger.info("Process Order Status Message kafka");
             // Convert MessageType to PayloadType enum using its value
             PayloadType payloadType = PayloadType.valueOf(messageType);
 
@@ -221,7 +224,7 @@ public class OrderStatusConsumer {
                     processErrorEvent(jsonNode, accountId, clientMsgId);
                     break;
                 default:
-                    log.info("Message type {} not handled for database pers istence", messageType);
+                    heartbeatLogger.info("Message type {} not handled for database pers istence", messageType);
             }
         } catch (IllegalArgumentException e) {
             log.warn("Unknown message type: {}", messageType);
@@ -230,7 +233,7 @@ public class OrderStatusConsumer {
 
     @Transactional
     public void processCloseOrderReq(JsonNode jsonNode, UUID accountId, String clientMsgId) {
-        log.info("Process Close Order Req kafka");
+        heartbeatLogger.info("Process Close Order Req kafka");
         ResponseCtraderDTO responseCtraderDTO = validateRepsone.formatResponsePlaceOrder(jsonNode.toString());
 
         // First, get the OrderPosition to check if it exists and get necessary data
@@ -252,7 +255,7 @@ public class OrderStatusConsumer {
                     orderPosition.setErrorMessage("");
                     orderPosition.setErrorCode("");
                 } catch (Exception e) {
-                    log.error("Error processing ORDER_ACCEPTED close order request: {}", e.getMessage(), e);
+                    heartbeatLogger.error("Error processing ORDER_ACCEPTED close order request: {}", e.getMessage(), e);
                     // Re-throw to ensure transaction is rolled back
                     throw new RuntimeException("Failed to process close order request", e);
                 }
@@ -291,7 +294,7 @@ public class OrderStatusConsumer {
                     orderEntity.setStatus(ProtoOAExecutionType.ORDER_CLOSE.getStatus());
                     orderRepository.saveAndFlush(orderEntity);
                 } catch (Exception e) {
-                    log.error("Error processing ORDER_FILLED close order request: {}", e.getMessage(), e);
+                    heartbeatLogger.error("Error processing ORDER_FILLED close order request: {}", e.getMessage(), e);
                     // Re-throw to ensure transaction is rolled back
                     throw new RuntimeException("Failed to process close order request", e);
                 }
@@ -315,11 +318,11 @@ public class OrderStatusConsumer {
 //                            .orElseThrow(() -> new RuntimeException("Order not found with orderId: " + orderId));
 //                    orderEntity.setStatus(ProtoOAExecutionType.ORDER_CLOSE.getStatus());
 //                    orderRepository.saveAndFlush(orderEntity);
-//                    log.info("Order status updated to CLOSE for orderId: {}", orderId);
+//                    heartbeatLogger.info("Order status updated to CLOSE for orderId: {}", orderId);
 //                }
                 break;
             default:
-                log.info("Execution type {} not handled for database persistence", jsonNode.path("payload").path("executionType"));
+                heartbeatLogger.info("Execution type {} not handled for database persistence", jsonNode.path("payload").path("executionType"));
         }
         orderPositionRepository.saveAndFlush(orderPosition);
     }
@@ -327,7 +330,7 @@ public class OrderStatusConsumer {
     @Transactional
     public void processNewOrderReq(JsonNode jsonNode, UUID accountId, String clientMsgId) {
         try {
-            log.info("Process New Order Req kafka");
+            heartbeatLogger.info("Process New Order Req kafka");
             ResponseCtraderDTO responseCtraderDTO = validateRepsone.formatResponsePlaceOrder(jsonNode.toString());
             ProtoOAExecutionType executionType = ProtoOAExecutionType.fromCode(responseCtraderDTO.getExecutionType());
             OrderPosition orderPosition = orderPositionRepository.findByClientMsgIdLimitOne(clientMsgId)
@@ -341,7 +344,7 @@ public class OrderStatusConsumer {
 
             switch (executionType) {
                 case ORDER_ACCEPTED:
-                    log.info("Process New Order Req kafka Execution Type Accepted");
+                    heartbeatLogger.info("Process New Order Req kafka Execution Type Accepted");
                     orderPosition.setOrderCtraderId(responseCtraderDTO.getOrderCtraderId());
                     orderPosition.setVolumeSent(responseCtraderDTO.getVolume());
                     orderPosition.setPositionId(responseCtraderDTO.getPositionId());
@@ -352,7 +355,7 @@ public class OrderStatusConsumer {
                     orderPositionRepository.saveAndFlush(orderPosition);
                     break;
                 case ORDER_FILLED:
-                    log.info("Process New Order Req kafka Execution Type Filled for orderPosition: {}", orderPositionId);
+                    heartbeatLogger.info("Process New Order Req kafka Execution Type Filled for orderPosition: {}", orderPositionId);
                     // Update order position status directly
                     try {
                         int updatedRows = orderPositionRepository.updateByOrderCtraderIdAndPositionId(
@@ -362,7 +365,7 @@ public class OrderStatusConsumer {
                                 "OPEN",
                                 clientMsgId
                         );
-                        log.info("Update result: {} rows affected for clientMsgId: {}", updatedRows, clientMsgId);
+                        heartbeatLogger.info("Update result: {} rows affected for clientMsgId: {}", updatedRows, clientMsgId);
 
                         if (updatedRows == 0) {
                             // Fallback to direct entity update if the query didn't update any rows
@@ -372,60 +375,60 @@ public class OrderStatusConsumer {
                             orderPosition.setErrorMessage("");
                             orderPosition.setErrorCode("");
                             orderPositionRepository.saveAndFlush(orderPosition);
-                            log.info("Direct entity update completed for orderPosition: {}", orderPositionId);
+                            heartbeatLogger.info("Direct entity update completed for orderPosition: {}", orderPositionId);
                         }
                     } catch (Exception e) {
-                        log.error("Error updating order position: {}", e.getMessage(), e);
+                        heartbeatLogger.error("Error updating order position: {}", e.getMessage(), e);
                         // Fallback to direct entity update
                         orderPosition.setExecutionType(ProtoOAExecutionType.ORDER_FILLED.toString());
                         orderPosition.setStatus(ProtoOAExecutionType.ORDER_FILLED.getStatus());
                         orderPositionRepository.saveAndFlush(orderPosition);
-                        log.info("Fallback direct entity update completed after error");
+                        heartbeatLogger.info("Fallback direct entity update completed after error");
                     }
                     // Handle closing order if needed
                     if (responseCtraderDTO.isClosingOrder() && orderPosition.getOrder() != null) {
                         UUID orderId = orderPosition.getOrder().getId();
-                        log.info("Processing closing order for orderId: {}", orderId);
+                        heartbeatLogger.info("Processing closing order for orderId: {}", orderId);
 
                         // Update order entity in a separate transaction to avoid locking issues
                         OrderEntity orderEntity = orderRepository.findById(orderId)
                                 .orElseThrow(() -> new RuntimeException("Order not found with orderId: " + orderId));
                         orderEntity.setStatus(ProtoOAExecutionType.ORDER_CLOSE.getStatus());
                         orderRepository.saveAndFlush(orderEntity);
-                        log.info("Order status updated to CLOSE for orderId: {}", orderId);
+                        heartbeatLogger.info("Order status updated to CLOSE for orderId: {}", orderId);
                     }
                     break;
 
                 default:
-                    log.info("Execution type {} not handled for database persistence", jsonNode.path("payload").path("executionType"));
+                    heartbeatLogger.info("Execution type {} not handled for database persistence", jsonNode.path("payload").path("executionType"));
             }
 
             // Ensure transaction is committed before running async task
             final String clientMsgIdFinal = clientMsgId;
             CompletableFuture.runAsync(() -> {
                 try {
-                    log.info("Starting async task for orderPositionId: {}", orderPositionId);
+                    heartbeatLogger.info("Starting async task for orderPositionId: {}", orderPositionId);
                     // Fetch a fresh instance from the database to ensure we have the latest state
                     OrderPosition detachedOrderPosition = orderPositionRepository.findById(orderPositionId)
                             .orElseGet(() -> {
                                 // Fallback to find by clientMsgId if ID lookup fails
-                                log.info("Falling back to clientMsgId lookup");
+                                heartbeatLogger.info("Falling back to clientMsgId lookup");
                                 return orderPositionRepository.findByClientMsgIdLimitOne(clientMsgIdFinal)
                                         .orElseThrow(() -> new RuntimeException("OrderPosition not found with clientMsgId: " + clientMsgIdFinal));
                             });
 
-                    log.info("Fetched detached OrderPosition with status: {}", detachedOrderPosition.getStatus());
+                    heartbeatLogger.info("Fetched detached OrderPosition with status: {}", detachedOrderPosition.getStatus());
 
                     signalAccountStatusService.sendSignalAccountStatus(detachedOrderPosition,
                             tradeSide, symbol, ctidTraderAccountId);
-                    log.info("Signal account status sent successfully");
+                    heartbeatLogger.info("Signal account status sent successfully");
                 } catch (Exception e) {
-                    log.error("Error sending signal account status: {}", e.getMessage(), e);
+                    heartbeatLogger.error("Error sending signal account status: {}", e.getMessage(), e);
                 }
             });
 
         } catch (Exception e) {
-            log.error("Error processing new order request: {}", e.getMessage(), e);
+            heartbeatLogger.error("Error processing new order request: {}", e.getMessage(), e);
             // Re-throw to ensure transaction is rolled back
             throw new RuntimeException("Failed to process new order request", e);
         }
@@ -465,7 +468,7 @@ public class OrderStatusConsumer {
                     clientMsgId
             );
 
-            log.info("Updated error event in database: clientMsgId={}, errorCode={}",
+            heartbeatLogger.info("Updated error event in database: clientMsgId={}, errorCode={}",
                     clientMsgId, errorCode);
 
             // Ensure transaction is committed before running async task
@@ -478,12 +481,12 @@ public class OrderStatusConsumer {
                     signalAccountStatusService.sendSignalAccountStatus(detachedOrderPosition,
                             tradeSide, symbol, ctidTraderAccountId);
                 } catch (Exception e) {
-                    log.error("Error sending signal account status: {}", e.getMessage(), e);
+                    heartbeatLogger.error("Error sending signal account status: {}", e.getMessage(), e);
                 }
             });
 
         } catch (Exception e) {
-            log.error("Error saving error event to database: {}", e.getMessage(), e);
+            heartbeatLogger.error("Error saving error event to database: {}", e.getMessage(), e);
         }
     }
 }

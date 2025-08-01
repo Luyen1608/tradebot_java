@@ -8,6 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import luyen.tradebot.Trade.model.OrderPosition;
 import luyen.tradebot.Trade.util.enumTraderBot.Symbol;
 import luyen.tradebot.Trade.util.enumTraderBot.TradeSide;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -19,12 +21,13 @@ import java.util.UUID;
 public class SignalAccountStatusService {
 
     private final RestTemplate restTemplate;
+    private static final Logger heartbeatLogger = LoggerFactory.getLogger("luyen.tradebot.Trade.service.CTraderConnection.HEARTBEAT");
     private final String apiKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxidmh5d3h2dGh3Z2llYmpzcmxyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MzE4MjYsImV4cCI6MjA1OTMwNzgyNn0.SriuXDKuf0URQfJbAqQO-4r8Ghg0KVOWV6Lq99u86hU";
 
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public void sendSignalAccountStatus(OrderPosition orderPosition, String tradeSide, String symbol, String ctidTraderAccountId) {
         // log
-        log.info("Sending signal account status for order position ID : {}", orderPosition.getId());
+        heartbeatLogger.info("Sending signal account status for order position ID : {}", orderPosition.getId());
         String apiUrl = "https://lbvhywxvthwgiebjsrlr.supabase.co/functions/v1/sync_signal_account_status";
 
         // Prepare headers
@@ -39,7 +42,7 @@ public class SignalAccountStatusService {
 
         try {
             if (orderPosition.getId() == null) {
-                log.error("OrderPosition ID is null. Cannot send signal account status.");
+                heartbeatLogger.error("OrderPosition ID is null. Cannot send signal account status.");
                 return;
             }
             double originalVolume = (double) orderPosition.getOriginalVolume();
@@ -73,29 +76,29 @@ public class SignalAccountStatusService {
             HttpEntity<String> requestEntity = new HttpEntity<>(jsonPayload, headers);
 
             // Debug log the payload being sent
-            log.info("Sending signal account status to Supabase: {}", jsonPayload);
+            heartbeatLogger.info("Sending signal account status to Supabase: {}", jsonPayload);
 
             // Call the API
             ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.POST, requestEntity, String.class);
 
             // Handle the response if needed
             if (response.getStatusCode().is2xxSuccessful()) {
-                log.info("Signal account status synced successfully.");
+                heartbeatLogger.info("Signal account status synced successfully.");
                 log.debug("Response body: {}", response.getBody());
             } else {
-                log.error("Failed to sync signal account status: {}", response.getStatusCode());
-                log.error("Response body: {}", response.getBody());
+                heartbeatLogger.error("Failed to sync signal account status: {}", response.getStatusCode());
+                heartbeatLogger.error("Response body: {}", response.getBody());
             }
         } catch (JsonProcessingException e) {
-            log.error("Error serializing payload to JSON: {}", e.getMessage());
+            heartbeatLogger.error("Error serializing payload to JSON: {}", e.getMessage());
             e.printStackTrace();
         } catch (org.springframework.web.client.HttpClientErrorException e) {
             // Specific handling for HTTP client errors (4xx)
-            log.error("HTTP Client Error: {}", e.getStatusCode());
-            log.error("Response body: {}", e.getResponseBodyAsString());
-            log.error("Request headers: {}", headers);
+            heartbeatLogger.error("HTTP Client Error: {}", e.getStatusCode());
+            heartbeatLogger.error("Response body: {}", e.getResponseBodyAsString());
+            heartbeatLogger.error("Request headers: {}", headers);
         } catch (Exception e) {
-            log.error("Error syncing signal account status: {}", e.getMessage());
+            heartbeatLogger.error("Error syncing signal account status: {}", e.getMessage());
             e.printStackTrace();
         }
     }

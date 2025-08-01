@@ -423,10 +423,12 @@ public class CTraderConnection {
                                     if ("INVALID_REQUEST".equals(res.getErrorCode()) && res.getDescription().contains("account is not authorized")) {
                                         if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
                                             reconnectAttempts++;
+                                            this.clientMsgId = clientMsgId;
                                             log.info("{} - Reconnect if order INVALID_REQUEST round -----: {} - {} - {} - {}",accountId, reconnectAttempts, authenticatedTraderAccountId, clientMsgId, accountId);
                                             connectionService.reconnect(this, clientMsgId);
 
                                         } else {
+                                            this.clientMsgId = "";
                                             log.info("Max reconnect attempts reached for account: {}", accountId);
                                         }
 
@@ -449,7 +451,7 @@ public class CTraderConnection {
                         break;
                     case PROTO_OA_APPLICATION_AUTH_RES:
                         connected = true;
-                        log.info("{} - Successfully Application authenticated - {} - {}", accountId, clientMsgId, authenticatedTraderAccountId);
+                        log.info("{} - Successfully Application authenticated - {} - {}", accountId, this.clientMsgId, authenticatedTraderAccountId);
                         if (authenticatedTraderAccountId != 0) {
                             log.info("{} - Auto authenticating trader account: {} - {}",accountId, authenticatedTraderAccountId, accountId);
                             authenticateTraderAccount(authenticatedTraderAccountId);
@@ -457,7 +459,7 @@ public class CTraderConnection {
                         connectionService.saveConnectionDetails(this);
                         break;
                     case PROTO_OA_ACCOUNT_AUTH_RES:
-                        log.info("{} - Successfully authenticated trader account: {} - {} {}",accountId, authenticatedTraderAccountId, accountId, clientMsgId);
+                        log.info("{} - Successfully authenticated trader account: {} - {} {}",accountId, authenticatedTraderAccountId, accountId, this.clientMsgId);
                         connectionService.saveConnectionAuthenticated(this);
                         startPingScheduler();
                         break;
