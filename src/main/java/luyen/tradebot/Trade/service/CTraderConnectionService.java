@@ -268,7 +268,7 @@ public class CTraderConnectionService {
         Double oldVolumeMultiplier = connection.getVolumeMultiplier();
         int oldAuthenticatedTraderAccountId = connection.getAuthenticatedTraderAccountId();
         connection.close(); // Đóng kết nối cũ nếu còn mở
-        connections.remove(accountId);
+//        connections.remove(accountId);
         // Tạo kết nối mới
         try {
             // Tạo kết nối mới
