@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.websocket.*;
 import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
 import luyen.tradebot.Trade.dto.request.PlaceOrderRequest;
 import luyen.tradebot.Trade.dto.respone.ResponseCtraderDTO;
 import luyen.tradebot.Trade.util.ValidateRepsone;
@@ -15,6 +14,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.core.FileAppender;
+import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 
 import java.math.BigDecimal;
 import java.net.URI;
@@ -25,7 +27,6 @@ import java.util.UUID;
 import java.util.concurrent.*;
 
 
-@Slf4j
 @Data
 @ClientEndpoint
 public class CTraderConnection {
@@ -55,6 +56,7 @@ public class CTraderConnection {
     private int reconnectAttempts = 0;
     private static final int MAX_RECONNECT_ATTEMPTS = 3;
     private static final Logger heartbeatLogger = LoggerFactory.getLogger("luyen.tradebot.Trade.service.CTraderConnection.HEARTBEAT");
+    private Logger accountLogger;
     public CTraderConnection(UUID accountId, String clientId, String secretId, String accessToken,
                              CTraderConnectionService connectionService, String wsUrl,
                              KafkaTemplate<String, String> kafkaTemplate, KafkaProducerService kafkaProducerService,
@@ -73,6 +75,44 @@ public class CTraderConnection {
         if (prefix != null) {
             this.prefix = prefix;
         }
+        // Initialize account-specific logger
+        this.accountLogger = initializeAccountLogger(accountId);
+    }
+
+    private Logger initializeAccountLogger(UUID accountId) {
+        try {
+            LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
+            
+            // Create a unique logger name for this account
+            String loggerName = "CTraderConnection." + accountId.toString();
+            ch.qos.logback.classic.Logger logger = context.getLogger(loggerName);
+            
+            // Create file appender for this account
+            FileAppender<ch.qos.logback.classic.spi.ILoggingEvent> fileAppender = new FileAppender<>();
+            fileAppender.setContext(context);
+            fileAppender.setName("AccountFileAppender-" + accountId);
+            fileAppender.setFile("logs/" + accountId + ".log");
+            
+            // Create encoder
+            PatternLayoutEncoder encoder = new PatternLayoutEncoder();
+            encoder.setContext(context);
+            encoder.setPattern("%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [AccountID: %X{accountId}] %logger{36} - %msg%n");
+            encoder.start();
+            
+            fileAppender.setEncoder(encoder);
+            fileAppender.start();
+            
+            // Add appender to logger
+            logger.addAppender(fileAppender);
+            logger.setAdditive(false); // Don't inherit appenders from root logger
+            
+            return logger;
+        } catch (Exception e) {
+            // Fallback to default logger if account-specific logger creation fails
+            Logger fallbackLogger = LoggerFactory.getLogger(CTraderConnection.class);
+            fallbackLogger.error("Failed to create account-specific logger for {}, using default logger", accountId, e);
+            return fallbackLogger;
+        }
     }
 
     public void connect() {
@@ -80,9 +120,9 @@ public class CTraderConnection {
             WebSocketContainer container = ContainerProvider.getWebSocketContainer();
             session = container.connectToServer(this, URI.create(wsUrl));
             actionSystem = ActionSystem.AUTH;
-            log.info("{} - WebSocket connection initiated at {}, waiting for onOpen event... - {} - {}",accountId,clientMsgId, authenticatedTraderAccountId, wsUrl);
+            accountLogger.info("WebSocket connection initiated at {}, waiting for onOpen event... - clientMsgId: {} - authenticatedTraderAccountId: {} - wsUrl: {}", accountId, clientMsgId, authenticatedTraderAccountId, wsUrl);
         } catch (Exception e) {
-            log.error("Failed to connect to cTrader WebSocket at {}", wsUrl, e);
+            accountLogger.error("Failed to connect to cTrader WebSocket at {} for account {}", wsUrl, accountId, e);
             throw new RuntimeException("WebSocket connection failed", e);
         }
     }
@@ -107,9 +147,9 @@ public class CTraderConnection {
                 this.manualDisconnect = true;
                 session.close();
                 connected = false;
-                log.info("Disconnected from cTrader WebSocket with Account Id: {}", accountId);
+                accountLogger.info("Disconnected from cTrader WebSocket with Account Id: {}", accountId);
             } catch (Exception e) {
-                log.error("Error disconnecting from cTrader WebSocket", e);
+                accountLogger.error("Error disconnecting from cTrader WebSocket for account: {}", accountId, e);
             }
             stopPingScheduler();
         }
@@ -270,13 +310,13 @@ public class CTraderConnection {
 
         // Kiểm tra xem kết nối đã được xác thực ứng dụng chưa
         if (!isApplicationAuthenticated()) {
-            log.warn("Cannot authenticate trader account: {} - Application not authenticated yet", ctidTraderAccountId);
+            accountLogger.warn("Cannot authenticate trader account: {} - Application not authenticated yet for account: {}", ctidTraderAccountId, accountId);
             CompletableFuture<String> future = new CompletableFuture<>();
             future.complete("Application not authenticated yet. Will authenticate trader account when ready.");
             return future;
         }
         String message = createAuthenticateTraderAccountMessage(ctidTraderAccountId);
-        log.info("Sending authentication request for trader account: {}", ctidTraderAccountId);
+        accountLogger.info("Sending authentication request for trader account: {} for account: {}", ctidTraderAccountId, accountId);
         return sendRequest(message);
         // Normally would set up a way to resolve this future when response comes back
         // This is simplified for the example
@@ -310,11 +350,11 @@ public class CTraderConnection {
 
     public CompletableFuture<String> sendRequest(String message) {
         if (session != null && session.isOpen()) {
-            log.info("Sending message in local: {}", message);
+            accountLogger.info("Sending message in local for account {}: {}", accountId, message);
             // Kiểm tra xem đây có phải là yêu cầu xác thực ứng dụng không
             boolean isAuthRequest = message.contains("\"payloadType\": 2100");
             if (!isAuthRequest && !connected) {
-                log.warn("Cannot send request - Application not authenticated yet: {}", message);
+                accountLogger.warn("Cannot send request - Application not authenticated yet for account {}: {}", accountId, message);
                 return CompletableFuture.completedFuture("Application not authenticated yet. Request will be sent when ready.");
             }
             responseFuture = new CompletableFuture<>();
@@ -329,12 +369,12 @@ public class CTraderConnection {
     @OnOpen
     public void onOpen(Session session) {
         this.session = session;
-        log.info("Connected to cTrader for account: " + accountId);
+        accountLogger.info("Connected to cTrader for account: {}", accountId);
         try {
             sendAuthMessage();
-            log.info("Authentication message sent for account: {}", accountId);
+            accountLogger.info("Authentication message sent for account: {}", accountId);
         } catch (Exception e) {
-            log.error("Failed to send authentication message for account: {}", accountId, e);
+            accountLogger.error("Failed to send authentication message for account: {}", accountId, e);
         }
 //        startPingScheduler();
     }
@@ -366,7 +406,7 @@ public class CTraderConnection {
     private void stopPingScheduler() {
         if (pingScheduler != null && !pingScheduler.isShutdown()) {
             pingScheduler.shutdownNow();
-            log.info("Stopped ping scheduler for account: {}", accountId);
+            accountLogger.info("Stopped ping scheduler for account: {}", accountId);
         }
     }
 
@@ -385,7 +425,7 @@ public class CTraderConnection {
             }
 
             String clientMsgId = rootNode.path("clientMsgId").asText();
-            log.info("{} - Received message for account - {}" ,accountId , message);
+            accountLogger.info("Received message for account {}: {}", accountId, message);
 //            if (pendingRequests.containsKey(clientMsgId)) {
 //                pendingRequests.get(clientMsgId).complete(message);
 //                pendingRequests.remove(clientMsgId);
@@ -416,7 +456,7 @@ public class CTraderConnection {
                         if (actionSystem != null) {
                             if (actionSystem.equals(ActionSystem.ORDER)) {
                                 // xử lý logic khi nhận được message từ websocket
-                                log.info("Sending message to topic {}: key={}, value={}", "order-status-topic", clientMsgId, jsonMessage);
+                                accountLogger.info("Sending message to topic {} for account {}: key={}, value={}", "order-status-topic", accountId, clientMsgId, jsonMessage);
                                 kafkaTemplate.send("order-status-topic", jsonMessage);
                                 //xu ly truong hop payloadType 2142 INVALID_REQUEST -  Trading account is not authorized :
                                 if (!"".equals(res.getErrorCode())) {
@@ -424,12 +464,12 @@ public class CTraderConnection {
                                         if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
                                             reconnectAttempts++;
                                             this.clientMsgId = clientMsgId;
-                                            log.info("{} - Reconnect if order INVALID_REQUEST round -----: {} - {} - {} - {}",accountId, reconnectAttempts, authenticatedTraderAccountId, clientMsgId, accountId);
+                                            accountLogger.info("Reconnect if order INVALID_REQUEST round for account {}: attempt {} - authenticatedTraderAccountId: {} - clientMsgId: {}", accountId, reconnectAttempts, authenticatedTraderAccountId, clientMsgId);
                                             connectionService.reconnect(this, clientMsgId);
 
                                         } else {
                                             this.clientMsgId = "";
-                                            log.info("Max reconnect attempts reached for account: {}", accountId);
+                                            accountLogger.info("Max reconnect attempts reached for account: {}", accountId);
                                         }
 
                                     }
@@ -451,15 +491,15 @@ public class CTraderConnection {
                         break;
                     case PROTO_OA_APPLICATION_AUTH_RES:
                         connected = true;
-                        log.info("{} - Successfully Application authenticated - {} - {}", accountId, this.clientMsgId, authenticatedTraderAccountId);
+                        accountLogger.info("Successfully Application authenticated for account {} - clientMsgId: {} - authenticatedTraderAccountId: {}", accountId, this.clientMsgId, authenticatedTraderAccountId);
                         if (authenticatedTraderAccountId != 0) {
-                            log.info("{} - Auto authenticating trader account: {} - {}",accountId, authenticatedTraderAccountId, accountId);
+                            accountLogger.info("Auto authenticating trader account for account {}: authenticatedTraderAccountId: {}", accountId, authenticatedTraderAccountId);
                             authenticateTraderAccount(authenticatedTraderAccountId);
                         }
                         connectionService.saveConnectionDetails(this);
                         break;
                     case PROTO_OA_ACCOUNT_AUTH_RES:
-                        log.info("{} - Successfully authenticated trader account: {} - {} {}",accountId, authenticatedTraderAccountId, accountId, this.clientMsgId);
+                        accountLogger.info("Successfully authenticated trader account for account {}: authenticatedTraderAccountId: {} - clientMsgId: {}", accountId, authenticatedTraderAccountId, this.clientMsgId);
                         connectionService.saveConnectionAuthenticated(this);
                         startPingScheduler();
                         break;
@@ -481,43 +521,43 @@ public class CTraderConnection {
     }
     public void resetReconnectAttempts() {
         this.reconnectAttempts = 0;
-        log.info("Reconnect attempts reset for account: {}", accountId);
+        accountLogger.info("Reconnect attempts reset for account: {}", accountId);
     }
     @OnClose
     public void onClose(Session session, CloseReason reason) {
-        log.warn("Connection closed for account = {} and session ID={}", accountId + ": " + reason.getReasonPhrase(), session.getId());
+        accountLogger.warn("Connection closed for account {}: {} - session ID: {}", accountId, reason.getReasonPhrase(), session.getId());
         try {
             if (session != null && session.isOpen()) {
                 session.close();
             }
         } catch (Exception e) {
-            log.error("Error closing session for account " + accountId, e);
+            accountLogger.error("Error closing session for account {}", accountId, e);
         }
         // log clientSessionId
-        log.info("Session close by Client Session Id: {}", session.getId());
+        accountLogger.info("Session close by Client Session Id: {} for account: {}", session.getId(), accountId);
         // Only reconnect if this wasn't a manual disconnect
 
         if (!manualDisconnect) {
             connectionService.reconnect(this, ""); // Tự động reconnect khi đóng
         } else {
-            log.info("Manual disconnect detected for account: {}, not reconnecting", accountId);
+            accountLogger.info("Manual disconnect detected for account: {}, not reconnecting", accountId);
         }
     }
 
     @OnError
     public void onError(Session session, Throwable throwable) {
-        log.error("Error for account " + accountId + ": " + throwable.getMessage());
+        accountLogger.error("Error for account {}: {}", accountId, throwable.getMessage(), throwable);
         try {
             if (session != null && session.isOpen()) {
                 session.close();
             }
         } catch (Exception e) {
-            log.error("Error closing session for account " + accountId, e);
+            accountLogger.error("Error closing session for account {}", accountId, e);
         }
         if (!manualDisconnect) {
             connectionService.reconnect(this, ""); // Tự động reconnect khi đóng
         } else {
-            log.info("Manual disconnect detected for account: {}, not reconnecting", accountId);
+            accountLogger.info("Manual disconnect detected for account: {}, not reconnecting", accountId);
         }
     }
 
@@ -526,7 +566,7 @@ public class CTraderConnection {
             try {
                 session.close();
             } catch (Exception e) {
-                log.error("Failed to close connection for account " + accountId + ": " + e.getMessage());
+                accountLogger.error("Failed to close connection for account {}: {}", accountId, e.getMessage(), e);
             }
         }
     }
