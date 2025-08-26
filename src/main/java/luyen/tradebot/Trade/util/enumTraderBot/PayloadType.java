@@ -1,6 +1,8 @@
 package luyen.tradebot.Trade.util.enumTraderBot;
 
 public enum PayloadType {
+    PROTO_MESSAGE(5),
+    ERROR_RES(50),
     PROTO_OA_HEART_BEAT(51),
     PROTO_OA_EXECUTION_EVENT(2126),
     PROTO_OA_ACCOUNT_AUTH_REQ(2102),

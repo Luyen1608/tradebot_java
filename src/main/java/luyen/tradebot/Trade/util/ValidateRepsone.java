@@ -47,12 +47,16 @@ public class ValidateRepsone {
             // Lấy giá trị của payloadType
             int payloadType = rootNode.get("payloadType").asInt();
             // Lấy payload
-            JsonNode payloadNode = rootNode.get("payload");
+            JsonNode payloadNode = rootNode.has("payload") ? rootNode.get("payload") : null;
             // Lấy errorCode và description
-            String errorCode = payloadNode.has("errorCode") ? payloadNode.get("errorCode").asText() : "";
-            String description = payloadNode.has("description") ? payloadNode.get("description").asText() : "No description";
-            int executionType = payloadNode.has("executionType") ? payloadNode.get("executionType").asInt() : 0;
-
+            String errorCode="";
+            String description="";
+            int executionType=0;
+            if (payloadNode != null && payloadNode.isObject()) {
+                errorCode = payloadNode.has("errorCode") ? payloadNode.get("errorCode").asText() : "";
+                description = payloadNode.has("description") ? payloadNode.get("description").asText() : "No description";
+                executionType = payloadNode.has("executionType") ? payloadNode.get("executionType").asInt() : 0;
+            }
             responseCtraderDTO.setExecutionType(executionType);
             responseCtraderDTO.setPayloadReponse(payloadType);
             responseCtraderDTO.setErrorCode(errorCode);

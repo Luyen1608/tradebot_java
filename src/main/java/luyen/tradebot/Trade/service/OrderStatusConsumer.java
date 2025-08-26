@@ -46,6 +46,30 @@ public class OrderStatusConsumer {
     private final SignalAccountStatusService signalAccountStatusService;
     private static final Logger heartbeatLogger = LoggerFactory.getLogger("luyen.tradebot.Trade.service.CTraderConnection.HEARTBEAT");
 
+
+
+    @KafkaListener(topics = "account-status", groupId = "tradebot-group")
+    public void updateStatusAccount(String message) {
+        try {
+        JsonNode jsonNode = objectMapper.readTree(message);
+        String rawMessage = jsonNode.path("rawMessage").asText();
+        String accountId = jsonNode.path("accountId").asText();
+        String messageType = jsonNode.path("messageType").asText();
+        // Xử lý message dựa trên loại
+        ResponseCtraderDTO res = ValidateRepsone.formatResponse(rawMessage);
+        AccountEntity account = accountRepository.findById(UUID.fromString(accountId))
+                .orElseThrow(() -> new RuntimeException("Account not found"));
+        // Xử lý message dựa trên loại
+            PayloadType payloadTypeEnum = PayloadType.fromValue(res.getPayloadReponse());
+        if (payloadTypeEnum == PayloadType.ERROR_RES){
+            account.setErrorMessage(res.getErrorCode() + "-" + res.getDescription());
+            account.setIsAuthenticated(false);
+        }
+        accountRepository.save(account);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
     /**
      * Listener for the order-status-topic
      *
@@ -56,7 +80,6 @@ public class OrderStatusConsumer {
 //        heartbeatLogger.info("Received message from order-status-topic: {}", message);
         try {
             JsonNode jsonNode = objectMapper.readTree(message);
-
             // Lấy thông tin từ message
             String rawMessage = jsonNode.path("rawMessage").asText();
             String accountId = jsonNode.path("accountId").asText();

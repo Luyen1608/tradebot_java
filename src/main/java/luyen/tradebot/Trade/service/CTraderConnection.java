@@ -418,8 +418,16 @@ public class CTraderConnection {
             //check header beat
             int payloadType = rootNode.get("payloadType").asInt();
             PayloadType payloadTypeEnum = PayloadType.fromValue(payloadType);
-            if (payloadTypeEnum == PayloadType.PROTO_OA_HEART_BEAT) {
-                heartbeatLogger.info("ProtoHeartbeatEvent received for account: {}", accountId);
+            if (payloadTypeEnum == PayloadType.PROTO_OA_HEART_BEAT || payloadTypeEnum == PayloadType.PROTO_MESSAGE
+                    || payloadTypeEnum == PayloadType.ERROR_RES) {
+                Map<String, Object> kafkaData = new HashMap<>();
+                kafkaData.put("accountId", accountId.toString());
+                kafkaData.put("messageType", payloadTypeEnum);
+                kafkaData.put("rawMessage", message);
+                String jsonMessage = objectMapper.writeValueAsString(kafkaData);
+
+                heartbeatLogger.info("ProtoHeartbeatEvent received for account {} : {}",accountId.toString(), message);
+                kafkaTemplate.send("account-status", jsonMessage);
 //                log.info("ProtoHeartbeatEvent received for account: {}", accountId);
                 return;
             }
