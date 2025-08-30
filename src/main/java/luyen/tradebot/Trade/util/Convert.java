@@ -30,9 +30,9 @@ public class Convert {
         int volumeInt = volume.multiply(BigDecimal.valueOf(1000)).intValue();
         // kiểm tra Instrument nếu có dạng BTSUSD.xxx thì chỉ lấy BTSUSD x là số lượng k nhất định
 
-        if (messageTradingViewDTO.getInstrument().length() > 6) {
-            messageTradingViewDTO.setInstrument(messageTradingViewDTO.getInstrument().substring(0, 6));
-        }
+//        if (messageTradingViewDTO.getInstrument().length() > 6) {
+//            messageTradingViewDTO.setInstrument(messageTradingViewDTO.getInstrument().substring(0, 6));
+//        }
         // Kiểm tra và parse các giá trị, sử dụng giá trị mặc định nếu null
         double relativeTakeProfit = 0;
         double relativeStopLoss = 0;
