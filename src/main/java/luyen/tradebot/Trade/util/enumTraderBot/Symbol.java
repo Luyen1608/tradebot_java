@@ -66,6 +66,13 @@ public enum Symbol {
 
     public static Symbol fromString(String text) {
         try {
+            // Check if the text has a . sign then split and take [0] and if there is no . sign then take it normally
+            if (text.contains(".")) {
+                String[] parts = text.split("\\."); // Split by dot
+                if (parts.length > 1 && !parts[1].isEmpty()) {
+                    return Symbol.fromString(parts[0]); // Take the part before the dot
+                }
+            }
             return Symbol.valueOf(text.toUpperCase());
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Unknown symbol: " + text);

@@ -119,7 +119,7 @@ public class CTraderConnectionService {
                     OrderPosition orderPosition = orderPositionOpt.get();
 //                OrderPosition orderPosition = orderPositionRepository.findByClientMsgIdLimitOne(clientMsgId)
 //                        .orElseThrow(() -> new RuntimeException("OrderPosition not found with clientMsgId: " + clientMsgId));;
-                int symbol = Symbol.fromString6(orderPosition.getSymbol()).getId();
+                int symbol = Symbol.fromString(orderPosition.getSymbol()).getId();
                 int tradeSide = TradeSide.fromString(orderPosition.getTradeSide()).getValue();
                 int originVolumn = orderPosition.getOriginalVolume();
                 int volumeMultiple = orderPosition.getOriginalVolume();

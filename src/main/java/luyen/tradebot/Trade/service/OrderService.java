@@ -215,7 +215,7 @@ public class OrderService {
     public void processWebhookClose(MessageTradingViewDTO webhookDTO) {
         log.info("Processing close order for signalToken: {}", webhookDTO.getSignalToken());
 
-        Symbol symbol = Symbol.fromString6(webhookDTO.getInstrument());
+        Symbol symbol = Symbol.fromString(webhookDTO.getInstrument());
         TradeSide tradeSideInput = TradeSide.fromString(AcctionTrading.fromString(webhookDTO.getAction()).getValue());
         OrderEntity openOrder = orderRepository.findOpenOrdersBySymbolIdAndBotSignalTokenAndTradeSide(
                 symbol.getId(), tradeSideInput, webhookDTO.getSignalToken())
