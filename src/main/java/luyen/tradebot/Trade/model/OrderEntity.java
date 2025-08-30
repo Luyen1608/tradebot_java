@@ -25,8 +25,6 @@ import java.util.UUID;
 public class OrderEntity extends AbstractEntity {
 
 
-    @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private String symbol;
 
     @Column(name = "symbol_id")
