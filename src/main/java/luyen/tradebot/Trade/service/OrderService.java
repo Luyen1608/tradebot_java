@@ -105,7 +105,7 @@ public class OrderService {
         }
         // Create a single order record
         OrderEntity order = OrderEntity.builder()
-                .symbol(Symbol.fromId(webhookDTO.getSymbol()))
+                .symbol(Symbol.getNameFromId(webhookDTO.getSymbol()))
                 .symbolId(Symbol.fromId(webhookDTO.getSymbol()).getId())
                 .tradeSide(TradeSide.fromValue(webhookDTO.getTradeSide()))
                 .volume(new BigDecimal(webhookDTO.getVolume()))
@@ -291,7 +291,7 @@ public class OrderService {
                             .relativeTakeProfit(position.getRelativeTakeProfit())
                             .positionId(position.getPositionId())
                             .tradeSide(openOrder.getTradeSide().toString())
-                            .symbol(openOrder.getSymbol().toString())
+                            .symbol(openOrder.getSymbol())
                             .ctidTraderAccountId(position.getAccount().getCtidTraderAccountId().toString())
                             .build();
                     newPositions.add(positionNew);

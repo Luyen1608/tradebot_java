@@ -94,5 +94,14 @@ public enum Symbol {
         }
     }
 
+    //get name EURCAD theo id
+    public static String getNameFromId(int id) {
+        for (Symbol symbol : Symbol.values()) {
+            if (symbol.getId() == id) {
+                return symbol.name();
+            }
+        }
+        throw new IllegalArgumentException("Unknown symbol ID: " + id);
+    }
 
 }

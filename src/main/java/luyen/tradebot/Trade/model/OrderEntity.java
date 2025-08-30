@@ -27,7 +27,7 @@ public class OrderEntity extends AbstractEntity {
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    private Symbol symbol;
+    private String symbol;
 
     @Column(name = "symbol_id")
     private int symbolId;
@@ -54,13 +54,6 @@ public class OrderEntity extends AbstractEntity {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_id")
     private AccountEntity account;
-
-    @PreUpdate
-    private void prePersist() {
-        if (symbol != null) {
-            this.symbolId = symbol.getId();
-        }
-    }
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderPosition> positions = new ArrayList<>();
