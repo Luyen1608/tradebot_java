@@ -54,6 +54,15 @@ public enum Symbol {
     TRXUSDT_P(429),
     GBPJPY(7),
     USDJPY(4),
+    UNIUSDT(439),
+    LINKUSDT(437),
+    AAVEUSDT(462),
+    CAKEUSDT(1563),
+    EURCHF(10),
+    UNIUSD(439),
+    LINKUSD(437),
+    AAVEUSD(462),
+    CAKEUSD(1563),
     EURCAD(17);
 
     private final int id;
