@@ -391,9 +391,10 @@ public class CTraderConnection {
                             // 2. Gửi qua WebSocket
                             session.getAsyncRemote().sendText(message);
 //                            System.out.println("Sent ProtoHeartbeatEvent ping to cTrader server...");
-                            heartbeatLogger.info("Sent ProtoHeartbeatEvent ping to cTrader server: Account : {}", accountId);
+                            accountLogger.info("Sent ProtoHeartbeatEvent ping to cTrader server: Account : {}", accountId);
                         } catch (Exception e) {
-                            heartbeatLogger.error("Failed to send heartbeat:", e);
+                            accountLogger.error("Failed to send heartbeat:", e);
+                            connectionService.reconnect(this, "");
 //                            System.err.println("Failed to send heartbeat: " + e.getMessage());
                         }
                     }
@@ -426,7 +427,7 @@ public class CTraderConnection {
                 kafkaData.put("rawMessage", message);
                 String jsonMessage = objectMapper.writeValueAsString(kafkaData);
 
-                heartbeatLogger.info("ProtoHeartbeatEvent received for account {} : {}",accountId.toString(), message);
+                accountLogger.info("ProtoHeartbeatEvent received for account {} : {}",accountId.toString(), message);
                 kafkaTemplate.send("account-status", jsonMessage);
 //                log.info("ProtoHeartbeatEvent received for account: {}", accountId);
                 return;
