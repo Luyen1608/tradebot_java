@@ -19,6 +19,7 @@ public class OrderWebhookDTO {
     private int relative_stop_loss;
     private int relative_take_profit;
     private int volume;
+    private String id;
 
     private String type; // Used for "close" operations
 }

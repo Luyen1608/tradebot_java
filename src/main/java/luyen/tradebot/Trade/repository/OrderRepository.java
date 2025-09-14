@@ -23,9 +23,14 @@ public interface OrderRepository extends JpaRepository<OrderEntity, UUID> {
     @Query("SELECT o FROM Order o JOIN o.account a WHERE a.bot.id = ?1 AND o.symbolId = ?2 AND o.status = 'OPEN'")
     List<OrderEntity> findOpenOrdersByBotIdAndSymbolId(UUID botId, Integer symbolId);
 
+//    @Query("SELECT DISTINCT o FROM Order o JOIN o.positions p WHERE o.symbolId = ?1 AND o.tradeSide = ?2 " +
+//            "AND o.status = 'OPEN' AND o.account.bot.signalToken = ?3 AND (o.id_order_fe IS NULL or o.id_order_fe = '') ORDER BY o.createAt desc limit 1")
+//    Optional<OrderEntity>  findOpenOrdersBySymbolIdAndBotSignalTokenAndTradeSide(Integer symbolId, TradeSide tradeSide, String signalToken);
+
     @Query("SELECT DISTINCT o FROM Order o JOIN o.positions p WHERE o.symbolId = ?1 AND o.tradeSide = ?2 " +
-            "AND o.status = 'OPEN' AND o.account.bot.signalToken = ?3 ORDER BY o.createAt desc limit 1")
-    Optional<OrderEntity>  findOpenOrdersBySymbolIdAndBotSignalTokenAndTradeSide(Integer symbolId, TradeSide tradeSide, String signalToken);
+            "AND o.status = 'OPEN' AND o.account.bot.signalToken = ?3 AND o.id_order_fe = ?4 ORDER BY o.createAt desc limit 1")
+    Optional<OrderEntity>  findOpenOrdersBySymbolIdAndBotSignalTokenAndTradeSide(Integer symbolId, TradeSide tradeSide, String signalToken,String idOrderFe);
+
 
     @Modifying
     @Transactional

@@ -64,6 +64,7 @@ public class Convert {
                 .orderType(OrderType.fromString(messageTradingViewDTO.getOrderType()).getValue())
                 .stopLoss((int) stopLos)
                 .takeProfit((int) takeProfit)
+                .id(messageTradingViewDTO.getId())
                 .relative_stop_loss(roundedRelativeStopLoss)
                 .relative_take_profit(roundedRelativeTakeProfit)
                 .volume(volumeInt)

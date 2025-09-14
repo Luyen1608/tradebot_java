@@ -35,6 +35,7 @@ public class OrderEntity extends AbstractEntity {
     private TradeSide tradeSide; // BUY, SELL
 
     private UUID botId;
+    private String id_order_fe;
     private BigDecimal volume;
     private String status; // PENDING, OPEN, CLOSED, CANCELED, ERROR
     private LocalDateTime openTime;

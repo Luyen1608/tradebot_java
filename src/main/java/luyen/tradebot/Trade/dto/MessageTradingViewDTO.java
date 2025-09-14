@@ -31,4 +31,6 @@ public class MessageTradingViewDTO {
     private String relative_take_profit;
     private String stop_loss;
     private String take_profit;
+
+    private String id ="-1";
 }
