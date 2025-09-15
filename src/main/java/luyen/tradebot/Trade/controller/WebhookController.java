@@ -1,5 +1,7 @@
 package luyen.tradebot.Trade.controller;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import luyen.tradebot.Trade.dto.MessageTradingViewDTO;
@@ -19,7 +21,8 @@ public class WebhookController {
     private final OrderService orderService;
 
     @PostMapping("/order")
-    public ResponseEntity<String> processOrder(@RequestBody MessageTradingViewDTO webhookDTO) {
+
+    public ResponseEntity<String> processOrder(@Valid @RequestBody MessageTradingViewDTO webhookDTO) {
 //        log.info("Received order webhook: {}", webhookDTO);
 
         //kiểm tra getAction là ENTER_LONG hoặc ENTER_SHORT thì chạy vào hàm processWebhookclose
