@@ -63,6 +63,10 @@ public enum Symbol {
     LINKUSD(437),
     AAVEUSD(462),
     CAKEUSD(1563),
+    ICPUSDT(1555),
+    ICPUSD(1555),
+    APTUSD(1556),
+    APTUSDT(1556),
     EURCAD(17);
 
     private final int id;
