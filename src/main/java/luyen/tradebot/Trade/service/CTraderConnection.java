@@ -397,6 +397,8 @@ public class CTraderConnection {
                             connectionService.reconnect(this, "");
 //                            System.err.println("Failed to send heartbeat: " + e.getMessage());
                         }
+                    } else {
+                        connectionService.reconnect(this,"");
                     }
                 }
             }, 0, 15, TimeUnit.SECONDS); // ping mỗi 15 giây
