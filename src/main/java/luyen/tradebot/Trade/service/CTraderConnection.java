@@ -382,23 +382,45 @@ public class CTraderConnection {
     public void startPingScheduler() {
         if (pingScheduler == null || pingScheduler.isShutdown()) {
             pingScheduler = Executors.newSingleThreadScheduledExecutor();
+            pingScheduler = Executors.newScheduledThreadPool(2);
             pingScheduler.scheduleAtFixedRate(() -> {
                 synchronized (session) {
-                    if (session != null && session.isOpen()) {
-                        try {
+                    try {
+                        if (session != null && session.isOpen()) {
+                            long startTime = System.nanoTime();
+
                             // 1. Tạo ProtoHeartbeatEvent
                             String message = createHeartbeatMessage();
                             // 2. Gửi qua WebSocket
-                            session.getAsyncRemote().sendText(message);
-//                            System.out.println("Sent ProtoHeartbeatEvent ping to cTrader server...");
-                            accountLogger.info("Sent ProtoHeartbeatEvent ping to cTrader server: Account : {}", accountId);
-                        } catch (Exception e) {
-                            accountLogger.error("Failed to send heartbeat:", e);
-                            connectionService.reconnect(this, "");
-//                            System.err.println("Failed to send heartbeat: " + e.getMessage());
+                            session.getAsyncRemote().sendText(message, result -> {
+                                if (!result.isOK()) {
+                                    accountLogger.error("Lỗi khi gửi heartbeat: {}", result.getException().getMessage());
+                                    connectionService.reconnect(this, "");
+                                    try {
+                                        Thread.sleep(10000);
+                                    } catch (InterruptedException e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                }
+                            });
+    //                            System.out.println("Sent ProtoHeartbeatEvent ping to cTrader server...");
+                            accountLogger.info("Sent ProtoHeartbeatEvent ping to cTrader server: Account : {} : {} ms", accountId, (System.nanoTime() - startTime) / 1_000_000);
+
+                        }else {
+                            accountLogger.warn("Session không hợp lệ hoặc đã đóng cho tài khoản: {}", accountId);
+                            connectionService.reconnect(this,"");
+                            Thread.sleep(10000);
+                            return;
                         }
-                    } else {
-                        connectionService.reconnect(this,"");
+                    } catch (Exception e) {
+                        accountLogger.error("Failed to send heartbeat:", e);
+                        connectionService.reconnect(this, "");
+                        try {
+                            Thread.sleep(10000);
+                        } catch (InterruptedException ex) {
+                            throw new RuntimeException(ex);
+                        }
+//                            System.err.println("Failed to send heartbeat: " + e.getMessage());
                     }
                 }
             }, 0, 15, TimeUnit.SECONDS); // ping mỗi 15 giây
