@@ -429,11 +429,21 @@ public class CTraderConnection {
 
     //create function stop scheduler
     private void stopPingScheduler() {
-        if (pingScheduler != null && !pingScheduler.isShutdown()) {
+    if (pingScheduler != null && !pingScheduler.isShutdown()) {
+        accountLogger.info("Tắt ping scheduler cho tài khoản: {}", accountId);
+        pingScheduler.shutdown();
+        try {
+            if (!pingScheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                accountLogger.warn("Scheduler không dừng trong 5 giây, buộc dừng: {}", accountId);
+                pingScheduler.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            accountLogger.error("Lỗi khi dừng scheduler: {}", e.getMessage());
             pingScheduler.shutdownNow();
-            accountLogger.info("Stopped ping scheduler for account: {}", accountId);
         }
+        pingScheduler = null; // Đặt lại để đảm bảo scheduler mới được tạo
     }
+}
 
     @OnMessage
     public void onMessage(String message) {
@@ -569,10 +579,11 @@ public class CTraderConnection {
         // log clientSessionId
         accountLogger.info("Session close by Client Session Id: {} for account: {}", session.getId(), accountId);
         // Only reconnect if this wasn't a manual disconnect
-
+        stopPingScheduler();
         if (!manualDisconnect) {
             connectionService.reconnect(this, ""); // Tự động reconnect khi đóng
         } else {
+            stopPingScheduler();
             accountLogger.info("Manual disconnect detected for account: {}, not reconnecting", accountId);
         }
     }
@@ -598,8 +609,10 @@ public class CTraderConnection {
         if (session != null && session.isOpen()) {
             try {
                 session.close();
+                stopPingScheduler();
             } catch (Exception e) {
                 accountLogger.error("Failed to close connection for account {}: {}", accountId, e.getMessage(), e);
+                stopPingScheduler();
             }
         }
     }
