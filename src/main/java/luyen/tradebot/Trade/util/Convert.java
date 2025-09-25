@@ -19,9 +19,15 @@ public class Convert {
      * +     * 3478958 -> 3478000
      * +     * 34789589 -> 34789000
      * +     * 347895899 -> 347895000
+     * +    * 123.123 -> 123
+     * +     * 12.12 -> 12.12
      * +
      */
     public static int roundDownToNearestThousand(double value) {
+        // add option abc.xys-> abc
+        if (value < 1000) {
+            return (int) Math.floor(value); // Không làm tròn xuống cho những giá trị nhỏ hơn 1000
+        }
         return (int) (Math.floor(value / 1000) * 1000);
     }
 
