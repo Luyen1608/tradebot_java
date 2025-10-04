@@ -489,7 +489,7 @@ public class CTraderConnection {
                 //check error authen
                 ResponseCtraderDTO res = ValidateRepsone.formatResponse(message);
                 // Xử lý các loại thông báo khác dựa trên payloadType (nếu cần)
-
+                //CH_ACCESS_TOKEN_INVALID-Invalid access token
                 switch (Objects.requireNonNull(payloadTypeEnum)) {
                     case PROTO_OA_CLOSE_POSITION_REQ:
                     case PROTO_OA_EXECUTION_EVENT:

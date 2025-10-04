@@ -1,16 +1,10 @@
 package luyen.tradebot.Trade.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.*;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import luyen.tradebot.Trade.dto.MessageTradingViewDTO;
 import luyen.tradebot.Trade.dto.OrderWebhookDTO;
-import luyen.tradebot.Trade.dto.request.OrderDTO;
 import luyen.tradebot.Trade.dto.request.PlaceOrderRequest;
-import luyen.tradebot.Trade.dto.respone.OrderResponseCtrader;
-import luyen.tradebot.Trade.dto.respone.ResponseCtraderDTO;
 import luyen.tradebot.Trade.model.*;
 import luyen.tradebot.Trade.repository.*;
 import luyen.tradebot.Trade.util.Convert;
@@ -18,7 +12,6 @@ import luyen.tradebot.Trade.util.SaveInfo;
 import luyen.tradebot.Trade.util.ValidateRepsone;
 import luyen.tradebot.Trade.util.enumTraderBot.*;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

@@ -21,9 +21,11 @@ import luyen.tradebot.Trade.util.enumTraderBot.ProtoOAErrorCode;
 import luyen.tradebot.Trade.util.enumTraderBot.ProtoOAExecutionType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.*;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -120,11 +122,74 @@ public class OrderStatusConsumer {
 //                ProtoOAErrorCode protoOAErrorCode = ProtoOAErrorCode.valueOf(res.getErrorCode());
                 account.setIsAuthenticated(false);
             }
+
+//            1. Headers (bắt buộc)
+//            Content-Type: application/json
+//            x-webhook-secret: <ravzit-tidqaf-qurwY7>
+//
+//                    2. Request Body (JSON)
+//                    Cấu trúc:
+//            {
+//                "id": "uuid-of-bot-account",
+//                    "error_message": "Chi tiết lỗi kết nối",
+//                    "error_code": "ERROR_CODE_TYPE"  // Optional
+//            }
+//            url:https://lbvhywxvthwgiebjsrlr.supabase.co/functions/v1/bot-account-error-webhook
+            sendBotAccountErrorWebhook(UUID.fromString(accountId),res.getErrorCode(), res.getDescription());
             accountRepository.save(account);
         } catch (JsonProcessingException e) {
             heartbeatLogger.error("Error parsing message: {}", e.getMessage());
         } catch (Exception e) {
             heartbeatLogger.error("Error processing message: {}", e.getMessage(), e);
+        }
+    }
+    /**
+     * Send bot account error webhook
+     *
+     * @param accountId the account UUID
+     * @param errorMessage the error message
+     * @param errorCode the error code (optional)
+     */
+    private void sendBotAccountErrorWebhook(UUID accountId, String errorMessage, String errorCode) {
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            // Prepare headers
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("x-webhook-secret", "ravzit-tidqaf-qurwY7");
+
+            // Create the request body using ObjectMapper for proper JSON serialization
+            String jsonBody;
+            if (errorCode != null && !errorCode.isEmpty()) {
+                jsonBody = String.format("{\"id\":\"%s\",\"error_message\":\"%s\",\"error_code\":\"%s\"}",
+                        accountId.toString(), errorMessage.replace("\"", "\\\""), errorCode.replace("\"", "\\\""));
+            } else {
+                jsonBody = String.format("{\"id\":\"%s\",\"error_message\":\"%s\"}",
+                        accountId.toString(), errorMessage.replace("\"", "\\\""));
+            }
+
+            // Create the request entity
+            HttpEntity<String> requestEntity = new HttpEntity<>(jsonBody, headers);
+
+            // Log the payload being sent
+            heartbeatLogger.info("Sending bot account error webhook for account: {}", accountId);
+            heartbeatLogger.debug("Webhook payload: {}", jsonBody);
+
+            // Send the POST request
+            String webhookUrl = "https://lbvhywxvthwgiebjsrlr.supabase.co/functions/v1/bot-account-error-webhook";
+            ResponseEntity<String> response = restTemplate.exchange(webhookUrl, HttpMethod.POST, requestEntity, String.class);
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                heartbeatLogger.info("Bot account error webhook sent successfully for account: {}", accountId);
+                heartbeatLogger.debug("Response: {}", response.getBody());
+            } else {
+                heartbeatLogger.error("Failed to send bot account error webhook for account: {}. Status: {}", accountId, response.getStatusCode());
+                heartbeatLogger.error("Response body: {}", response.getBody());
+            }
+        } catch (Exception e) {
+            heartbeatLogger.error("Error sending bot account error webhook for account: {}: {}", accountId, e.getMessage());
+            // Don't rethrow - we don't want webhook failure to break the main flow
         }
     }
     @KafkaListener(topics = "write-log-error", groupId = "tradebot-group")
