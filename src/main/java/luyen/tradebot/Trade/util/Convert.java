@@ -8,6 +8,7 @@ import luyen.tradebot.Trade.util.enumTraderBot.Symbol;
 import luyen.tradebot.Trade.util.enumTraderBot.TradeSide;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -24,11 +25,39 @@ public class Convert {
      * +
      */
     public static int roundDownToNearestThousand(double value) {
-        // add option abc.xys-> abc
-        if (value < 1000) {
-            return (int) Math.floor(value); // Không làm tròn xuống cho những giá trị nhỏ hơn 1000
+        long integerPart = (long) value;
+        // 2. Xác định lũy thừa của 10 để làm tròn (roundingBase)
+        long roundingBase;
+
+        if (integerPart >= 100000000L) { // >= 10^8 (Ví dụ: 123456789)
+            // Trường hợp 123456789.1234 -> 123456000 (Làm tròn đến 1000)
+            roundingBase = 1000;
+        } else if (integerPart >= 1000000L) { // >= 10^6 (Ví dụ: 12345678, 1234567)
+            // Trường hợp 12345678.1234 -> 12345000
+            // và 1234567.1234 -> 1234000.
+            // Cả hai đều làm tròn đến 1000.
+            roundingBase = 1000;
+        } else if (integerPart >= 10000L) { // >= 10^4 (Ví dụ: 12345)
+            // Trường hợp 12345.1234 -> 12000. (Làm tròn đến 1000)
+            roundingBase = 1000;
+        } else if (integerPart >= 1000L) { // >= 10^3 (Ví dụ: 1234)
+            // Trường hợp 1234.1234 -> 1200. (Làm tròn đến 100)
+            roundingBase = 100;
+        } else if (integerPart >= 100L) { // >= 10^2 (Ví dụ: 123)
+            // Trường hợp 123.1234 -> 123. (Làm tròn đến 1)
+            roundingBase = 1;
+        } else { // < 100 (Ví dụ: 12)
+            // Trường hợp 12.1234 -> 12. (Làm tròn đến 1)
+            roundingBase = 1;
         }
-        return (int) (Math.floor(value / 1000) * 1000);
+        // 3. Thực hiện phép làm tròn xuống (floor)
+        // Kỹ thuật: (số / cơ số) * cơ số. Vì chúng ta đang dùng số nguyên,
+        // phép chia sẽ tự động làm tròn xuống (floor).
+        // Phép làm tròn: floor(integerPart / roundingBase) * roundingBase
+        long result = (integerPart / roundingBase) * roundingBase;
+        // 4. Ép kiểu về int và trả về (Chú ý: có thể bị tràn nếu input quá lớn)
+
+        return (int) result;
     }
 
     public static OrderWebhookDTO convertTradeviewToCtrader(MessageTradingViewDTO messageTradingViewDTO) {
