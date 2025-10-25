@@ -6,6 +6,7 @@ import jakarta.persistence.LockModeType;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import luyen.tradebot.Trade.dto.request.AccountCurrentOrderDTO;
 import luyen.tradebot.Trade.dto.request.AccountRequestDTO;
 import luyen.tradebot.Trade.dto.request.AccountSupabaseDTO;
 import luyen.tradebot.Trade.dto.respone.ResponseCtraderDTO;
@@ -66,6 +67,19 @@ public class AccountService {
             throw new RuntimeException("No active connection for this account");
         }
         return cTraderApiService.getTraderAccounts(connection);
+    }
+    public CompletableFuture<String> getListCurrentOrder(UUID accountId, AccountCurrentOrderDTO accountCurrentOrderDTO ) {
+        AccountEntity account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new RuntimeException("Account not found"));
+
+        if (!account.getIsConnected()) {
+            throw new RuntimeException("Account is not connected");
+        }
+        CTraderConnection connection = connectionService.getConnection(accountId);
+        if (connection == null) {
+            throw new RuntimeException("No active connection for this account");
+        }
+        return cTraderApiService.getListCurrentOrder(connection, accountCurrentOrderDTO);
     }
 
     @Transactional

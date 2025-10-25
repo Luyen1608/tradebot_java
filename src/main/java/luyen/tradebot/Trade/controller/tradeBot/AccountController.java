@@ -4,10 +4,7 @@ package luyen.tradebot.Trade.controller.tradeBot;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import luyen.tradebot.Trade.dto.request.AccountRequestDTO;
-import luyen.tradebot.Trade.dto.request.AccountSupabaseDTO;
-import luyen.tradebot.Trade.dto.request.BotSupabaseDTO;
-import luyen.tradebot.Trade.dto.request.WebhookPayload;
+import luyen.tradebot.Trade.dto.request.*;
 import luyen.tradebot.Trade.dto.respone.ApiResponse;
 import luyen.tradebot.Trade.model.AccountEntity;
 import luyen.tradebot.Trade.model.BotsEntity;
@@ -230,6 +227,17 @@ public class AccountController {
     public CompletableFuture<ResponseEntity<String>> getTraderAccounts(
             @PathVariable UUID accountId) {
         return accountService.getTraderAccounts(accountId)
+                .thenApply(ResponseEntity::ok)
+                .exceptionally(ex -> ResponseEntity.status(500).body("⚠ Error: " + ex.getMessage()));
+    }
+    @GetMapping("/{accountId}/get_list_current_order")
+    public CompletableFuture<ResponseEntity<String>> getListCurrentOrder(
+            @PathVariable UUID accountId,  @RequestParam String ctidTraderAccountId,@RequestParam String fromTimestamp,@RequestParam String toTimestamp) {
+        AccountCurrentOrderDTO accountCurrentOrderDTO = AccountCurrentOrderDTO.builder()
+                .ctidTraderAccountId(Integer.parseInt(ctidTraderAccountId))
+                .fromTimestamp(Long.parseLong(fromTimestamp))
+                .toTimestamp(Long.parseLong(toTimestamp)).build();
+        return accountService.getListCurrentOrder(accountId, accountCurrentOrderDTO)
                 .thenApply(ResponseEntity::ok)
                 .exceptionally(ex -> ResponseEntity.status(500).body("⚠ Error: " + ex.getMessage()));
     }

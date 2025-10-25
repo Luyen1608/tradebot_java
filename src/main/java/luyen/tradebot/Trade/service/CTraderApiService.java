@@ -4,6 +4,7 @@ package luyen.tradebot.Trade.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import luyen.tradebot.Trade.dto.request.AccountCurrentOrderDTO;
 import luyen.tradebot.Trade.dto.request.PlaceOrderRequest;
 import luyen.tradebot.Trade.util.enumTraderBot.AccountType;
 import luyen.tradebot.Trade.util.enumTraderBot.PayloadType;
@@ -69,6 +70,11 @@ public class CTraderApiService {
         // Get trader accounts via WebSocket
         return connection.getAccountListByAccessToken();
     }
+    public CompletableFuture<String> getListCurrentOrder(CTraderConnection connection, AccountCurrentOrderDTO currentOrderDTO) {
+        // Get trader accounts via WebSocket
+        return connection.getCurrentOrderList(currentOrderDTO);
+    }
+
 
     public CompletableFuture<String> placeOrder(PlaceOrderRequest request) {
         // Authenticate specific trader account

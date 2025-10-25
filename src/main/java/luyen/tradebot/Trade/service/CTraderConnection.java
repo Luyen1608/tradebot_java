@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.websocket.*;
 import lombok.Data;
+import luyen.tradebot.Trade.dto.request.AccountCurrentOrderDTO;
 import luyen.tradebot.Trade.dto.request.PlaceOrderRequest;
 import luyen.tradebot.Trade.dto.respone.ResponseCtraderDTO;
 import luyen.tradebot.Trade.util.ValidateRepsone;
@@ -302,6 +303,19 @@ public class CTraderConnection {
     public CompletableFuture<String> getAccountListByAccessToken() {
         String message = createGetAccountListMessage();
         return sendRequest(message);
+    }
+    public CompletableFuture<String> getCurrentOrderList(AccountCurrentOrderDTO currentOrderDTO) {
+        StringBuilder jsonBuilder = new StringBuilder();
+        jsonBuilder.append("{");
+        jsonBuilder.append("\"clientMsgId\": \"").append(generateClientMsgId()).append("\",");
+//        jsonBuilder.append("\"payloadType\": 2106,");
+        jsonBuilder.append("\"payloadType\": ").append(PayloadType.PROTO_OA_ORDER_LIST_REQ.getValue()).append(",");
+        jsonBuilder.append("\"payload\": {");
+        jsonBuilder.append("\"ctidTraderAccountId\": ").append(currentOrderDTO.getCtidTraderAccountId()).append(",");
+        jsonBuilder.append("\"fromTimestamp\": ").append(currentOrderDTO.getFromTimestamp()).append(",");
+        jsonBuilder.append("\"toTimestamp\": ").append(currentOrderDTO.getToTimestamp());
+        jsonBuilder.append("}}");
+        return sendRequest(jsonBuilder.toString());
     }
 
     public CompletableFuture<String> authenticateTraderAccount(int ctidTraderAccountId) {

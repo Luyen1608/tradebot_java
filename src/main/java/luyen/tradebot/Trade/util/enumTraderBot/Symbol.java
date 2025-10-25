@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 public enum Symbol {
 
     //Major currency pairs
+    TEST(999),
     EURUSD(1),
     EURUSDT(1),
     GBPUSD(2),
